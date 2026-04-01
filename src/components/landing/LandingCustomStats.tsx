@@ -9,7 +9,6 @@ import {
   TrendingUp,
   Pencil,
   Eye,
-  ArrowLeft,
   BarChart3,
   Target,
   Activity,
@@ -29,6 +28,8 @@ import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGa
 import { AvgWinLossCard } from '@/components/dashboard/analytics/AvgWinLossCard';
 import { ExpectancyCard } from '@/components/dashboard/analytics/ExpectancyCard';
 import { RecoveryFactorChart } from '@/components/dashboard/analytics/RecoveryFactorChart';
+import { Columns2, PanelLeft } from 'lucide-react';
+import { TradeCard } from '@/components/trades/TradeCard';
 import type { Trade } from '@/types/trade';
 import {
   ChipGroup,
@@ -581,66 +582,54 @@ function CardMockup() {
 
 /* Mock trades for real dashboard components in Step 3 */
 const MOCK_DASHBOARD_TRADES: Trade[] = [
-  { id: 'm1', trade_date: '2026-01-06', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 420, risk_reward: 2.5, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm2', trade_date: '2026-01-07', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 380, risk_reward: 2.0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm3', trade_date: '2026-01-08', market: 'DAX', direction: 'Long', trade_outcome: 'Lose', calculated_profit: -150, risk_reward: 0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm4', trade_date: '2026-01-09', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 580, risk_reward: 3.2, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm5', trade_date: '2026-01-13', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 240, risk_reward: 1.5, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm6', trade_date: '2026-01-14', market: 'DAX', direction: 'Long', trade_outcome: 'Lose', calculated_profit: -120, risk_reward: 0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm7', trade_date: '2026-01-15', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 470, risk_reward: 2.8, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm8', trade_date: '2026-01-16', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 450, risk_reward: 2.6, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm9', trade_date: '2026-01-20', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 300, risk_reward: 1.8, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm10', trade_date: '2026-01-21', market: 'DAX', direction: 'Long', trade_outcome: 'Lose', calculated_profit: -160, risk_reward: 0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm11', trade_date: '2026-01-22', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 350, risk_reward: 2.1, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm12', trade_date: '2026-01-23', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 200, risk_reward: 1.2, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm13', trade_date: '2026-01-27', market: 'DAX', direction: 'Long', trade_outcome: 'Lose', calculated_profit: -110, risk_reward: 0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm14', trade_date: '2026-01-28', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 350, risk_reward: 2.0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm1', trade_date: '2026-01-06', trade_time: '09:30', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 420, risk_reward: 2.5, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm2', trade_date: '2026-01-07', trade_time: '10:15', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 380, risk_reward: 2.0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm3', trade_date: '2026-01-08', trade_time: '09:45', market: 'DAX', direction: 'Long', trade_outcome: 'Lose', calculated_profit: -150, risk_reward: 0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm4', trade_date: '2026-01-09', trade_time: '10:00', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 580, risk_reward: 3.2, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
 ] as unknown as Trade[];
+
+type DashboardViewMode = 'grid-4' | 'grid-2' | 'split' | 'table';
 
 const DASHBOARD_CARD_CLASS = 'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm';
 
 function DashboardMockup() {
+  const [viewMode, setViewMode] = useState<DashboardViewMode>('grid-4');
   const netPnl = MOCK_DASHBOARD_TRADES.reduce((s, t) => s + (t.calculated_profit ?? 0), 0);
   const pnlPct = (netPnl / 50000) * 100;
   const wins = MOCK_DASHBOARD_TRADES.filter((t) => t.trade_outcome === 'Win').length;
   const losses = MOCK_DASHBOARD_TRADES.filter((t) => t.trade_outcome === 'Lose').length;
   const winRate = (wins / MOCK_DASHBOARD_TRADES.length) * 100;
+  const noop = () => {};
 
   return (
     <div className="rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-md overflow-hidden">
-      {/* Header — exact same as CustomStatDetailView */}
+      {/* Header */}
       <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 rounded-lg themed-header-icon-box shrink-0">
-                  <LayoutGrid className="h-4 w-4" />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Long DAX Morning
-                </h3>
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg themed-header-icon-box shrink-0">
+                <LayoutGrid className="h-4 w-4" />
               </div>
-              <div className="flex flex-wrap gap-1 mt-2">
-                {['Long', 'DAX', 'London', 'Win', 'Q1', 'Conf: 4', 'Executed'].map((pill) => (
-                  <span
-                    key={pill}
-                    className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-200/70 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300"
-                  >
-                    {pill}
-                  </span>
-                ))}
-              </div>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                Long DAX Morning
+              </h3>
+            </div>
+            <div className="flex flex-wrap gap-1 mt-2">
+              {['Long', 'DAX', 'London', 'Win', 'Q1', 'Conf: 4', 'Executed'].map((pill) => (
+                <span
+                  key={pill}
+                  className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-200/70 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300"
+                >
+                  {pill}
+                </span>
+              ))}
             </div>
           </div>
-          <span className="mt-0.5 inline-flex items-center gap-1.5 h-8 px-3 rounded-xl themed-btn-primary text-white font-semibold border-0 text-xs shrink-0">
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Custom Stats</span>
-          </span>
         </div>
       </div>
 
-      {/* Summary cards — exact same structure as CustomStatDetailView */}
+      {/* Summary cards */}
       <div className="px-5 sm:px-6 py-5">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {/* Net P&L */}
@@ -701,7 +690,7 @@ function DashboardMockup() {
                 <SummaryHalfGauge
                   variant="winRate"
                   valueNormalized={winRate}
-                  centerLabel={`${winRate.toFixed(2)}%`}
+                  centerLabel={`${winRate.toFixed(0)}%`}
                   minLabel="0%"
                   maxLabel="100%"
                 />
@@ -728,43 +717,86 @@ function DashboardMockup() {
           </Card>
         </div>
 
-        {/* Second row — real components */}
+        {/* Second row */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
           <AvgWinLossCard trades={MOCK_DASHBOARD_TRADES} currencySymbol="$" isPro />
           <ExpectancyCard trades={MOCK_DASHBOARD_TRADES} currencySymbol="$" isPro />
           <RecoveryFactorChart recoveryFactor={4.8} isPro />
         </div>
 
-        {/* Trades section */}
+        {/* Trades section — exact same controls as CustomStatDetailView */}
         <div className="mt-6 flex flex-col">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
             <div>
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Trades</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                14 trades matching these filters
+                {MOCK_DASHBOARD_TRADES.length} trades matching these filters
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">Sort by:</span>
-              <span className="inline-flex items-center h-8 px-3 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-900 dark:text-slate-50">
-                Date
-              </span>
+            <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">Sort by:</span>
+                <span className="inline-flex items-center h-8 px-3 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-900 dark:text-slate-50">
+                  Date
+                </span>
+              </div>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">View:</span>
+              <div className="inline-flex h-8 items-center rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none p-0.5">
+                {([
+                  { key: 'grid-2' as const, icon: Columns2, label: '2 cards per row' },
+                  { key: 'grid-4' as const, icon: LayoutGrid, label: '4 cards per row' },
+                  { key: 'split' as const, icon: PanelLeft, label: 'Split view' },
+                ] as const).map(({ key, icon: Icon, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setViewMode(key)}
+                    className={cn(
+                      'rounded-lg h-6 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
+                      viewMode === key
+                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                    )}
+                    aria-label={label}
+                    aria-pressed={viewMode === key}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={cn(
+                    'rounded-lg h-6 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
+                    viewMode === 'table'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  )}
+                  aria-label="Table view"
+                  aria-pressed={viewMode === 'table'}
+                >
+                  Table
+                </button>
+              </div>
             </div>
           </div>
-          {/* Skeleton trade rows */}
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 rounded-lg bg-slate-800/20 border border-slate-700/30 px-3 py-2.5"
-              >
-                <div className="w-8 h-8 rounded-lg bg-slate-700/40 shrink-0" />
-                <div className="flex-1 space-y-1.5">
-                  <div className="h-2.5 rounded-full bg-slate-700/50" style={{ width: `${50 + i * 12}%` }} />
-                  <div className="h-2 rounded-full bg-slate-700/30" style={{ width: `${30 + i * 8}%` }} />
-                </div>
-                <div className="h-2.5 w-16 rounded-full bg-slate-700/40 shrink-0" />
-              </div>
+
+          {/* Trade cards grid */}
+          <div className={cn(
+            'grid gap-4',
+            viewMode === 'grid-4' && 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4',
+            viewMode === 'grid-2' && 'grid-cols-1 sm:grid-cols-2',
+            viewMode === 'split' && 'grid-cols-1 sm:grid-cols-2',
+            viewMode === 'table' && 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4',
+          )}>
+            {MOCK_DASHBOARD_TRADES.map((trade) => (
+              <TradeCard
+                key={trade.id}
+                trade={trade}
+                onOpenModal={noop}
+                hideDetailsLink
+                hideImage
+              />
             ))}
           </div>
         </div>
@@ -1010,7 +1042,7 @@ export function LandingCustomStats() {
                   </div>
 
                   {/* Full-width dashboard mockup */}
-                  <div className="mx-auto max-w-5xl">
+                  <div className="mx-auto max-w-6xl">
                     <DashboardMockup />
                   </div>
                 </div>
