@@ -3,6 +3,7 @@ import { LandingHero } from '@/components/landing/LandingHero';
 import { LandingStatsBoard } from '@/components/landing/LandingStatsBoard';
 import { LandingModes } from '@/components/landing/LandingModes';
 import { LandingFeatures } from '@/components/landing/LandingFeatures';
+import { LandingDailyJournal } from '@/components/landing/LandingDailyJournal';
 import { LandingPricing } from '@/components/pricing/LandingPricing';
 
 export default function Home() {
@@ -27,6 +28,8 @@ export default function Home() {
       <LandingStatsBoard />
 
       <LandingModes />
+
+      <LandingDailyJournal />
 
       <LandingFeatures />
 
