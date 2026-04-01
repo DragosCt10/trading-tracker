@@ -1,15 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   LayoutGrid,
   SlidersHorizontal,
   Filter,
   Compass,
   TrendingUp,
-  TrendingDown,
   Pencil,
-  Trash2,
   Eye,
   ArrowLeft,
   BarChart3,
@@ -20,9 +18,18 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
+import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
+import type { EquityPoint } from '@/components/dashboard/analytics/EquityCurveChart';
+import { TotalTradesDonut } from '@/components/dashboard/analytics/TotalTradesChartCard';
+import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';
+import { AvgWinLossCard } from '@/components/dashboard/analytics/AvgWinLossCard';
+import { ExpectancyCard } from '@/components/dashboard/analytics/ExpectancyCard';
+import { RecoveryFactorChart } from '@/components/dashboard/analytics/RecoveryFactorChart';
+import type { Trade } from '@/types/trade';
 import {
   ChipGroup,
   FieldRow,
@@ -127,7 +134,7 @@ const STEPS = [
 ] as const;
 
 const blurTransition = {
-  duration: 0.8,
+  duration: 0.35,
   ease: [0.25, 0.46, 0.45, 0.94],
 } as const;
 
@@ -136,6 +143,35 @@ const blurTransition = {
 const noop = () => {};
 
 function ModalMockup() {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const hovering = useRef(false);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    let lastTime = 0;
+    const speed = 30; // px per second
+
+    function tick(time: number) {
+      if (lastTime && !hovering.current) {
+        const delta = (time - lastTime) / 1000;
+        const maxScroll = el!.scrollHeight - el!.clientHeight;
+        el!.scrollTop += delta * speed;
+        // Loop back to top when reaching the bottom
+        if (el!.scrollTop >= maxScroll) {
+          el!.scrollTop = 0;
+        }
+      }
+      lastTime = time;
+      rafRef.current = requestAnimationFrame(tick);
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
   return (
     <div className="rounded-2xl border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm shadow-md overflow-hidden flex flex-col max-h-[480px]">
       {/* Modal header — mirrors CustomStatModal header */}
@@ -153,8 +189,13 @@ function ModalMockup() {
         </div>
       </div>
 
-      {/* Scrollable form — uses real FieldRow, ChipGroup, Input, Separator */}
-      <div className="overflow-y-auto flex-1 px-6 py-5 custom-scrollbar">
+      {/* Scrollable form — auto-scrolls, pauses on hover */}
+      <div
+        ref={scrollRef}
+        onMouseEnter={() => { hovering.current = true; }}
+        onMouseLeave={() => { hovering.current = false; }}
+        className="overflow-y-auto flex-1 px-6 py-5 custom-scrollbar"
+      >
         <div className="space-y-5">
           {/* Name */}
           <FieldRow label="Name *">
@@ -433,387 +474,285 @@ function ModalMockup() {
 
 /* ── Step 2: Custom stat card mockup ── */
 
+/* Mock equity data for the card chart */
+const MOCK_EQUITY: EquityPoint[] = [
+  { date: '2026-01-06T09:00:00', profit: 0 },
+  { date: '2026-01-07T10:00:00', profit: 420 },
+  { date: '2026-01-08T11:00:00', profit: 280 },
+  { date: '2026-01-09T14:00:00', profit: 860 },
+  { date: '2026-01-13T09:30:00', profit: 1100 },
+  { date: '2026-01-14T10:00:00', profit: 980 },
+  { date: '2026-01-15T11:00:00', profit: 1450 },
+  { date: '2026-01-16T14:00:00', profit: 1900 },
+  { date: '2026-01-20T09:00:00', profit: 2200 },
+  { date: '2026-01-21T10:30:00', profit: 2050 },
+  { date: '2026-01-22T11:00:00', profit: 2600 },
+  { date: '2026-01-23T14:00:00', profit: 2800 },
+  { date: '2026-01-27T09:30:00', profit: 3200 },
+];
+
+const CARD_PILLS = ['Long', 'DAX', 'London', 'Win', 'Q1'];
+
 function CardMockup() {
   return (
     <div className="max-w-sm mx-auto">
-      <div className="rounded-2xl border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm shadow-md overflow-hidden">
-        {/* Equity curve area */}
-        <div className="h-28 w-full px-3 pt-3 relative">
-          <svg
-            viewBox="0 0 400 100"
-            fill="none"
-            className="w-full h-full"
-            preserveAspectRatio="none"
-          >
-            <defs>
-              <linearGradient
-                id="eq-fill"
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
-                <stop offset="0%" stopColor="var(--tc-primary)" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="var(--tc-primary)" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            {/* Fill area */}
-            <path
-              d="M0 80 Q50 75 80 60 Q120 40 160 45 Q200 50 240 30 Q280 15 320 20 Q360 25 400 10 L400 100 L0 100 Z"
-              fill="url(#eq-fill)"
-            />
-            {/* Line */}
-            <path
-              d="M0 80 Q50 75 80 60 Q120 40 160 45 Q200 50 240 30 Q280 15 320 20 Q360 25 400 10"
-              stroke="var(--tc-primary)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              fill="none"
-            />
-          </svg>
+      <Card className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
+        {/* Equity chart — exact same as CustomStatCardItem */}
+        <div className="h-24 w-full px-3 pt-3">
+          <EquityCurveChart
+            data={MOCK_EQUITY}
+            currencySymbol="$"
+            hasTrades
+            isLoading={false}
+            variant="card"
+            hideAxisLabels
+          />
         </div>
 
-        {/* Card info */}
+        {/* Card info — exact same structure as CustomStatCardItem */}
         <div className="px-4 pt-3 pb-4">
-          {/* Name + P&L badge */}
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-slate-100">
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 line-clamp-1 min-w-0">
               Long DAX Morning
             </p>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-800">
-                +6.40%
-              </span>
+            <div className="flex items-start shrink-0">
+              <div className="inline-flex items-center gap-1.5">
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                  +6.40%
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Stats row */}
-          <div className="flex items-end justify-between gap-4 mt-3">
-            <div className="flex items-center gap-5">
+          <div className="flex items-end justify-between gap-4 mt-2">
+            <div className="flex items-center gap-4">
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-slate-400">
-                  Win Rate
-                </p>
-                <p className="text-sm font-semibold text-slate-100">
-                  62%
-                </p>
+                <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Win Rate</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">62%</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-slate-400">
-                  Trades
-                </p>
-                <p className="text-sm font-semibold text-slate-100">14</p>
+                <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Trades</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">14</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[10px] uppercase tracking-wide text-slate-400">
-                Net P&L
-              </p>
-              <p className="text-sm font-semibold text-white">
-                +$3,200.00
-              </p>
+              <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Net P&amp;L</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">+$3,200.00</p>
             </div>
           </div>
 
           {/* Filter pills */}
           <div className="flex flex-wrap items-center gap-1 mt-3">
-            {['Long', 'DAX', 'London', 'Win', 'Q1'].map((pill) => (
+            {CARD_PILLS.map((pill) => (
               <span
                 key={pill}
-                className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-700/60 text-slate-300"
+                className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-200/70 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300"
               >
                 {pill}
               </span>
             ))}
           </div>
 
-          {/* Divider */}
-          <div className="mt-3 h-px bg-slate-700/40" />
-
-          {/* Actions */}
-          <div className="mt-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700/60 bg-slate-800/50 text-xs font-medium text-slate-300">
-                <Pencil className="h-3 w-3" />
-                Edit
-              </span>
-              <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-orange-500 text-white">
-                <Trash2 className="h-3.5 w-3.5" />
-              </span>
-            </div>
-            <span className="inline-flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-              <Eye className="h-3.5 w-3.5" />
-              <span className="underline underline-offset-2">
-                View Details
-              </span>
+          {/* Bottom action row */}
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-700/50">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 rounded-xl px-3 text-xs cursor-pointer transition-colors duration-200 border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium"
+            >
+              <Pencil className="h-3 w-3 mr-1" />
+              Edit
+            </Button>
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-700 dark:text-slate-400 underline underline-offset-2">
+              <Eye className="h-3 w-3" />
+              View Details
             </span>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
 
 /* ── Step 3: Detail dashboard mockup ── */
 
-function MiniGauge({
-  value,
-  label,
-  min,
-  max,
-  color,
-}: {
-  value: string;
-  label: string;
-  min: string;
-  max: string;
-  color: string;
-}) {
-  return (
-    <div className="flex flex-col items-center">
-      {/* Semicircle gauge */}
-      <div className="relative w-24 h-14 sm:w-28 sm:h-16">
-        {/* Track */}
-        <svg viewBox="0 0 120 70" className="w-full h-full">
-          <path
-            d="M 10 65 A 50 50 0 0 1 110 65"
-            fill="none"
-            stroke="rgba(100,116,139,0.2)"
-            strokeWidth="8"
-            strokeLinecap="round"
-          />
-          <path
-            d="M 10 65 A 50 50 0 0 1 110 65"
-            fill="none"
-            stroke={color}
-            strokeWidth="8"
-            strokeLinecap="round"
-            strokeDasharray="157"
-            strokeDashoffset="60"
-          />
-        </svg>
-        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 text-lg sm:text-xl font-bold text-slate-100">
-          {value}
-        </span>
-      </div>
-      <div className="flex justify-between w-full px-1 mt-1">
-        <span className="text-[10px] text-slate-500">{min}</span>
-        <span className="text-[10px] text-slate-500">{max}</span>
-      </div>
-      <p className="text-[10px] uppercase tracking-wider text-slate-400 mt-0.5">
-        {label}
-      </p>
-    </div>
-  );
-}
+/* Mock trades for real dashboard components in Step 3 */
+const MOCK_DASHBOARD_TRADES: Trade[] = [
+  { id: 'm1', trade_date: '2026-01-06', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 420, risk_reward: 2.5, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm2', trade_date: '2026-01-07', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 380, risk_reward: 2.0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm3', trade_date: '2026-01-08', market: 'DAX', direction: 'Long', trade_outcome: 'Lose', calculated_profit: -150, risk_reward: 0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm4', trade_date: '2026-01-09', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 580, risk_reward: 3.2, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm5', trade_date: '2026-01-13', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 240, risk_reward: 1.5, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm6', trade_date: '2026-01-14', market: 'DAX', direction: 'Long', trade_outcome: 'Lose', calculated_profit: -120, risk_reward: 0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm7', trade_date: '2026-01-15', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 470, risk_reward: 2.8, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm8', trade_date: '2026-01-16', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 450, risk_reward: 2.6, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm9', trade_date: '2026-01-20', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 300, risk_reward: 1.8, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm10', trade_date: '2026-01-21', market: 'DAX', direction: 'Long', trade_outcome: 'Lose', calculated_profit: -160, risk_reward: 0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm11', trade_date: '2026-01-22', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 350, risk_reward: 2.1, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm12', trade_date: '2026-01-23', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 200, risk_reward: 1.2, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm13', trade_date: '2026-01-27', market: 'DAX', direction: 'Long', trade_outcome: 'Lose', calculated_profit: -110, risk_reward: 0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm14', trade_date: '2026-01-28', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 350, risk_reward: 2.0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+] as unknown as Trade[];
+
+const DASHBOARD_CARD_CLASS = 'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm';
 
 function DashboardMockup() {
+  const netPnl = MOCK_DASHBOARD_TRADES.reduce((s, t) => s + (t.calculated_profit ?? 0), 0);
+  const pnlPct = (netPnl / 50000) * 100;
+  const wins = MOCK_DASHBOARD_TRADES.filter((t) => t.trade_outcome === 'Win').length;
+  const losses = MOCK_DASHBOARD_TRADES.filter((t) => t.trade_outcome === 'Lose').length;
+  const winRate = (wins / MOCK_DASHBOARD_TRADES.length) * 100;
+
   return (
-    <div className="rounded-2xl border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm shadow-md overflow-hidden">
-      {/* Header */}
-      <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-slate-700/40">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg themed-header-icon-box">
-              <LayoutGrid className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-slate-100">
-                Long DAX Morning
-              </h3>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {['Long', 'DAX', 'London', 'Win', 'Q1', 'Conf: 4', 'Executed'].map(
-                  (pill) => (
-                    <span
-                      key={pill}
-                      className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-700/60 text-slate-300"
-                    >
-                      {pill}
-                    </span>
-                  )
-                )}
+    <div className="rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-md overflow-hidden">
+      {/* Header — exact same as CustomStatDetailView */}
+      <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg themed-header-icon-box shrink-0">
+                  <LayoutGrid className="h-4 w-4" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Long DAX Morning
+                </h3>
+              </div>
+              <div className="flex flex-wrap gap-1 mt-2">
+                {['Long', 'DAX', 'London', 'Win', 'Q1', 'Conf: 4', 'Executed'].map((pill) => (
+                  <span
+                    key={pill}
+                    className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-200/70 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300"
+                  >
+                    {pill}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700/60 bg-slate-800/50 text-xs font-medium text-slate-300 self-start sm:self-auto">
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to Custom Stats
+          <span className="mt-0.5 inline-flex items-center gap-1.5 h-8 px-3 rounded-xl themed-btn-primary text-white font-semibold border-0 text-xs shrink-0">
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back to Custom Stats</span>
           </span>
         </div>
       </div>
 
-      {/* Summary cards */}
+      {/* Summary cards — exact same structure as CustomStatDetailView */}
       <div className="px-5 sm:px-6 py-5">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {/* Net P&L */}
-          <div className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-4">
-            <p className="text-[10px] uppercase tracking-wider text-slate-400">
-              Net P&L
-            </p>
-            <div className="flex items-center gap-2 mt-1">
-              <p className="text-xl font-bold text-slate-100">$3,200</p>
-              <div className="flex items-center gap-1">
-                <TrendingUp className="w-3 h-3 text-emerald-500" />
-                <span className="text-[11px] font-bold text-emerald-400">
-                  +6.40%
-                </span>
+          <Card className={DASHBOARD_CARD_CLASS}>
+            <CardContent className="p-4 flex flex-col h-full">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Net P&amp;L</p>
+                  <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+                    ${netPnl.toFixed(2)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                  <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                    +{pnlPct.toFixed(2)}%
+                  </div>
+                </div>
               </div>
-            </div>
-            {/* Mini equity line */}
-            <svg
-              viewBox="0 0 200 40"
-              fill="none"
-              className="w-full h-8 mt-2"
-              preserveAspectRatio="none"
-            >
-              <path
-                d="M0 35 Q30 30 50 24 Q80 15 110 18 Q140 22 170 10 Q185 6 200 4"
-                stroke="var(--tc-primary)"
-                strokeWidth="2"
-                fill="none"
-              />
-            </svg>
-          </div>
+              <div className="flex-1 min-h-[80px]">
+                <EquityCurveChart
+                  data={MOCK_EQUITY}
+                  currencySymbol="$"
+                  hasTrades
+                  isLoading={false}
+                  variant="card"
+                  hideAxisLabels
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Total Trades */}
-          <div className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-4 flex flex-col items-center justify-center">
-            <p className="text-[10px] uppercase tracking-wider text-slate-400">
-              Total Trades
-            </p>
-            {/* Donut */}
-            <div className="relative w-16 h-16 mt-2">
-              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="14"
-                  fill="none"
-                  stroke="rgba(239,68,68,0.3)"
-                  strokeWidth="3.5"
+          <Card className={DASHBOARD_CARD_CLASS}>
+            <CardContent className="p-4 flex flex-col h-full">
+              <div className="mb-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Total Trades</p>
+              </div>
+              <div className="flex-1 h-32 min-h-[7rem] w-full">
+                <TotalTradesDonut
+                  totalTrades={MOCK_DASHBOARD_TRADES.length}
+                  wins={wins}
+                  losses={losses}
+                  beTrades={0}
+                  variant="compact"
                 />
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="14"
-                  fill="none"
-                  stroke="#34d399"
-                  strokeWidth="3.5"
-                  strokeDasharray="88"
-                  strokeDashoffset="33"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-slate-100">
-                14
-              </span>
-            </div>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Win Rate */}
-          <div className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-4 flex flex-col items-center justify-center">
-            <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">
-              Win Rate
-            </p>
-            <MiniGauge
-              value="62%"
-              label=""
-              min="0%"
-              max="100%"
-              color="#3b82f6"
-            />
-          </div>
+          <Card className={DASHBOARD_CARD_CLASS}>
+            <CardContent className="p-4 flex flex-col h-full">
+              <div className="mb-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Win Rate</p>
+              </div>
+              <div className="flex-1 h-32 min-h-[7rem] relative w-full">
+                <SummaryHalfGauge
+                  variant="winRate"
+                  valueNormalized={winRate}
+                  centerLabel={`${winRate.toFixed(2)}%`}
+                  minLabel="0%"
+                  maxLabel="100%"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Avg Drawdown */}
-          <div className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-4 flex flex-col items-center justify-center">
-            <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">
-              Avg Drawdown
-            </p>
-            <MiniGauge
-              value="0.45%"
-              label=""
-              min="0%"
-              max="20%"
-              color="#8b5cf6"
-            />
-          </div>
+          <Card className={DASHBOARD_CARD_CLASS}>
+            <CardContent className="p-4 flex flex-col h-full">
+              <div className="mb-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Avg Drawdown</p>
+              </div>
+              <div className="flex-1 h-32 min-h-[7rem] relative w-full">
+                <SummaryHalfGauge
+                  variant="avgDrawdown"
+                  valueNormalized={2.25}
+                  centerLabel="0.45%"
+                  minLabel="0%"
+                  maxLabel="20%"
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Secondary cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
-          {/* Avg Win / Avg Loss */}
-          <div className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-4">
-            <p className="text-xs font-semibold text-slate-200">
-              Avg Win / Avg Loss
-            </p>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              Win size vs loss size
-            </p>
-            <p className="text-2xl font-bold text-slate-100 mt-3">
-              3.20x{' '}
-              <span className="text-xs font-normal text-slate-400">
-                W/L Ratio
-              </span>
-            </p>
-            <div className="flex justify-between mt-2 text-[11px]">
-              <span className="text-emerald-400">$480 avg win</span>
-              <span className="text-rose-400">$150 avg loss</span>
-            </div>
-          </div>
-
-          {/* Expectancy */}
-          <div className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-4 flex flex-col items-center">
-            <p className="text-xs font-semibold text-slate-200 self-start">
-              Expectancy
-            </p>
-            <p className="text-[11px] text-slate-400 mt-0.5 self-start">
-              Expected return per trade
-            </p>
-            <MiniGauge
-              value="+$228"
-              label=""
-              min="Neg"
-              max="Pos"
-              color="#3b82f6"
-            />
-          </div>
-
-          {/* Recovery Factor */}
-          <div className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-4 flex flex-col items-center">
-            <p className="text-xs font-semibold text-slate-200 self-start">
-              Recovery Factor
-            </p>
-            <p className="text-[11px] text-slate-400 mt-0.5 self-start">
-              Profit vs max drawdown
-            </p>
-            <MiniGauge
-              value="4.8+"
-              label=""
-              min="0"
-              max="5.0"
-              color="#3b82f6"
-            />
-          </div>
+        {/* Second row — real components */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
+          <AvgWinLossCard trades={MOCK_DASHBOARD_TRADES} currencySymbol="$" isPro />
+          <ExpectancyCard trades={MOCK_DASHBOARD_TRADES} currencySymbol="$" isPro />
+          <RecoveryFactorChart recoveryFactor={4.8} isPro />
         </div>
 
-        {/* Trades section hint */}
-        <div className="mt-4 pt-4 border-t border-slate-700/30">
-          <div className="flex items-center justify-between">
+        {/* Trades section */}
+        <div className="mt-6 flex flex-col">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
             <div>
-              <p className="text-sm font-semibold text-slate-200">Trades</p>
-              <p className="text-xs text-slate-400">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Trades</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 14 trades matching these filters
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-slate-500">Sort by:</span>
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg border border-slate-700/50 bg-slate-800/40 text-xs text-slate-300">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">Sort by:</span>
+              <span className="inline-flex items-center h-8 px-3 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-900 dark:text-slate-50">
                 Date
               </span>
             </div>
           </div>
           {/* Skeleton trade rows */}
-          <div className="mt-3 space-y-2">
+          <div className="space-y-2">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
@@ -821,14 +760,8 @@ function DashboardMockup() {
               >
                 <div className="w-8 h-8 rounded-lg bg-slate-700/40 shrink-0" />
                 <div className="flex-1 space-y-1.5">
-                  <div
-                    className="h-2.5 rounded-full bg-slate-700/50"
-                    style={{ width: `${50 + i * 12}%` }}
-                  />
-                  <div
-                    className="h-2 rounded-full bg-slate-700/30"
-                    style={{ width: `${30 + i * 8}%` }}
-                  />
+                  <div className="h-2.5 rounded-full bg-slate-700/50" style={{ width: `${50 + i * 12}%` }} />
+                  <div className="h-2 rounded-full bg-slate-700/30" style={{ width: `${30 + i * 8}%` }} />
                 </div>
                 <div className="h-2.5 w-16 rounded-full bg-slate-700/40 shrink-0" />
               </div>
@@ -960,7 +893,7 @@ export function LandingCustomStats() {
             >
               {activeStep < 2 ? (
                 /* Steps 1 & 2: two-column layout */
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
                   {/* Left: text */}
                   <div className="lg:pt-4">
                     <div className="inline-flex items-center gap-2 mb-4">
