@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteAccount, updateAccount } from '@/lib/server/accounts';
+import { setLastAccountPreference } from '@/utils/lastAccountCookie';
 import { getTradeCountForAccount } from '@/lib/server/trades';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { Loader2, Pencil } from 'lucide-react';
@@ -172,7 +173,8 @@ export function EditAccountAlertDialog({
         return;
       }
 
-      onUpdated?.(data as AccountSettings);
+      const updated = data as AccountSettings;
+      onUpdated?.(updated);
 
       // Invalidate account-related caches so UI updates immediately (no hard refresh)
       await queryClient.invalidateQueries({
@@ -187,11 +189,20 @@ export function EditAccountAlertDialog({
       const selectionKey = ['actionBar:selection'] as const;
       const currentSelection = queryClient.getQueryData(selectionKey) as { mode: string; activeAccount: { id: string } | null } | undefined;
       if (currentSelection?.activeAccount?.id === account.id) {
-        const updatedMode = (data as any).mode ?? currentSelection.mode;
-        queryClient.setQueryData(selectionKey, { ...currentSelection, mode: updatedMode, activeAccount: data });
+        const updatedMode = updated.mode ?? currentSelection.mode;
+        queryClient.setQueryData(selectionKey, { ...currentSelection, mode: updatedMode, activeAccount: updated });
 
-        // When mode changed, invalidate trade queries so they refetch for the new mode
+        // When mode changed, update cookie and invalidate trade queries so they refetch for the new mode
         if (updatedMode !== currentSelection.mode) {
+          // Update cookie so next page load/login picks the correct mode
+          const uid = userId?.user?.id;
+          if (uid) {
+            const allAccounts = queryClient.getQueryData<{ id: string; mode: string }[]>(['accounts:all', uid]) ?? [];
+            const accountsForNewMode = allAccounts.filter((a) => a.mode === updatedMode);
+            const idx = accountsForNewMode.findIndex((a) => a.id === account.id);
+            setLastAccountPreference(updatedMode, idx >= 0 ? idx : 0);
+          }
+
           const tradeKeys = ['allTrades', 'filteredTrades', 'nonExecutedTrades', 'strategies-overview'];
           queryClient.invalidateQueries({
             predicate: (q) => tradeKeys.includes((q.queryKey?.[0] as string) ?? ''),
