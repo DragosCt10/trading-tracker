@@ -139,6 +139,26 @@ export async function updateAccount(
   if (!user) return { data: null, error: { message: 'Unauthorized' } };
   const supabase = await createClient();
 
+  // If mode or balance is changing, check if account has trades (immutable after first trade)
+  const { data: existing } = await supabase
+    .from('account_settings')
+    .select('mode, account_balance')
+    .eq('id', accountId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (existing && (params.mode !== existing.mode || params.account_balance !== existing.account_balance)) {
+    const { count: tradeCount } = await supabase
+      .from(`${existing.mode}_trades`)
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('account_id', accountId);
+
+    if ((tradeCount ?? 0) > 0) {
+      return { data: null, error: { message: 'Cannot change mode or balance when trades exist.' } };
+    }
+  }
+
   const { data, error } = await supabase
     .from('account_settings')
     .update({
