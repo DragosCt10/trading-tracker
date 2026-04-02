@@ -5,6 +5,7 @@ import { LandingModes } from '@/components/landing/LandingModes';
 import { LandingFutureEquity } from '@/components/landing/LandingFutureEquity';
 import { LandingDailyJournal } from '@/components/landing/LandingDailyJournal';
 import { LandingCustomStats } from '@/components/landing/LandingCustomStats';
+import { LandingAiVision } from '@/components/landing/LandingAiVision';
 import { LandingPricing } from '@/components/pricing/LandingPricing';
 
 export default function Home() {
@@ -33,6 +34,8 @@ export default function Home() {
       <LandingDailyJournal />
 
       <LandingCustomStats />
+
+      <LandingAiVision />
 
       <LandingFutureEquity />
 

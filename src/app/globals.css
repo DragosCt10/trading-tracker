@@ -520,11 +520,36 @@
   animation: pnl-glow 3s ease-in-out infinite;
 }
 
+/* ── AI Vision section ── */
+@keyframes ai-hub-glow {
+  0%, 100% { box-shadow: 0 0 8px color-mix(in oklch, var(--tc-primary) 25%, transparent), 0 0 24px color-mix(in oklch, var(--tc-primary) 10%, transparent); }
+  50% { box-shadow: 0 0 16px color-mix(in oklch, var(--tc-primary) 50%, transparent), 0 0 48px color-mix(in oklch, var(--tc-primary) 20%, transparent); }
+}
+
+.ai-hub-glow {
+  animation: ai-hub-glow 3s ease-in-out infinite;
+}
+
+/* Spoke path draw-in */
+.ai-spoke-path {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-reveal-visible .ai-spoke-path {
+  stroke-dashoffset: 0;
+  transition-delay: var(--spoke-delay, 0.4s);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .scroll-reveal-visible.stats-card-float { animation: none; }
   .sparkline-path { stroke-dashoffset: 0; }
   .scroll-reveal-visible .sparkline-path { animation: none; stroke-dashoffset: 0; }
   .pnl-badge-glow { animation: none; }
+  .ai-hub-glow { animation: none; }
+  .ai-spoke-path { stroke-dashoffset: 0; transition: none; }
+  .ai-spoke-path animateMotion { animation-play-state: paused; }
 }
 
 /* Landing preview cards — disable clicks on buttons but keep them visible */
