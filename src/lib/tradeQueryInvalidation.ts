@@ -45,7 +45,7 @@ export async function invalidateAndRefetchTradeQueries({
       if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') {
         return affectedStrategyIds.has((key[7] ?? null) as string | null);
       }
-      if (firstKey === 'dashboardStats' || firstKey === 'calendarTrades') {
+      if (firstKey === 'dashboardStats' || firstKey === 'calendarTrades' || firstKey === 'compactTrades') {
         return affectedStrategyIds.has((key[4] ?? null) as string | null);
       }
       return false;
@@ -72,7 +72,7 @@ export async function invalidateAndRefetchTradeQueries({
       const key = query.queryKey;
       if (!Array.isArray(key)) return false;
       const firstKey = key[0];
-      if (firstKey === 'dashboardStats' || firstKey === 'calendarTrades') {
+      if (firstKey === 'dashboardStats' || firstKey === 'calendarTrades' || firstKey === 'compactTrades') {
         return affectedStrategyIdsArray.includes((key[4] ?? null) as string | null);
       }
       if (firstKey === 'filteredTrades') {
