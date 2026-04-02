@@ -56,7 +56,7 @@ interface EditAccountAlertDialogProps {
   account: AccountSettings | null;
   onUpdated?: (updated: AccountSettings) => void;
   onDeleted?: () => void;
-  /** When false, the delete button is disabled (e.g. last demo account). Defaults to true. */
+  /** When false, the delete button is disabled (e.g. last remaining account). Defaults to true. */
   isDeletable?: boolean;
 }
 
@@ -451,7 +451,7 @@ export function EditAccountAlertDialog({
                       </TooltipTrigger>
                       {!isDeletable && (
                         <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
-                          You must keep at least one demo account. Create another demo account before deleting this one.
+                          You must keep at least one account. Create another account before deleting this one.
                         </TooltipContent>
                       )}
                     </Tooltip>
