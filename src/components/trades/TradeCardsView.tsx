@@ -524,7 +524,7 @@ export function TradeCardsView({
                     className="cursor-pointer rounded-xl px-4 py-2 text-sm transition-all duration-200 border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 disabled:opacity-60 flex items-center gap-2"
                   >
                     <MoveRight className="h-4 w-4" />
-                    {bulkMoving ? 'Moving…' : `Move to strategy`}
+                    {bulkMoving ? 'Moving…' : selectedIds.size === 1 ? 'Move trade' : 'Move trades'}
                   </Button>
                 )}
                 {onBulkTag && savedTags && savedTags.length > 0 && (
