@@ -20,7 +20,7 @@ import { StrategySelectPopover } from '@/components/shared/StrategySelectPopover
 import { CreateStrategyModal } from '@/components/CreateStrategyModal';
 import { useStrategies } from '@/hooks/useStrategies';
 import { useSubscription } from '@/hooks/useSubscription';
-import { queryKeys } from '@/lib/queryKeys';
+import { queryKeys, TRADE_QUERY_PREFIXES } from '@/lib/queryKeys';
 import type { Strategy } from '@/types/strategy';
 import { Plus } from 'lucide-react';
 
@@ -145,9 +145,8 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
           if (index >= 0) setLastAccountPreference(mode, index);
         }
 
-        const keysToInvalidate = ['allTrades', 'filteredTrades', 'nonExecutedTrades', 'strategies-overview'];
         queryClient.invalidateQueries({
-          predicate: (q) => keysToInvalidate.includes((q.queryKey?.[0] as string) ?? ''),
+          predicate: (q) => TRADE_QUERY_PREFIXES.has((q.queryKey?.[0] as string) ?? ''),
         });
         refetchAccounts();
       } finally {

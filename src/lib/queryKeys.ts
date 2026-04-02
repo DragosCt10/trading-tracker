@@ -189,3 +189,21 @@ export const queryKeys = {
   ) => ['calendarTrades', mode, accountId, userId, strategyId, startDate, endDate] as const,
 
 } as const;
+
+/**
+ * Every query-key prefix that holds trade-related data.
+ * Import this wherever you need to invalidate "all trade caches" after a
+ * mutation (delete, move, tag, account switch, etc.) so new prefixes only
+ * need to be added in one place.
+ */
+export const TRADE_QUERY_PREFIXES = new Set([
+  'allTrades',
+  'filteredTrades',
+  'nonExecutedTrades',
+  'dashboardStats',
+  'calendarTrades',
+  'compactTrades',
+  'strategies-overview',
+  'all-strategy-trades',
+  'all-strategy-stats',
+]);

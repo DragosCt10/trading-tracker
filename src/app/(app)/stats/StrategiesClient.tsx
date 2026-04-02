@@ -6,7 +6,7 @@ import { useStrategyClientContext } from '@/hooks/useStrategyClientContext';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TRADES_DATA } from '@/constants/queryConfig';
-import { queryKeys } from '@/lib/queryKeys';
+import { queryKeys, TRADE_QUERY_PREFIXES } from '@/lib/queryKeys';
 import { getStrategiesOverview, type StrategiesOverviewResult } from '@/lib/server/strategiesOverview';
 import type { AccountRow, AccountMode } from '@/lib/server/accounts';
 import type { Strategy } from '@/types/strategy';
@@ -272,11 +272,15 @@ export function StrategiesClient({
       const result = await permanentlyDeleteStrategy(strategyId, userId);
       if (!result.error) {
         refreshStrategiesData();
+        // Permanent delete cascade-deletes trades — clear all trade caches
+        void queryClient.invalidateQueries({
+          predicate: (q) => Array.isArray(q.queryKey) && TRADE_QUERY_PREFIXES.has(q.queryKey[0] as string),
+        });
       }
     } finally {
       setDeletingStrategyId(null);
     }
-  }, [refreshStrategiesData, userId]);
+  }, [refreshStrategiesData, userId, queryClient]);
 
 
   return (

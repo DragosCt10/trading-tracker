@@ -6,6 +6,7 @@ import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteAccount, updateAccount } from '@/lib/server/accounts';
 import { setLastAccountPreference } from '@/utils/lastAccountCookie';
+import { TRADE_QUERY_PREFIXES } from '@/lib/queryKeys';
 import { getTradeCountForAccount } from '@/lib/server/trades';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { Loader2, Pencil } from 'lucide-react';
@@ -203,9 +204,8 @@ export function EditAccountAlertDialog({
             setLastAccountPreference(updatedMode, idx >= 0 ? idx : 0);
           }
 
-          const tradeKeys = ['allTrades', 'filteredTrades', 'nonExecutedTrades', 'strategies-overview'];
           queryClient.invalidateQueries({
-            predicate: (q) => tradeKeys.includes((q.queryKey?.[0] as string) ?? ''),
+            predicate: (q) => TRADE_QUERY_PREFIXES.has((q.queryKey?.[0] as string) ?? ''),
           });
         }
       }
@@ -245,16 +245,7 @@ export function EditAccountAlertDialog({
           const key = query.queryKey;
           if (!Array.isArray(key)) return false;
           const first = key[0] as string;
-          return (
-            first === 'accounts:list' ||
-            first === 'accounts:all' ||
-            first === 'allTrades' ||
-            first === 'filteredTrades' ||
-            first === 'nonExecutedTrades' ||
-            first === 'all-strategy-trades' ||
-            first === 'all-strategy-stats' ||
-            first === 'strategies-overview'
-          );
+          return first === 'accounts:list' || first === 'accounts:all' || TRADE_QUERY_PREFIXES.has(first);
         },
       });
       setOpen(false);

@@ -17,7 +17,7 @@ import {
   createAllTimeRange,
   DateRangeState,
 } from '@/utils/dateRangeHelpers';
-import { queryKeys } from '@/lib/queryKeys';
+import { queryKeys, TRADE_QUERY_PREFIXES } from '@/lib/queryKeys';
 import { useStrategies } from '@/hooks/useStrategies';
 import { exportTradesToCsv } from '@/utils/exportTradesToCsv';
 import { Button } from '@/components/ui/button';
@@ -406,12 +406,8 @@ export default function MyTradesClient({
       // Invalidate all trade + stats caches — refetchType:'all' forces a background
       // refetch of inactive queries too (e.g. StrategyClient while unmounted),
       // so the data is fresh before the user navigates back.
-      const TRADE_PREFIXES = new Set([
-        'allTrades', 'filteredTrades', 'nonExecutedTrades',
-        'dashboardStats', 'calendarTrades', 'compactTrades', 'strategies-overview',
-      ]);
       queryClient.invalidateQueries({
-        predicate: (q) => Array.isArray(q.queryKey) && TRADE_PREFIXES.has(q.queryKey[0] as string),
+        predicate: (q) => Array.isArray(q.queryKey) && TRADE_QUERY_PREFIXES.has(q.queryKey[0] as string),
         refetchType: 'all',
       });
       // Tell StrategyClient's hydrateQueryCache to skip stale server-props on next mount
@@ -435,12 +431,8 @@ export default function MyTradesClient({
       // Invalidate all trade + stats caches — refetchType:'all' forces a background
       // refetch of inactive queries too (e.g. Analytics cards while unmounted),
       // so the data is fresh before the user navigates back.
-      const TRADE_PREFIXES = new Set([
-        'allTrades', 'filteredTrades', 'nonExecutedTrades',
-        'dashboardStats', 'calendarTrades', 'compactTrades', 'strategies-overview',
-      ]);
       queryClient.invalidateQueries({
-        predicate: (q) => Array.isArray(q.queryKey) && TRADE_PREFIXES.has(q.queryKey[0] as string),
+        predicate: (q) => Array.isArray(q.queryKey) && TRADE_QUERY_PREFIXES.has(q.queryKey[0] as string),
         refetchType: 'all',
       });
       // Tell StrategyClient's hydrateQueryCache to skip stale server-props on next mount
@@ -467,19 +459,12 @@ export default function MyTradesClient({
         console.error('Bulk tag error:', error);
         return;
       }
+      // Invalidate all trade caches so tag changes are reflected everywhere
       queryClient.invalidateQueries({
-        queryKey: queryKeys.trades.filtered(
-          mode,
-          activeAccount.id,
-          userId,
-          'dateRange',
-          '2000-01-01',
-          todayStr,
-          initialStrategyId
-        ),
+        predicate: (q) => Array.isArray(q.queryKey) && TRADE_QUERY_PREFIXES.has(q.queryKey[0] as string),
       });
     },
-    [mode, activeAccount?.id, userId, todayStr, initialStrategyId, queryClient]
+    [mode, activeAccount?.id, queryClient]
   );
 
   if (activeAccount && tradesLoading && !isInitialContext) {
