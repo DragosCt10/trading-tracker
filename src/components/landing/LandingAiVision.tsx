@@ -126,46 +126,65 @@ function FlowArrow() {
   );
 }
 
-/* ── Spotlight beam — single centered light from top ── */
-function SpotlightBeam() {
-  const beamBase = 'absolute left-0 right-0 mx-auto rounded-b-[50%] pointer-events-none';
-  const conicGradient =
-    'conic-gradient(from 0deg at 50% -5%, transparent 45%, color-mix(in oklch, var(--tc-primary, #a855f7) 30%, transparent) 49%, color-mix(in oklch, var(--tc-primary, #a855f7) 50%, transparent) 50%, color-mix(in oklch, var(--tc-primary, #a855f7) 30%, transparent) 51%, transparent 55%)';
-
+/* ── Gradient dome background (matches pricing page) ── */
+function AiVisionBackground() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
-      {/* Center beam */}
-      <div
-        className={beamBase}
-        style={{
-          top: 0, width: '30em', height: '100%',
-          backgroundImage: conicGradient,
-          transformOrigin: '50% 0',
-          filter: 'blur(15px) opacity(0.5)',
-        }}
-      />
-      {/* Left angled beam */}
-      <div
-        className={beamBase}
-        style={{
-          top: 0, width: '30em', height: '100%',
-          backgroundImage: conicGradient,
-          transformOrigin: '50% 0',
-          transform: 'rotate(20deg)',
-          filter: 'blur(16px) opacity(0.35)',
-        }}
-      />
-      {/* Right angled beam */}
-      <div
-        className={beamBase}
-        style={{
-          top: 0, width: '30em', height: '100%',
-          backgroundImage: conicGradient,
-          transformOrigin: '50% 0',
-          transform: 'rotate(-20deg)',
-          filter: 'blur(16px) opacity(0.35)',
-        }}
-      />
+      <style>{`
+        .ai-vision-bg-root {
+          --av-base: #ffffff;
+          --av-base-rgb: 255,255,255;
+          --av-vignette: rgba(255,255,255,0.85);
+        }
+        :is(.dark) .ai-vision-bg-root {
+          --av-base: #0d0a12;
+          --av-base-rgb: 13,10,18;
+          --av-vignette: rgba(13,10,18,0.9);
+        }
+        @keyframes av-glow-breathe {
+          0%, 100% { opacity: 0.25; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(1.04); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .av-glow-anim { animation: none !important; opacity: 0.3 !important; }
+        }
+      `}</style>
+
+      <div className="ai-vision-bg-root absolute inset-0">
+        {/* Luminous gradient dome */}
+        <div className="absolute inset-0">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: [
+                `radial-gradient(80% 55% at 50% 60%, color-mix(in oklch, var(--tc-primary) 35%, transparent) 0%, color-mix(in oklch, var(--tc-accent) 25%, transparent) 25%, color-mix(in oklch, var(--tc-primary) 10%, rgba(var(--av-base-rgb),0.4)) 45%, rgba(var(--av-base-rgb),0.85) 65%, var(--av-base) 85%)`,
+                `radial-gradient(70% 50% at 12% 30%, color-mix(in oklch, var(--tc-primary) 40%, transparent) 0%, color-mix(in oklch, var(--tc-accent) 20%, transparent) 30%, transparent 60%)`,
+                `radial-gradient(60% 45% at 88% 45%, color-mix(in oklch, var(--tc-accent) 25%, transparent) 0%, transparent 55%)`,
+                `linear-gradient(to bottom, rgba(var(--av-base-rgb),0.3), transparent 40%)`,
+              ].join(','),
+              backgroundColor: 'var(--av-base)',
+            }}
+          />
+          {/* Vignette edges */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `radial-gradient(140% 120% at 50% 30%, transparent 55%, var(--av-vignette))`,
+            }}
+          />
+        </div>
+
+
+{/* Central glow — breathing animation (dark mode only) */}
+        <div
+          className="av-glow-anim pointer-events-none absolute left-1/2 top-[78%] h-52 w-64 -translate-x-1/2 rounded-full sm:h-56 sm:w-80 hidden dark:block"
+          style={{
+            background: `radial-gradient(ellipse, color-mix(in oklch, var(--tc-primary) 50%, transparent) 0%, color-mix(in oklch, var(--tc-accent) 30%, transparent) 40%, transparent 70%)`,
+            filter: 'blur(60px)',
+            animation: 'av-glow-breathe 8s ease-in-out infinite',
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -176,17 +195,8 @@ export function LandingAiVision() {
 
   return (
     <section ref={sectionRef} id="ai-vision" className="relative scroll-mt-20">
-      {/* ── Background ── */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
-        {/* Spotlight beams — theme colored */}
-        <SpotlightBeam />
-
-        {/* Top gradient blend */}
-        <div className="absolute top-0 left-0 right-0 h-40 z-[1] bg-gradient-to-b from-white to-transparent dark:from-[#0d0a12] dark:to-transparent" />
-
-        {/* Bottom gradient blend */}
-        <div className="absolute bottom-0 left-0 right-0 h-40 z-[1] bg-gradient-to-t from-white to-transparent dark:from-[#0d0a12] dark:to-transparent" />
-      </div>
+      {/* ── Background (matches pricing page) ── */}
+      <AiVisionBackground />
 
       {/* ── Content ── */}
       <div className="relative z-[2] mx-auto max-w-6xl px-4 py-24 sm:py-32">
