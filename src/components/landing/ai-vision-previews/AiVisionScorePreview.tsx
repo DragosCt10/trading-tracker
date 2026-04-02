@@ -1,12 +1,45 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+
 /**
- * Pure-SVG gauge preview mimicking AiVisionScoreCard.
- * No Recharts — keeps the landing page bundle lean.
+ * Animated gauge preview mimicking AiVisionScoreCard.
+ * Cycles through different score states showing improvement/regression.
  */
+
+const SCORE_STATES = [
+  { score: 74, delta: '+6', deltaLabel: 'vs 30d', color: '#22c55e', periods: [74, 68, 62] },
+  { score: 81, delta: '+3', deltaLabel: 'vs 30d', color: '#22c55e', periods: [81, 78, 71] },
+  { score: 58, delta: '-8', deltaLabel: 'vs 30d', color: '#ef4444', periods: [58, 66, 70] },
+  { score: 92, delta: '+11', deltaLabel: 'vs 30d', color: '#22c55e', periods: [92, 81, 74] },
+  { score: 45, delta: '-13', deltaLabel: 'vs 30d', color: '#ef4444', periods: [45, 58, 63] },
+  { score: 67, delta: '+2', deltaLabel: 'vs 30d', color: '#f59e0b', periods: [67, 65, 60] },
+];
+
+function getScoreColor(score: number) {
+  if (score >= 75) return '#22c55e';
+  if (score >= 60) return '#f59e0b';
+  return '#ef4444';
+}
+
 export function AiVisionScorePreview() {
-  const score = 74;
-  const delta = 6;
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setActiveIndex((i) => (i + 1) % SCORE_STATES.length);
+        setIsTransitioning(false);
+      }, 300);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const state = SCORE_STATES[activeIndex];
+  const scoreColor = getScoreColor(state.score);
+  const isNegDelta = state.delta.startsWith('-');
 
   // Arc geometry (half-donut)
   const cx = 80;
@@ -14,7 +47,7 @@ export function AiVisionScorePreview() {
   const r = 56;
   const startAngle = Math.PI;
   const endAngle = 0;
-  const scoreAngle = startAngle - (score / 100) * Math.PI;
+  const scoreAngle = startAngle - (state.score / 100) * Math.PI;
 
   const arcPath = (from: number, to: number) => {
     const x1 = cx + r * Math.cos(from);
@@ -36,8 +69,8 @@ export function AiVisionScorePreview() {
           <svg width="160" height="96" viewBox="0 0 160 96" className="overflow-visible">
             <defs>
               <linearGradient id="score-gauge-grad" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#22c55e" />
-                <stop offset="100%" stopColor="#16a34a" />
+                <stop offset="0%" stopColor={scoreColor} />
+                <stop offset="100%" stopColor={scoreColor} stopOpacity={0.7} />
               </linearGradient>
             </defs>
             {/* Track */}
@@ -55,6 +88,7 @@ export function AiVisionScorePreview() {
               stroke="url(#score-gauge-grad)"
               strokeWidth="14"
               strokeLinecap="round"
+              className="transition-all duration-700 ease-out"
             />
             {/* Scale labels */}
             <text x="4" y="92" fill="#64748b" fontSize="10" fontWeight="500">0</text>
@@ -63,19 +97,50 @@ export function AiVisionScorePreview() {
 
           {/* Center value */}
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
-            <div className="text-2xl font-bold text-green-400">{score}</div>
-            <div className="text-[10px] text-slate-500 mt-0.5 whitespace-nowrap">
-              +{delta} pts vs 30d
+            <div
+              className="text-2xl font-bold transition-all duration-500 ease-out"
+              style={{
+                color: scoreColor,
+                opacity: isTransitioning ? 0 : 1,
+                transform: isTransitioning ? 'scale(0.8)' : 'scale(1)',
+              }}
+            >
+              {state.score}
+            </div>
+            <div
+              className="text-[10px] mt-0.5 whitespace-nowrap font-medium transition-all duration-300"
+              style={{
+                color: isNegDelta ? '#ef4444' : '#64748b',
+                opacity: isTransitioning ? 0 : 1,
+              }}
+            >
+              {state.delta} pts {state.deltaLabel}
             </div>
           </div>
         </div>
 
+        {/* Progress dots */}
+        <div className="flex items-center justify-center gap-1 mt-3 mb-1">
+          {SCORE_STATES.map((_, i) => (
+            <div
+              key={i}
+              className="h-0.5 rounded-full transition-all duration-300"
+              style={{
+                width: i === activeIndex ? 14 : 4,
+                backgroundColor: i === activeIndex
+                  ? 'var(--tc-primary, #a855f7)'
+                  : 'rgba(100, 116, 139, 0.3)',
+              }}
+            />
+          ))}
+        </div>
+
         {/* Period pills */}
-        <div className="grid grid-cols-3 gap-2 mt-4">
+        <div className="grid grid-cols-3 gap-2 mt-2">
           {[
-            { label: '7d', value: 74 },
-            { label: '30d', value: 68 },
-            { label: '90d', value: 62 },
+            { label: '7D', value: state.periods[0] },
+            { label: '30D', value: state.periods[1] },
+            { label: '90D', value: state.periods[2] },
           ].map((p) => (
             <div
               key={p.label}
@@ -84,7 +149,15 @@ export function AiVisionScorePreview() {
               <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">
                 {p.label}
               </span>
-              <span className="text-sm font-bold text-slate-100">{p.value}</span>
+              <span
+                className="text-sm font-bold transition-all duration-500"
+                style={{
+                  color: getScoreColor(p.value),
+                  opacity: isTransitioning ? 0.4 : 1,
+                }}
+              >
+                {p.value}
+              </span>
             </div>
           ))}
         </div>
