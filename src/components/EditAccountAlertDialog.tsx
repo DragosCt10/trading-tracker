@@ -182,11 +182,20 @@ export function EditAccountAlertDialog({
           return first === 'accounts:list' || first === 'accounts:all';
         },
       });
-      // Update actionBar selection if the edited account is the active one (name, balance, etc. show immediately)
+      // Update actionBar selection if the edited account is the active one (name, balance, mode, etc. show immediately)
       const selectionKey = ['actionBar:selection'] as const;
       const currentSelection = queryClient.getQueryData(selectionKey) as { mode: string; activeAccount: { id: string } | null } | undefined;
       if (currentSelection?.activeAccount?.id === account.id) {
-        queryClient.setQueryData(selectionKey, { ...currentSelection, activeAccount: data });
+        const updatedMode = (data as any).mode ?? currentSelection.mode;
+        queryClient.setQueryData(selectionKey, { ...currentSelection, mode: updatedMode, activeAccount: data });
+
+        // When mode changed, invalidate trade queries so they refetch for the new mode
+        if (updatedMode !== currentSelection.mode) {
+          const tradeKeys = ['allTrades', 'filteredTrades', 'nonExecutedTrades', 'strategies-overview'];
+          queryClient.invalidateQueries({
+            predicate: (q) => tradeKeys.includes((q.queryKey?.[0] as string) ?? ''),
+          });
+        }
       }
       setOpen(false);
       setSubmitting(false);
@@ -318,39 +327,43 @@ export function EditAccountAlertDialog({
               {/* Balance + Currency */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label
-                    htmlFor="edit-account-balance"
-                    className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
-                  >
-                    <span className="inline-flex items-center gap-1.5">
-                      Balance
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild disabled={!hasTrades}>
+                        <div className={hasTrades ? 'cursor-help' : undefined}>
+                          <Label
+                            htmlFor="edit-account-balance"
+                            className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                          >
+                            <span className="inline-flex items-center gap-1.5">
+                              Balance
+                              {hasTrades && (
+                                <Info className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden />
+                              )}
+                            </span>
+                          </Label>
+                          <Input
+                            id="edit-account-balance"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            value={balance}
+                            onChange={(e) => setBalance(e.target.value)}
+                            required
+                            disabled={hasTrades}
+                            readOnly={hasTrades}
+                            className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100 disabled:opacity-70 disabled:cursor-not-allowed mt-1.5"
+                          />
+                        </div>
+                      </TooltipTrigger>
                       {hasTrades && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-4 w-4 cursor-help text-slate-500 dark:text-slate-400" aria-hidden />
-                            </TooltipTrigger>
-                            <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
-                              Balance cannot be changed after trades exist. Create a new account for a different size.
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
+                          Balance cannot be changed after trades exist. Create a new account for a different size.
+                        </TooltipContent>
                       )}
-                    </span>
-                  </Label>
-                  <Input
-                    id="edit-account-balance"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={balance}
-                    onChange={(e) => setBalance(e.target.value)}
-                    required
-                    disabled={hasTrades}
-                    readOnly={hasTrades}
-                    className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100 disabled:opacity-70 disabled:cursor-not-allowed"
-                  />
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
 
                 <div className="space-y-1.5">
