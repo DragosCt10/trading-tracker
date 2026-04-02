@@ -81,6 +81,11 @@ const FAQ_SECTIONS: FAQSection[] = [
           'Yes. When you create or edit a trade, you can add notes and upload screenshots. This helps you review your decisions later.',
       },
       {
+        question: 'How can I move my trades?',
+        answer:
+          'Go to My Trades, switch to table view, and select the trades you want to move. Then press the Move Trade button to transfer them to a different stats board under the same account.',
+      },
+      {
         question: "Why don't I see my trade in statistics?",
         answer:
           'Make sure you added the trade inside the correct strategy. Check that all fields are filled correctly and the trade is saved.',
