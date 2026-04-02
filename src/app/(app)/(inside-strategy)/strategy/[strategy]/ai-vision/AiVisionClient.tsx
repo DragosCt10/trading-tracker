@@ -3,7 +3,7 @@
 // src/app/(app)/(inside-strategy)/strategy/[strategy]/ai-vision/AiVisionClient.tsx
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { AiVisionSkeleton } from '@/components/dashboard/ai-vision/AiVisionSkeleton';
+import { AiVisionPatternsSkeleton, AiVisionScoreCardsSkeleton, AiVisionMetricRowsSkeleton } from '@/components/dashboard/ai-vision/AiVisionSkeleton';
 import { AiVisionLoadingOverlay } from '@/components/dashboard/ai-vision/AiVisionLoadingOverlay';
 import { AiVisionScoreCard } from '@/components/dashboard/ai-vision/AiVisionScoreCard';
 import { AiVisionMetricRow, type TrendPoint } from '@/components/dashboard/ai-vision/AiVisionMetricRow';
@@ -341,11 +341,13 @@ export default function AiVisionClient({
         </div>
 
         {/* ── AI Detected Patterns ─────────────────────────────────────────── */}
-        {!isInitialLoading && !allEmpty && (
+        {isInitialLoading ? (
+          <AiVisionPatternsSkeleton />
+        ) : !allEmpty ? (
           <AiVisionPatterns patterns={detectedPatterns} />
-        )}
+        ) : null}
 
-        {/* ── Score cards + Bar chart ──────────────────────────────────────── */}
+        {/* ── Score cards ─────────────────────────────────────────────────── */}
         <section aria-label="AI Vision Scores">
           <SectionHeading
             title="Composite Health Score"
@@ -354,7 +356,7 @@ export default function AiVisionClient({
           />
 
           {isInitialLoading ? (
-            <AiVisionSkeleton />
+            <AiVisionScoreCardsSkeleton />
           ) : allEmpty ? (
             <>
               <div className="grid grid-cols-3 gap-6">
@@ -383,69 +385,68 @@ export default function AiVisionClient({
               </div>
             </>
           ) : (
-            <>
-              <div className="flex flex-col">
-                {/* Score cards — 3-column row */}
-                <div className="grid grid-cols-3 gap-6">
-                  <AiVisionScoreCard
-                    label={labelForKey(keyA)}
-                    score={scoreA}
-                    delta={metricsA.tradeCount > 0 && metricsB.tradeCount > 0 ? scoreA - scoreB : null}
-                    vsLabel={`vs ${keyB}`}
-                    hasNoTrades={metricsA.tradeCount === 0}
-                  />
-                  <AiVisionScoreCard
-                    label={labelForKey(keyB)}
-                    score={scoreB}
-                    delta={metricsB.tradeCount > 0 && metricsC.tradeCount > 0 ? scoreB - scoreC : null}
-                    vsLabel={`vs ${keyC}`}
-                    hasNoTrades={metricsB.tradeCount === 0}
-                  />
-                  <AiVisionScoreCard
-                    label={labelForKey(keyC)}
-                    score={scoreC}
-                    delta={null}
-                    isBaseline
-                    hasNoTrades={metricsC.tradeCount === 0}
-                  />
-                </div>
-
-              </div>
-
-              {/* ── Metric Rows ────────────────────────────────────────────── */}
-              <section aria-label="Metric rows">
-                <SectionHeading
-                  title="Performance Metrics"
-                  description={`Deep dive into each metric that contributes to the health score.`}
-                  containerClassName="mt-14"
-                />
-                <div className="flex flex-col gap-6 mt-3">
-                  {METRIC_GAUGE_CONFIGS.map((cfg) => (
-                    <AiVisionMetricRow
-                      key={cfg.key}
-                      title={cfg.label}
-                      infoText={cfg.infoText}
-                      periods={[
-                        { label: labelForKey(keyA), value: metricsA[cfg.key] as number, hasNoTrades: metricsA.tradeCount === 0 },
-                        { label: labelForKey(keyB), value: metricsB[cfg.key] as number, hasNoTrades: metricsB.tradeCount === 0 },
-                        { label: labelForKey(keyC), value: metricsC[cfg.key] as number, hasNoTrades: metricsC.tradeCount === 0 },
-                      ]}
-                      trendData={trendByMetric[cfg.key] ?? []}
-                      formatValue={cfg.format}
-                      invertBetter={cfg.invertBetter}
-                      gaugeMax={cfg.gaugeMax}
-                      showGauge
-                      targetText={cfg.targetText}
-                      scaleLeft={cfg.scaleLeft}
-                      scaleRight={cfg.scaleRight}
-                    />
-                  ))}
-                </div>
-              </section>
-
-            </>
+            <div className="grid grid-cols-3 gap-6">
+              <AiVisionScoreCard
+                label={labelForKey(keyA)}
+                score={scoreA}
+                delta={metricsA.tradeCount > 0 && metricsB.tradeCount > 0 ? scoreA - scoreB : null}
+                vsLabel={`vs ${keyB}`}
+                hasNoTrades={metricsA.tradeCount === 0}
+              />
+              <AiVisionScoreCard
+                label={labelForKey(keyB)}
+                score={scoreB}
+                delta={metricsB.tradeCount > 0 && metricsC.tradeCount > 0 ? scoreB - scoreC : null}
+                vsLabel={`vs ${keyC}`}
+                hasNoTrades={metricsB.tradeCount === 0}
+              />
+              <AiVisionScoreCard
+                label={labelForKey(keyC)}
+                score={scoreC}
+                delta={null}
+                isBaseline
+                hasNoTrades={metricsC.tradeCount === 0}
+              />
+            </div>
           )}
         </section>
+
+        {/* ── Metric Rows ─────────────────────────────────────────────────── */}
+        {!allEmpty && (
+          <section aria-label="Metric rows">
+            <SectionHeading
+              title="Performance Metrics"
+              description="Deep dive into each metric that contributes to the health score."
+              containerClassName="mt-14"
+            />
+            {isInitialLoading ? (
+              <AiVisionMetricRowsSkeleton />
+            ) : (
+              <div className="flex flex-col gap-6 mt-3">
+                {METRIC_GAUGE_CONFIGS.map((cfg) => (
+                  <AiVisionMetricRow
+                    key={cfg.key}
+                    title={cfg.label}
+                    infoText={cfg.infoText}
+                    periods={[
+                      { label: labelForKey(keyA), value: metricsA[cfg.key] as number, hasNoTrades: metricsA.tradeCount === 0 },
+                      { label: labelForKey(keyB), value: metricsB[cfg.key] as number, hasNoTrades: metricsB.tradeCount === 0 },
+                      { label: labelForKey(keyC), value: metricsC[cfg.key] as number, hasNoTrades: metricsC.tradeCount === 0 },
+                    ]}
+                    trendData={trendByMetric[cfg.key] ?? []}
+                    formatValue={cfg.format}
+                    invertBetter={cfg.invertBetter}
+                    gaugeMax={cfg.gaugeMax}
+                    showGauge
+                    targetText={cfg.targetText}
+                    scaleLeft={cfg.scaleLeft}
+                    scaleRight={cfg.scaleRight}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
       </div>
     </div>
