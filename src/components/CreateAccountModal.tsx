@@ -287,7 +287,7 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
                     <SelectTrigger className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 transition-all duration-300">
                       <SelectValue placeholder="Select currency" />
                     </SelectTrigger>
-                    <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                    <SelectContent>
                       <SelectItem value="EUR">EUR</SelectItem>
                       <SelectItem value="USD">USD</SelectItem>
                       <SelectItem value="GBP">GBP</SelectItem>
@@ -307,7 +307,7 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
                   <SelectTrigger className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 transition-all duration-300">
                     <SelectValue placeholder="Select mode" />
                   </SelectTrigger>
-                  <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                  <SelectContent>
                     <SelectItem value="live">Live</SelectItem>
                     <SelectItem value="backtesting">Backtesting</SelectItem>
                     <SelectItem value="demo">Demo</SelectItem>
