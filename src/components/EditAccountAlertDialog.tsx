@@ -117,13 +117,14 @@ export function EditAccountAlertDialog({
   }, [open, account]);
 
   // Lock balance when account has trades (Variant B: allow edit only when no trades)
-  const { data: tradeCount } = useQuery({
+  const { data: tradeCount, isLoading: isTradeCountLoading } = useQuery({
     queryKey: ['accountTradeCount', account?.id, account?.mode],
     queryFn: () =>
       getTradeCountForAccount(account!.id, account!.mode || 'live'),
     enabled: open && !!account?.id && !!account?.mode,
   });
-  const hasTrades = (tradeCount ?? 0) > 0;
+  // Default to locked while loading to prevent flicker (enabled → disabled)
+  const hasTrades = isTradeCountLoading || (tradeCount ?? 0) > 0;
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
