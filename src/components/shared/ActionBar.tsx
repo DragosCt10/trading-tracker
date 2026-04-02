@@ -77,7 +77,7 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
   const { selection, setSelection } = useActionBarSelection();
   const [applying, setApplying] = React.useState(false);
   const [isCreateStrategyOpen, setIsCreateStrategyOpen] = React.useState(false);
-  const autoAppliedRef = useRef(false);
+  const applyingRef = useRef(false);
 
   const userId = userDetails?.user?.id;
 
@@ -124,6 +124,8 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
   const applyWith = useCallback(
     async (mode: TradingMode, accountId: string | null) => {
       if (!userId) return;
+      if (applyingRef.current) return;
+      applyingRef.current = true;
       setApplying(true);
       try {
         const { data: activeAccountObj, error } = await setActiveAccount(mode, accountId);
@@ -149,6 +151,7 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
         });
         refetchAccounts();
       } finally {
+        applyingRef.current = false;
         setApplying(false);
       }
     },
@@ -164,9 +167,9 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
     [activeAccount?.id, activeMode, applyWith]
   );
 
-  // ---------- Auto-apply first available account on mount (live → demo → backtesting)
+  // ---------- Auto-apply first available account when none is selected
+  // Runs on mount AND after account deletion (when activeAccount becomes null).
   useEffect(() => {
-    if (autoAppliedRef.current) return;
     if (!userId) return;
     if (selection.activeAccount) return;
     if (accountsLoading) return;
@@ -187,7 +190,6 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
 
     if (!pick) return;
 
-    autoAppliedRef.current = true;
     applyWith(pickedMode, pick.id);
   }, [userId, accountsLoading, accountsByMode, applyWith, selection.activeAccount]);
 
@@ -205,19 +207,25 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
   const strategyOptions = strategies.map((s) => ({ id: s.id, name: s.name, slug: s.slug }));
   const accountId = activeAccount?.id ?? null;
 
+  const isInitializing = !activeAccount;
+
   return (
     <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 min-w-0">
       {/* Mode badge — left of account/strategy selector */}
-      <div
-        title={`Current mode: ${activeMode}`}
-        className={clsx(
-          'flex items-center justify-center h-8 rounded-xl border px-2 sm:px-4 pointer-events-none shrink-0',
-          'text-xs sm:text-sm font-medium',
-          MODE_BADGE[activeMode]
-        )}
-      >
-        <span className="leading-none">{MODE_LABELS[activeMode]}</span>
-      </div>
+      {isInitializing ? (
+        <div className="h-8 w-16 sm:w-20 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse shrink-0" />
+      ) : (
+        <div
+          title={`Current mode: ${activeMode}`}
+          className={clsx(
+            'flex items-center justify-center h-8 rounded-xl border px-2 sm:px-4 pointer-events-none shrink-0',
+            'text-xs sm:text-sm font-medium',
+            MODE_BADGE[activeMode]
+          )}
+        >
+          <span className="leading-none">{MODE_LABELS[activeMode]}</span>
+        </div>
+      )}
 
       {isStrategyPage ? (
         /* Strategy page: show strategy switcher + add strategy button */
@@ -286,23 +294,27 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
             triggerLabel={applying ? 'Applying…' : (accountDisplayName ?? undefined)}
           />
 
-          <EditAccountAlertDialog
-            account={
-              activeAccount
-                ? {
-                    id: activeAccount.id,
-                    name: activeAccount.name,
-                    account_balance: activeAccount.account_balance,
-                    currency: activeAccount.currency,
-                    mode: activeAccount.mode,
-                    description: activeAccount.description,
-                  }
-                : null
-            }
-            isDeletable={activeAccount?.mode !== 'demo' || accountsByMode.demo.length > 1}
-            onUpdated={async () => { refetchAccounts(); }}
-            onDeleted={async () => { refetchAccounts(); }}
-          />
+          {isInitializing ? (
+            <div className="h-8 w-16 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse shrink-0" />
+          ) : (
+            <EditAccountAlertDialog
+              account={
+                activeAccount
+                  ? {
+                      id: activeAccount.id,
+                      name: activeAccount.name,
+                      account_balance: activeAccount.account_balance,
+                      currency: activeAccount.currency,
+                      mode: activeAccount.mode,
+                      description: activeAccount.description,
+                    }
+                  : null
+              }
+              isDeletable={activeAccount?.mode !== 'demo' || accountsByMode.demo.length > 1}
+              onUpdated={async () => { refetchAccounts(); }}
+              onDeleted={async () => { refetchAccounts(); }}
+            />
+          )}
 
           {showAddButton && (
             <CreateAccountAlertDialog
