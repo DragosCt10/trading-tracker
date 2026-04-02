@@ -3,7 +3,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from './supabaseAdmin';
 import { Trade } from '@/types/trade';
-import type { ParsedTrade } from '@/utils/tradeImportParser';
 import { getAccountsForMode } from '@/lib/server/accounts';
 import { getCachedUserSession } from '@/lib/server/session';
 import { calculateRRStats } from '@/utils/calculateRMultiple';
@@ -373,96 +372,6 @@ export async function deleteTrades(
     return { error: { message: error.message ?? 'Failed to delete trades' } };
   }
   return { error: null };
-}
-
-/**
- * Bulk-imports an array of trades for the current user.
- * Validates ownership, normalizes markets, and batch-inserts in chunks of 100.
- */
-export async function importTrades(params: {
-  mode: 'live' | 'backtesting' | 'demo';
-  account_id: string;
-  strategy_id: string | null;
-  trades: ParsedTrade[];
-}): Promise<{
-  inserted: number;
-  failed: Array<{ row: number; reason: string }>;
-}> {
-  const { user } = await getCachedUserSession();
-  if (!user) throw new Error('Unauthorized');
-
-  const userAccounts = await getAccountsForMode(user.id, params.mode);
-  if (!userAccounts.some((a) => a.id === params.account_id)) {
-    throw new Error('Account not found or access denied');
-  }
-
-  // Check monthly trade limit and cap import to remaining capacity
-  const remaining = await getRemainingTrades(user.id, params.mode);
-  if (remaining === 0) {
-    return {
-      inserted: 0,
-      failed: params.trades.map((_, i) => ({
-        row: i + 1,
-        reason: 'Monthly trade limit reached. Upgrade to PRO for unlimited trades.',
-      })),
-    };
-  }
-
-  const supabase = await createClient();
-  const tableName = `${params.mode}_trades`;
-  const CHUNK_SIZE = 100;
-  let inserted = 0;
-  const failed: Array<{ row: number; reason: string }> = [];
-
-  // Validate and prepare rows for insertion
-  const validRows: { index: number; row: Record<string, unknown> }[] = [];
-  params.trades.forEach((trade, index) => {
-    const row: Record<string, unknown> = {
-      ...trade,
-      mode: params.mode,
-      user_id: user.id,
-      account_id: params.account_id,
-      strategy_id: params.strategy_id,
-    };
-    delete row.trade_executed_at; // Omit if column not in DB schema
-    delete row.trade_link; // Superseded by trade_screens
-    delete row.liquidity_taken; // Superseded by trade_screens
-
-    const fieldError = validateTradeFields(row);
-    if (fieldError) {
-      failed.push({ row: index + 1, reason: fieldError });
-      return;
-    }
-    validRows.push({ index, row });
-  });
-
-  // Cap to remaining monthly capacity (if limited)
-  if (remaining !== null && validRows.length > remaining) {
-    const excess = validRows.splice(remaining);
-    excess.forEach((v) => {
-      failed.push({ row: v.index + 1, reason: 'Monthly trade limit reached. Upgrade to PRO for unlimited trades.' });
-    });
-  }
-
-  // Batch insert in chunks
-  for (let i = 0; i < validRows.length; i += CHUNK_SIZE) {
-    const chunk = validRows.slice(i, i + CHUNK_SIZE).map((v) => v.row);
-    const { error } = await supabase.from(tableName).insert(chunk as any);
-    if (error) {
-      validRows.slice(i, i + CHUNK_SIZE).forEach((v) => {
-        failed.push({ row: v.index + 1, reason: error.message });
-      });
-    } else {
-      inserted += chunk.length;
-    }
-  }
-
-  const hasExecuted = params.trades.some((t) => t.executed);
-  if (hasExecuted && inserted > 0) {
-    void triggerOfferNotifications(user.id, params.account_id, params.mode);
-  }
-
-  return { inserted, failed };
 }
 
 async function triggerOfferNotifications(
