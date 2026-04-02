@@ -219,6 +219,7 @@ export async function createTrade(params: {
   const tableName = `${params.mode}_trades`;
   const row: Record<string, unknown> = {
     ...params.trade,
+    mode: params.mode,
     user_id: user.id,
     account_id: params.account_id,
     calculated_profit: params.calculated_profit,
@@ -418,6 +419,7 @@ export async function importTrades(params: {
   params.trades.forEach((trade, index) => {
     const row: Record<string, unknown> = {
       ...trade,
+      mode: params.mode,
       user_id: user.id,
       account_id: params.account_id,
       strategy_id: params.strategy_id,
