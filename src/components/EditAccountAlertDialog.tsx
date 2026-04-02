@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteAccount, updateAccount } from '@/lib/server/accounts';
 import { getTradeCountForAccount } from '@/lib/server/trades';
 import { useUserDetails } from '@/hooks/useUserDetails';
-import { Info, Loader2, Pencil } from 'lucide-react';
+import { Loader2, Pencil } from 'lucide-react';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -324,87 +324,71 @@ export function EditAccountAlertDialog({
                 />
               </div>
 
-              {/* Balance + Currency */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild disabled={!hasTrades}>
-                        <div className={hasTrades ? 'cursor-help' : undefined}>
-                          <Label
-                            htmlFor="edit-account-balance"
-                            className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
-                          >
-                            <span className="inline-flex items-center gap-1.5">
-                              Balance
-                              {hasTrades && (
-                                <Info className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden />
-                              )}
-                            </span>
-                          </Label>
-                          <Input
-                            id="edit-account-balance"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="0.00"
-                            value={balance}
-                            onChange={(e) => setBalance(e.target.value)}
-                            required
-                            disabled={hasTrades}
-                            readOnly={hasTrades}
-                            className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100 disabled:opacity-70 disabled:cursor-not-allowed mt-1.5"
-                          />
-                        </div>
-                      </TooltipTrigger>
-                      {hasTrades && (
-                        <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
-                          Balance cannot be changed after trades exist. Create a new account for a different size.
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
+              {/* Balance + Currency — hidden when trades exist (immutable after first trade) */}
+              {!hasTrades && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="edit-account-balance"
+                      className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                    >
+                      Balance
+                    </Label>
+                    <Input
+                      id="edit-account-balance"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      value={balance}
+                      onChange={(e) => setBalance(e.target.value)}
+                      required
+                      className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
 
+                  <div className="space-y-1.5">
+                    <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      Currency
+                    </Label>
+                    <Select
+                      value={currency}
+                      onValueChange={(val: Currency) => setCurrency(val)}
+                    >
+                      <SelectTrigger className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                        <SelectValue placeholder="Select currency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="EUR">EUR</SelectItem>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="GBP">GBP</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {/* Mode — hidden when trades exist (immutable after first trade) */}
+              {!hasTrades && (
                 <div className="space-y-1.5">
                   <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Currency
+                    Mode
                   </Label>
                   <Select
-                    value={currency}
-                    onValueChange={(val: Currency) => setCurrency(val)}
+                    value={mode}
+                    onValueChange={(val: TradingMode) => setMode(val)}
                   >
                     <SelectTrigger className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 transition-all duration-300">
-                      <SelectValue placeholder="Select currency" />
+                      <SelectValue placeholder="Select mode" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="EUR">EUR</SelectItem>
-                      <SelectItem value="USD">USD</SelectItem>
-                      <SelectItem value="GBP">GBP</SelectItem>
+                      <SelectItem value="live">Live</SelectItem>
+                      <SelectItem value="backtesting">Backtesting</SelectItem>
+                      <SelectItem value="demo">Demo</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              {/* Mode */}
-              <div className="space-y-1.5">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Mode
-                </Label>
-                <Select
-                  value={mode}
-                  onValueChange={(val: TradingMode) => setMode(val)}
-                >
-                  <SelectTrigger className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 transition-all duration-300">
-                    <SelectValue placeholder="Select mode" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="live">Live</SelectItem>
-                    <SelectItem value="backtesting">Backtesting</SelectItem>
-                    <SelectItem value="demo">Demo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              )}
 
               {/* Description */}
               <div className="space-y-1.5">
