@@ -21,7 +21,7 @@ import {
   createChannelInvite,
   revokeChannelInvite,
 } from '@/lib/server/channelInvites';
-import { queryKeys } from '@/lib/queryKeys';
+import { queryKeys, CHANNEL_QUERY_PREFIXES } from '@/lib/queryKeys';
 import { FEED_DATA } from '@/constants/queryConfig';
 
 export function useMyChannels(userId?: string, initialData?: FeedChannel[]) {
@@ -72,9 +72,9 @@ export function useChannelActions(userId?: string) {
   const publicChannelsKey = queryKeys.feed.channels();
 
   function invalidateChannelLists() {
-    qc.invalidateQueries({ queryKey: myChannelsKey });
-    qc.invalidateQueries({ queryKey: publicChannelsKey });
-    qc.invalidateQueries({ queryKey: ['channel-membership'] });
+    qc.invalidateQueries({
+      predicate: (q) => CHANNEL_QUERY_PREFIXES.has((q.queryKey?.[0] as string) ?? ''),
+    });
   }
 
   const create = useMutation({
@@ -257,8 +257,9 @@ export function useChannelMemberActions(channelId: string, userId?: string) {
           pages: [{ ...first, items: [result.data, ...first.items] }, ...rest],
         };
       });
-      // Invalidate channel list for updated member_count
+      // Invalidate channel + member lists for updated counts
       qc.invalidateQueries({ queryKey: myChannelsKey });
+      qc.invalidateQueries({ queryKey: queryKeys.channelMembersPublic(channelId) });
     },
   });
 
@@ -287,8 +288,9 @@ export function useChannelMemberActions(channelId: string, userId?: string) {
         if (ctx?.prev) qc.setQueryData(membersKey, ctx.prev);
         return;
       }
-      // Invalidate channel list for updated member_count only
+      // Invalidate channel + member lists for updated counts
       qc.invalidateQueries({ queryKey: myChannelsKey });
+      qc.invalidateQueries({ queryKey: queryKeys.channelMembersPublic(channelId) });
     },
   });
 

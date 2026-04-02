@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { Loader2, UserMinus, UserPlus } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { followUser, unfollowUser } from '@/lib/server/socialProfile';
+import { FOLLOW_QUERY_PREFIXES } from '@/lib/queryKeys';
 import { useTheme } from '@/hooks/useTheme';
 
 interface FollowButtonProps {
@@ -16,6 +18,7 @@ interface FollowButtonProps {
 export default function FollowButton({ targetProfileId, initialFollowing, isLoading = false, onFollowChange }: FollowButtonProps) {
   const [following, setFollowing] = useState(initialFollowing);
   const [loading, setLoading]     = useState(false);
+  const queryClient = useQueryClient();
   const { theme, mounted } = useTheme();
   const isLightMode = mounted && theme === 'light';
 
@@ -46,6 +49,10 @@ export default function FollowButton({ targetProfileId, initialFollowing, isLoad
       setFollowing(prevFollowing); // rollback
     } else {
       onFollowChange?.(!prevFollowing);
+      // Invalidate all follow-related caches (follower counts, timeline, profiles)
+      queryClient.invalidateQueries({
+        predicate: (q) => FOLLOW_QUERY_PREFIXES.has((q.queryKey?.[0] as string) ?? ''),
+      });
     }
     setLoading(false);
   }

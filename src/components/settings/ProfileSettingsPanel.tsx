@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { updateSocialProfile, checkUsernameAvailability, getFollowing, unfollowUser } from '@/lib/server/socialProfile';
-import { queryKeys } from '@/lib/queryKeys';
+import { queryKeys, FOLLOW_QUERY_PREFIXES } from '@/lib/queryKeys';
 import type { SocialProfile } from '@/types/social';
 
 interface ProfileSettingsPanelProps {
@@ -143,8 +143,9 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
         setSavedProfile(prev =>
           prev ? { ...prev, following_count: Math.max(0, prev.following_count - 1) } : prev
         );
-        queryClient.invalidateQueries({ queryKey: queryKeys.feed.following(savedProfile?.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.socialProfile(savedProfile?.user_id) });
+        queryClient.invalidateQueries({
+          predicate: (q) => FOLLOW_QUERY_PREFIXES.has((q.queryKey?.[0] as string) ?? ''),
+        });
       }
     });
   }

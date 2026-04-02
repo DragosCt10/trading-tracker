@@ -207,3 +207,27 @@ export const TRADE_QUERY_PREFIXES = new Set([
   'all-strategy-trades',
   'all-strategy-stats',
 ]);
+
+/**
+ * Keys that must be invalidated when follow/unfollow state changes.
+ * Covers follower counts, following lists, timeline content, and profile stats.
+ */
+export const FOLLOW_QUERY_PREFIXES = new Set([
+  'feed:followers',
+  'feed:following',
+  'feed:followedProfileIds',
+  'feed:timeline',
+  'socialProfile',
+  'feed:activityProgress',
+]);
+
+/**
+ * Keys that must be invalidated when channel membership changes
+ * (add/remove member, join/leave).
+ */
+export const CHANNEL_QUERY_PREFIXES = new Set([
+  'feed:channels',
+  'channel-membership',
+  'channel-members:v2',
+  'channel-members-public',
+]);
