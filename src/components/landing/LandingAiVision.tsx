@@ -234,6 +234,25 @@ export function LandingAiVision() {
           and tracks every metric across time — so you always know where you stand.
         </p>
 
+        {/* ── Feature strip ── */}
+        <div
+          className="scroll-reveal relative mt-6 flex flex-wrap gap-3"
+          style={{ '--reveal-delay': '250ms' } as React.CSSProperties}
+        >
+          {FEATURE_PILLS.map((pill) => {
+            const Icon = pill.icon;
+            return (
+              <div
+                key={pill.title}
+                className="group relative flex items-center gap-2.5 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm px-4 py-2 transition-colors hover:border-[color-mix(in_oklch,var(--tc-primary)_30%,transparent)]"
+              >
+                <Icon className="size-3.5 shrink-0" style={{ color: 'var(--tc-primary)' }} />
+                <span className="text-xs font-medium text-foreground whitespace-nowrap">{pill.title}</span>
+              </div>
+            );
+          })}
+        </div>
+
         {/* ── Hub-and-spoke visualization ── */}
         <div
           className="scroll-reveal relative mt-14"
@@ -310,25 +329,6 @@ export function LandingAiVision() {
           </div>
         </div>
 
-        {/* ── Feature pills ── */}
-        <div className="relative mt-16 grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-8 lg:grid-cols-4">
-          {FEATURE_PILLS.map((pill, i) => {
-            const Icon = pill.icon;
-            return (
-              <div
-                key={pill.title}
-                className="scroll-reveal space-y-3"
-                style={{ '--reveal-delay': `${800 + i * 100}ms` } as React.CSSProperties}
-              >
-                <div className="flex items-center gap-2">
-                  <Icon className="size-4" style={{ color: 'var(--tc-primary)' }} />
-                  <h3 className="text-sm font-medium text-foreground">{pill.title}</h3>
-                </div>
-                <p className="text-sm text-muted-foreground">{pill.description}</p>
-              </div>
-            );
-          })}
-        </div>
       </div>
     </section>
   );

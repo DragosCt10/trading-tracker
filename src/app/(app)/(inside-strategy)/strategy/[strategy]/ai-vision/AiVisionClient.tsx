@@ -249,7 +249,7 @@ export default function AiVisionClient({
     const patternsA = detectTradingPatterns(tradesA, metricsA, accountBalance, metricsB);
     const patternsB = detectTradingPatterns(tradesB, metricsB, accountBalance, metricsC);
     const patternsC = detectTradingPatterns(tradesC, metricsC, accountBalance, null);
-    const trendPatterns = detectMultiPeriodTrends(metricsA, metricsB, metricsC, [labelA, labelB, labelC]);
+    const trendPatterns = detectMultiPeriodTrends(metricsA, metricsB, metricsC, [labelA, labelB, labelC], tradesA, tradesB, tradesC, accountBalance);
 
     const merged = mergePatternsByPeriod([
       { patterns: patternsA, periodLabel: labelA },

@@ -10,6 +10,7 @@ import {
   type GroupStats,
 } from '@/utils/calculateCategoryStats';
 import { TIME_INTERVALS } from '@/constants/analytics';
+import { calculateMacroStats } from '@/utils/calculateMacroStats';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -79,6 +80,34 @@ function emitBestWorst(stats: GroupStats[], cfg: BestWorstConfig): DetectedPatte
   return patterns;
 }
 
+/** Compute profit factor for an array of trades. */
+function computeProfitFactor(trades: Trade[]): number {
+  let grossProfit = 0;
+  let grossLoss = 0;
+  for (const t of trades) {
+    const pnl = t.calculated_profit ?? 0;
+    if (pnl > 0) grossProfit += pnl;
+    else if (pnl < 0) grossLoss += Math.abs(pnl);
+  }
+  return grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? 999 : 0;
+}
+
+/** Compute consistency score (% of profitable trading days) for a set of trades. */
+function computeConsistencyScore(trades: Trade[]): number {
+  const dayPnl = new Map<string, number>();
+  for (const t of trades) {
+    if (t.break_even) continue;
+    const day = t.trade_date;
+    dayPnl.set(day, (dayPnl.get(day) ?? 0) + (t.calculated_profit ?? 0));
+  }
+  if (dayPnl.size === 0) return 0;
+  let profitDays = 0;
+  for (const pnl of dayPnl.values()) {
+    if (pnl > 0) profitDays++;
+  }
+  return (profitDays / dayPnl.size) * 100;
+}
+
 /** Compute win rate for trades matching a predicate (excluding BE). Single-pass. */
 function groupWinRate(trades: Trade[], predicate: (t: Trade) => boolean): { winRate: number; count: number } {
   let count = 0, wins = 0, losses = 0;
@@ -126,7 +155,7 @@ function detectMarketPatterns(trades: Trade[], accountBalance: number): Detected
     goodThreshold: WIN_RATE_GOOD,
     badThreshold: WIN_RATE_BAD,
   };
-  return emitBestWorst(
+  const patterns = emitBestWorst(
     stats.map((s) => ({
       type: s.market,
       total: s.total,
@@ -139,6 +168,53 @@ function detectMarketPatterns(trades: Trade[], accountBalance: number): Detected
     })),
     cfg,
   );
+
+  // Profit factor comparison across markets
+  const marketGroups = new Map<string, Trade[]>();
+  for (const t of trades) {
+    const m = t.market || 'Unknown';
+    if (!marketGroups.has(m)) marketGroups.set(m, []);
+    marketGroups.get(m)!.push(t);
+  }
+
+  const pfEntries = Array.from(marketGroups.entries())
+    .filter(([k, ts]) => k !== 'Unknown' && ts.length >= MIN_TRADES_DEFAULT)
+    .map(([k, ts]) => ({ market: k, pf: computeProfitFactor(ts), count: ts.length }))
+    .sort((a, b) => b.pf - a.pf);
+
+  if (pfEntries.length >= 2) {
+    const best = pfEntries[0];
+    const rest = pfEntries.slice(1);
+    const avgRestPf = rest.reduce((s, e) => s + e.pf, 0) / rest.length;
+
+    if (best.pf >= 1.5 && avgRestPf > 0 && best.pf / avgRestPf >= 1.5) {
+      patterns.push({
+        id: 'market-pf-leader',
+        type: 'insight',
+        title: `${best.market} outperforms`,
+        description: `Profit factor of ${best.pf.toFixed(1)} vs ${avgRestPf.toFixed(1)} avg on other instruments.`,
+        priority: 6,
+      });
+    }
+  }
+
+  // Per-market consistency score
+  for (const [market, ts] of marketGroups) {
+    if (market === 'Unknown' || ts.length < MIN_TRADES_DEFAULT) continue;
+    const consistency = computeConsistencyScore(ts);
+    if (consistency >= 70) {
+      patterns.push({
+        id: `market-consistency-${market.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+        type: 'insight',
+        title: `${market} consistency leader`,
+        description: `${consistency.toFixed(0)}% consistency score — your most reliable instrument.`,
+        priority: 7,
+      });
+      break; // Only emit for the best one
+    }
+  }
+
+  return patterns;
 }
 
 function detectSessionPatterns(trades: Trade[]): DetectedPattern[] {
@@ -155,7 +231,7 @@ function detectSessionPatterns(trades: Trade[]): DetectedPattern[] {
 
 function detectSetupPatterns(trades: Trade[]): DetectedPattern[] {
   const stats = calculateGroupedStats(trades, (t) => t.setup_type || 'Unknown');
-  return emitBestWorst(stats, {
+  const patterns = emitBestWorst(stats, {
     category: 'setup',
     idPrefix: 'setup',
     minPerGroup: MIN_TRADES_DEFAULT,
@@ -163,6 +239,34 @@ function detectSetupPatterns(trades: Trade[]): DetectedPattern[] {
     goodThreshold: WIN_RATE_GOOD,
     badThreshold: WIN_RATE_BAD,
   });
+
+  // Profit factor comparison across setups
+  const setupGroups = new Map<string, Trade[]>();
+  for (const t of trades) {
+    const s = t.setup_type || 'Unknown';
+    if (!setupGroups.has(s)) setupGroups.set(s, []);
+    setupGroups.get(s)!.push(t);
+  }
+
+  const pfEntries = Array.from(setupGroups.entries())
+    .filter(([k, ts]) => k !== 'Unknown' && ts.length >= MIN_TRADES_DEFAULT)
+    .map(([k, ts]) => ({ setup: k, pf: computeProfitFactor(ts), count: ts.length }))
+    .sort((a, b) => b.pf - a.pf);
+
+  if (pfEntries.length >= 2) {
+    const best = pfEntries[0];
+    if (best.pf >= 2) {
+      patterns.push({
+        id: 'setup-pf-leader',
+        type: 'strength',
+        title: `${best.setup} setups excelling`,
+        description: `${best.setup} entries yield ${best.pf.toFixed(1)} profit factor (${best.count} trades).`,
+        priority: 5,
+      });
+    }
+  }
+
+  return patterns;
 }
 
 function detectMssPatterns(trades: Trade[]): DetectedPattern[] {
@@ -421,6 +525,103 @@ function detectMindStatePatterns(trades: Trade[]): DetectedPattern[] {
   }];
 }
 
+function detectRevengeTradingPatterns(trades: Trade[]): DetectedPattern[] {
+  // Sort by date+time to check sequential outcomes
+  const sorted = [...trades].sort((a, b) => {
+    const da = `${a.trade_date} ${a.trade_time || '00:00'}`;
+    const db = `${b.trade_date} ${b.trade_time || '00:00'}`;
+    return da.localeCompare(db);
+  });
+
+  if (sorted.length < MIN_TRADES_PSYCHOLOGY) return [];
+
+  // Check: after a loss, what's the win rate of the next trade?
+  let afterLossCount = 0;
+  let afterLossLosses = 0;
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const current = sorted[i];
+    const next = sorted[i + 1];
+    if (current.break_even || next.break_even) continue;
+    if (current.trade_outcome === 'Lose') {
+      afterLossCount++;
+      if (next.trade_outcome === 'Lose') afterLossLosses++;
+    }
+  }
+
+  if (afterLossCount < 5) return [];
+
+  const afterLossLossRate = (afterLossLosses / afterLossCount) * 100;
+  if (afterLossLossRate >= 55) {
+    return [{
+      id: 'revenge-trading',
+      type: 'warning',
+      title: 'Revenge trading detected',
+      description: `After a loss, the next trade loses ${afterLossLossRate.toFixed(0)}% of the time (${afterLossCount} sequences). Consider pausing after losses.`,
+      priority: 1,
+    }];
+  }
+
+  return [];
+}
+
+function detectOvertradingAfterLosses(trades: Trade[]): DetectedPattern[] {
+  // Check if trade frequency spikes after consecutive losses
+  const sorted = [...trades].sort((a, b) => {
+    const da = `${a.trade_date} ${a.trade_time || '00:00'}`;
+    const db = `${b.trade_date} ${b.trade_time || '00:00'}`;
+    return da.localeCompare(db);
+  });
+
+  if (sorted.length < MIN_TRADES_PSYCHOLOGY) return [];
+
+  // Group trades by day
+  const byDay = new Map<string, Trade[]>();
+  for (const t of sorted) {
+    const day = t.trade_date;
+    if (!byDay.has(day)) byDay.set(day, []);
+    byDay.get(day)!.push(t);
+  }
+
+  const days = Array.from(byDay.entries()).sort(([a], [b]) => a.localeCompare(b));
+  if (days.length < 5) return [];
+
+  // Compare: trades on days after a red day vs average
+  let afterRedDayTrades = 0;
+  let afterRedDayCount = 0;
+  let normalDayTrades = 0;
+  let normalDayCount = 0;
+
+  for (let i = 1; i < days.length; i++) {
+    const prevDayPnl = days[i - 1][1].reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0);
+    const todayTradeCount = days[i][1].length;
+
+    if (prevDayPnl < 0) {
+      afterRedDayTrades += todayTradeCount;
+      afterRedDayCount++;
+    } else {
+      normalDayTrades += todayTradeCount;
+      normalDayCount++;
+    }
+  }
+
+  if (afterRedDayCount < 3 || normalDayCount < 3) return [];
+
+  const avgAfterRed = afterRedDayTrades / afterRedDayCount;
+  const avgNormal = normalDayTrades / normalDayCount;
+
+  if (avgNormal > 0 && avgAfterRed / avgNormal >= 1.5) {
+    return [{
+      id: 'overtrading-after-losses',
+      type: 'warning',
+      title: 'Overtrading on red days',
+      description: `You take ${(avgAfterRed / avgNormal).toFixed(1)}x more trades after a losing day (${avgAfterRed.toFixed(1)} vs ${avgNormal.toFixed(1)} avg).`,
+      priority: 2,
+    }];
+  }
+
+  return [];
+}
+
 function detectNewsPatterns(trades: Trade[]): DetectedPattern[] {
   const newsStats = calculateNewsStats(trades);
   const news = newsStats.find((s) => s.news === 'News');
@@ -449,7 +650,7 @@ function detectNewsPatterns(trades: Trade[]): DetectedPattern[] {
   }];
 }
 
-function detectPerformanceHealth(metrics: PeriodMetrics): DetectedPattern[] {
+function detectPerformanceHealth(metrics: PeriodMetrics, trades: Trade[], accountBalance: number): DetectedPattern[] {
   const patterns: DetectedPattern[] = [];
 
   if (metrics.tradeCount >= MIN_TRADES_RISK) {
@@ -461,6 +662,48 @@ function detectPerformanceHealth(metrics: PeriodMetrics): DetectedPattern[] {
         description: 'Drawdown exceeds 10%. Risk management may need attention.',
         priority: 1,
       });
+    }
+
+    // Drawdown cluster detection: count significant drawdowns (>5% of balance)
+    if (accountBalance > 0) {
+      const balance = accountBalance;
+      let peak = 0;
+      let cumPnl = 0;
+      let largeDrawdowns = 0;
+      let inDrawdown = false;
+
+      const sorted = [...trades].sort((a, b) => {
+        const da = `${a.trade_date} ${a.trade_time || '00:00'}`;
+        const db = `${b.trade_date} ${b.trade_time || '00:00'}`;
+        return da.localeCompare(db);
+      });
+
+      for (const t of sorted) {
+        if (t.break_even) continue;
+        cumPnl += t.calculated_profit ?? 0;
+        if (cumPnl > peak) {
+          peak = cumPnl;
+          inDrawdown = false;
+        }
+        const drawdownPct = peak > 0 ? ((peak - cumPnl) / balance) * 100 : 0;
+        if (drawdownPct >= 5 && !inDrawdown) {
+          largeDrawdowns++;
+          inDrawdown = true;
+        }
+        if (drawdownPct < 2) {
+          inDrawdown = false;
+        }
+      }
+
+      if (largeDrawdowns >= 3) {
+        patterns.push({
+          id: 'health-drawdown-cluster',
+          type: 'warning',
+          title: 'Large drawdown cluster',
+          description: `${largeDrawdowns} drawdowns > 5% detected — unusual spike in volatility.`,
+          priority: 1,
+        });
+      }
     }
 
     if (metrics.profitFactor >= 2) {
@@ -600,7 +843,9 @@ export function detectTradingPatterns(
       ...detectConfidencePatterns(trades),
       ...detectMindStatePatterns(trades),
       ...detectNewsPatterns(trades),
-      ...detectPerformanceHealth(metrics),
+      ...detectRevengeTradingPatterns(trades),
+      ...detectOvertradingAfterLosses(trades),
+      ...detectPerformanceHealth(metrics, trades, accountBalance),
       ...detectWinRateTrend(metrics, priorMetrics),
       ...detectTimePatterns(trades),
     ].sort((a, b) => a.priority - b.priority);
@@ -616,6 +861,10 @@ export function detectMultiPeriodTrends(
   metricsB: PeriodMetrics,
   metricsC: PeriodMetrics,
   labels: [string, string, string],
+  tradesA?: Trade[],
+  tradesB?: Trade[],
+  tradesC?: Trade[],
+  accountBalance?: number,
 ): DetectedPattern[] {
   const patterns: DetectedPattern[] = [];
   const minTrades = MIN_TRADES_DEFAULT;
@@ -634,6 +883,55 @@ export function detectMultiPeriodTrends(
     { key: 'pf', label: 'Profit factor', values: [metricsA.profitFactor, metricsB.profitFactor, metricsC.profitFactor], format: (v) => v.toFixed(2) },
     { key: 'consistency', label: 'Consistency', values: [metricsA.consistencyScore, metricsB.consistencyScore, metricsC.consistencyScore], format: (v) => `${v.toFixed(0)}%` },
   ];
+
+  // Sharpe ratio trend (requires trades + accountBalance)
+  if (tradesA && tradesB && tradesC && accountBalance && accountBalance > 0) {
+    const sharpeA = calculateMacroStats(tradesA, accountBalance).sharpeWithBE;
+    const sharpeB = calculateMacroStats(tradesB, accountBalance).sharpeWithBE;
+    const sharpeC = calculateMacroStats(tradesC, accountBalance).sharpeWithBE;
+
+    checks.push({
+      key: 'sharpe',
+      label: 'Sharpe ratio',
+      values: [sharpeA, sharpeB, sharpeC],
+      format: (v) => v.toFixed(2),
+    });
+
+    // Risk management trend (average risk per trade across periods)
+    const avgRisk = (trades: Trade[]): number => {
+      const valid = trades.filter((t) => typeof t.risk_per_trade === 'number' && t.risk_per_trade > 0);
+      if (valid.length === 0) return 0;
+      return valid.reduce((sum, t) => sum + t.risk_per_trade, 0) / valid.length;
+    };
+
+    const riskA = avgRisk(tradesA);
+    const riskB = avgRisk(tradesB);
+    const riskC = avgRisk(tradesC);
+
+    // Risk improving = decreasing over time (A < B < C, since lower risk is better)
+    if (riskA > 0 && riskB > 0 && riskC > 0) {
+      const riskImproving = riskA < riskB - 0.1 && riskB < riskC - 0.1;
+      const riskWorsening = riskA > riskB + 0.1 && riskB > riskC + 0.1;
+
+      if (riskImproving) {
+        patterns.push({
+          id: 'trend-risk-improving',
+          type: 'strength',
+          title: 'Risk management improving',
+          description: `Average risk per trade: ${riskC.toFixed(1)}% (${labels[2]}) → ${riskB.toFixed(1)}% (${labels[1]}) → ${riskA.toFixed(1)}% (${labels[0]}).`,
+          priority: 5,
+        });
+      } else if (riskWorsening) {
+        patterns.push({
+          id: 'trend-risk-worsening',
+          type: 'warning',
+          title: 'Risk per trade increasing',
+          description: `Average risk per trade: ${riskC.toFixed(1)}% (${labels[2]}) → ${riskB.toFixed(1)}% (${labels[1]}) → ${riskA.toFixed(1)}% (${labels[0]}).`,
+          priority: 2,
+        });
+      }
+    }
+  }
 
   for (const check of checks) {
     const [a, b, c] = check.values;

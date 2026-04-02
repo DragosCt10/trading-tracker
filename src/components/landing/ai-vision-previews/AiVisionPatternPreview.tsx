@@ -15,14 +15,15 @@ interface Pattern {
 }
 
 const PATTERN_SETS: Pattern[][] = [
+  // Set 1: Time edge + revenge trading + market profit factor
   [
     {
       type: 'strength',
       icon: TrendingUp,
       iconColor: 'text-emerald-500 dark:text-emerald-400',
       titleColor: 'text-emerald-700 dark:text-emerald-400',
-      title: 'Strong morning session edge',
-      description: 'Win rate jumps to 78% in the 9:30–11:00 window.',
+      title: 'Best window: 08:00–09:59',
+      description: '78.3% win rate during 08:00–09:59 (42 trades).',
       periods: ['7d', '30d'],
     },
     {
@@ -31,7 +32,7 @@ const PATTERN_SETS: Pattern[][] = [
       iconColor: 'text-amber-500 dark:text-amber-400',
       titleColor: 'text-amber-700 dark:text-amber-400',
       title: 'Revenge trading detected',
-      description: 'After a loss, next trade loses 62% of the time.',
+      description: 'After a loss, the next trade loses 62% of the time (38 sequences).',
       periods: ['30d'],
     },
     {
@@ -40,10 +41,11 @@ const PATTERN_SETS: Pattern[][] = [
       iconColor: 'text-blue-500 dark:text-blue-400',
       titleColor: 'text-blue-700 dark:text-blue-400',
       title: 'NAS100 outperforms',
-      description: 'Profit factor of 2.8 vs 1.4 on other instruments.',
+      description: 'Profit factor of 2.8 vs 1.4 avg on other instruments.',
       periods: ['7d', '30d', '90d'],
     },
   ],
+  // Set 2: Risk trend + day weakness + market consistency
   [
     {
       type: 'strength',
@@ -51,7 +53,7 @@ const PATTERN_SETS: Pattern[][] = [
       iconColor: 'text-emerald-500 dark:text-emerald-400',
       titleColor: 'text-emerald-700 dark:text-emerald-400',
       title: 'Risk management improving',
-      description: 'Average risk per trade dropped from 2% to 0.8%.',
+      description: 'Average risk per trade: 2.0% (90d) → 1.2% (30d) → 0.8% (7d).',
       periods: ['30d', '90d'],
     },
     {
@@ -59,20 +61,21 @@ const PATTERN_SETS: Pattern[][] = [
       icon: TrendingDown,
       iconColor: 'text-red-500 dark:text-red-400',
       titleColor: 'text-red-700 dark:text-red-400',
-      title: 'Win rate declining on Fridays',
-      description: 'Friday trades show 38% win rate vs 65% other days.',
+      title: 'Weakest day: Friday',
+      description: '38.5% win rate across 26 trades.',
       periods: ['7d', '30d'],
     },
     {
       type: 'insight',
-      icon: Clock,
+      icon: Lightbulb,
       iconColor: 'text-blue-500 dark:text-blue-400',
       titleColor: 'text-blue-700 dark:text-blue-400',
-      title: 'Best hold time: 15–45 min',
-      description: 'Trades held 15-45 min have 2.1x higher expectancy.',
-      periods: ['90d'],
+      title: 'EUR/USD consistency leader',
+      description: '82% consistency score — your most reliable instrument.',
+      periods: ['30d', '90d'],
     },
   ],
+  // Set 3: Overtrading after losses + setup PF + direction bias
   [
     {
       type: 'warning',
@@ -80,7 +83,7 @@ const PATTERN_SETS: Pattern[][] = [
       iconColor: 'text-amber-500 dark:text-amber-400',
       titleColor: 'text-amber-700 dark:text-amber-400',
       title: 'Overtrading on red days',
-      description: 'You take 3.2x more trades after 2+ consecutive losses.',
+      description: 'You take 3.2x more trades after a losing day (6.4 vs 2.0 avg).',
       periods: ['7d', '30d'],
     },
     {
@@ -89,7 +92,7 @@ const PATTERN_SETS: Pattern[][] = [
       iconColor: 'text-emerald-500 dark:text-emerald-400',
       titleColor: 'text-emerald-700 dark:text-emerald-400',
       title: 'Breakout setups excelling',
-      description: 'Breakout entries yield 3.4 profit factor this month.',
+      description: 'Breakout entries yield 3.4 profit factor (18 trades).',
       periods: ['30d'],
     },
     {
@@ -97,19 +100,20 @@ const PATTERN_SETS: Pattern[][] = [
       icon: Lightbulb,
       iconColor: 'text-blue-500 dark:text-blue-400',
       titleColor: 'text-blue-700 dark:text-blue-400',
-      title: 'EUR/USD consistency leader',
-      description: '82% consistency score — your most reliable pair.',
+      title: 'Long trades outperform',
+      description: 'Longs win at 71.2% vs 54.8% for shorts (16pp gap).',
       periods: ['7d', '30d', '90d'],
     },
   ],
+  // Set 4: Sharpe trend + drawdown cluster + time weakness
   [
     {
       type: 'strength',
       icon: TrendingUp,
       iconColor: 'text-emerald-500 dark:text-emerald-400',
       titleColor: 'text-emerald-700 dark:text-emerald-400',
-      title: 'Sharpe ratio trending up',
-      description: 'Sharpe improved from 1.2 to 2.1 over the last 30 days.',
+      title: 'Sharpe ratio consistently improving',
+      description: '0.82 (90d) → 1.45 (30d) → 2.10 (7d).',
       periods: ['30d', '90d'],
     },
     {
@@ -118,7 +122,7 @@ const PATTERN_SETS: Pattern[][] = [
       iconColor: 'text-amber-500 dark:text-amber-400',
       titleColor: 'text-amber-700 dark:text-amber-400',
       title: 'Large drawdown cluster',
-      description: '3 drawdowns > 5% in the last 7 days — unusual spike.',
+      description: '3 drawdowns > 5% detected — unusual spike in volatility.',
       periods: ['7d'],
     },
     {
@@ -126,8 +130,8 @@ const PATTERN_SETS: Pattern[][] = [
       icon: Clock,
       iconColor: 'text-blue-500 dark:text-blue-400',
       titleColor: 'text-blue-700 dark:text-blue-400',
-      title: 'Afternoon slump detected',
-      description: 'Win rate drops 22% after 2:00 PM across all pairs.',
+      title: 'Weakest window: 14:00–15:59',
+      description: '38.9% win rate during 14:00–15:59 (18 trades).',
       periods: ['7d', '30d'],
     },
   ],
