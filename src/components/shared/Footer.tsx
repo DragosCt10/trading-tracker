@@ -34,6 +34,7 @@ const LINKABLE_HREFS = new Set([
   "/refund-policy",
   "/feed",
   "/feed/rules",
+  "/help",
 ]);
 
 function FooterLink({
