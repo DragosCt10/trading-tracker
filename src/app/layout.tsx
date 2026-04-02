@@ -27,6 +27,20 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  if (process.env.NEXT_PUBLIC_UNDER_MAINTENANCE === 'true') {
+    return (
+      <html lang="en" suppressHydrationWarning>
+        <body className="bg-black text-white min-h-screen flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="text-6xl font-bold tracking-tight">🔧</div>
+            <h1 className="text-4xl font-bold tracking-tight">Under Maintenance</h1>
+            <p className="text-zinc-400 text-lg">We&apos;re performing scheduled maintenance. We&apos;ll be back shortly.</p>
+          </div>
+        </body>
+      </html>
+    );
+  }
+
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
