@@ -57,6 +57,36 @@
   animation: fadeIn 150ms ease-out;
 }
 
+/* ── CTA animated border ── */
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.cta-border-glow {
+  --border-angle: 0deg;
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent 30%,
+    var(--tc-primary) 45%,
+    var(--tc-accent) 50%,
+    var(--tc-primary) 55%,
+    transparent 70%
+  );
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  padding: 1.5px;
+  animation: border-spin 4s linear infinite;
+}
+
+@keyframes border-spin {
+  to {
+    --border-angle: 360deg;
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

@@ -25,7 +25,7 @@ const NAV_LINKS = [
   { label: 'Testimonials', href: '#testimonials' },
 ] as const;
 
-export function LandingHeader() {
+export function LandingNavbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);

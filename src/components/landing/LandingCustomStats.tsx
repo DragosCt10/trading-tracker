@@ -847,31 +847,84 @@ export function LandingCustomStats() {
           style={{ '--reveal-delay': '300ms' } as React.CSSProperties}
         >
           <div className="inline-flex items-center gap-1 rounded-full border border-slate-700/50 bg-slate-800/30 p-1.5 backdrop-blur-sm">
-            {STEPS.map((s, i) => (
-              <button
-                key={s.number}
-                type="button"
-                onClick={() => handleStepClick(i)}
-                className={cn(
-                  'flex items-center justify-center gap-2 w-[7.5rem] h-10 rounded-full text-sm font-medium transition-all duration-300 cursor-pointer border',
-                  activeStep === i
-                    ? 'themed-header-icon-box shadow-sm'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
-                )}
-              >
-                <span
+            {STEPS.map((s, i) => {
+              const isNextStep = i === 1 && activeStep === 0;
+              return (
+                <motion.button
+                  key={s.number}
+                  type="button"
+                  onClick={() => handleStepClick(i)}
                   className={cn(
-                    'flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold transition-colors duration-300',
+                    'relative flex items-center justify-center gap-2 w-[7.5rem] h-10 rounded-full text-sm font-medium transition-all duration-300 cursor-pointer border',
                     activeStep === i
-                      ? 'bg-white/20 text-white'
-                      : 'bg-slate-700/50 text-slate-400'
+                      ? 'themed-header-icon-box shadow-sm'
+                      : 'border-transparent text-slate-400 hover:text-slate-200'
                   )}
+                  animate={
+                    isNextStep
+                      ? {
+                          scale: [1, 1.08, 1],
+                          borderColor: [
+                            'rgba(139, 92, 246, 0.15)',
+                            'rgba(139, 92, 246, 0.7)',
+                            'rgba(139, 92, 246, 0.15)',
+                          ],
+                          boxShadow: [
+                            '0 0 0px rgba(139, 92, 246, 0)',
+                            '0 0 14px rgba(139, 92, 246, 0.4)',
+                            '0 0 0px rgba(139, 92, 246, 0)',
+                          ],
+                          color: [
+                            'rgb(148, 163, 184)',
+                            'rgb(226, 232, 240)',
+                            'rgb(148, 163, 184)',
+                          ],
+                        }
+                      : {}
+                  }
+                  transition={
+                    isNextStep
+                      ? {
+                          duration: 2.2,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                          repeatDelay: 0.6,
+                        }
+                      : undefined
+                  }
+                  whileHover={{ scale: 1.06 }}
+                  whileTap={{ scale: 0.97 }}
                 >
-                  {s.number}
-                </span>
-                <span className="hidden sm:inline">{s.label}</span>
-              </button>
-            ))}
+                  {isNextStep && (
+                    <motion.span
+                      className="absolute inset-0 rounded-full"
+                      style={{
+                        background:
+                          'radial-gradient(ellipse at center, rgba(139, 92, 246, 0.25), transparent 70%)',
+                      }}
+                      animate={{ opacity: [0.2, 1, 0.2] }}
+                      transition={{
+                        duration: 2.2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                        repeatDelay: 0.6,
+                      }}
+                    />
+                  )}
+                  <span
+                    className={cn(
+                      'flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold transition-colors duration-300',
+                      activeStep === i
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-700/50 text-slate-400'
+                    )}
+                  >
+                    {s.number}
+                  </span>
+                  <span className="hidden sm:inline">{s.label}</span>
+                </motion.button>
+              );
+            })}
           </div>
         </div>
 

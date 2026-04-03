@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { LandingHeader } from '@/components/landing/LandingHeader';
+import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { PricingHeroBackground } from '@/components/pricing/PricingHeroBackground';
 import { Footer } from '@/components/shared/Footer';
 
@@ -107,7 +107,7 @@ export function ContactClient() {
 
   return (
     <div className="landing-page-override w-full">
-      <LandingHeader />
+      <LandingNavbar />
 
       <section className="relative overflow-clip">
         <PricingHeroBackground />

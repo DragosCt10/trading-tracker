@@ -1,4 +1,4 @@
-import { LandingHeader } from '@/components/landing/LandingHeader';
+import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { LandingHero } from '@/components/landing/LandingHero';
 import { LandingStatsBoard } from '@/components/landing/LandingStatsBoard';
 import { LandingModes } from '@/components/landing/LandingModes';
@@ -8,7 +8,9 @@ import { LandingCustomStats } from '@/components/landing/LandingCustomStats';
 import { LandingAiVision } from '@/components/landing/LandingAiVision';
 import { LandingSocialFeed } from '@/components/landing/LandingSocialFeed';
 import { LandingTestimonials } from '@/components/landing/LandingTestimonials';
-import { LandingPricing } from '@/components/pricing/LandingPricing';
+import { LandingMidCTA } from '@/components/landing/LandingMidCTA';
+import { LandingCTA } from '@/components/landing/LandingCTA';
+import Footer from '@/components/shared/Footer';
 
 export default function Home() {
   if (process.env.NEXT_PUBLIC_UNDER_CONSTRUCTION === 'true') {
@@ -25,7 +27,7 @@ export default function Home() {
 
   return (
     <div className="landing-page-override w-full">
-      <LandingHeader />
+      <LandingNavbar />
 
       <LandingHero />
 
@@ -36,6 +38,8 @@ export default function Home() {
       <LandingDailyJournal />
 
       <LandingCustomStats />
+
+      <LandingMidCTA />
 
       <LandingAiVision />
 
@@ -48,6 +52,10 @@ export default function Home() {
       {/* <div id="pricing" className="scroll-mt-20 mx-auto max-w-6xl px-4 pb-10">
         <LandingPricing />
       </div> */}
+
+      <LandingCTA />
+
+      <Footer />
     </div>
   );
 } 

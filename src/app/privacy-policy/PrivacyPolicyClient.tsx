@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { LandingHeader } from '@/components/landing/LandingHeader';
+import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { PricingHeroBackground } from '@/components/pricing/PricingHeroBackground';
 import { Footer } from '@/components/shared/Footer';
 
@@ -217,7 +217,7 @@ const SECTIONS = [
 export function PrivacyPolicyClient() {
   return (
     <div className="landing-page-override w-full">
-      <LandingHeader />
+      <LandingNavbar />
 
       <section className="relative overflow-clip">
         <PricingHeroBackground />

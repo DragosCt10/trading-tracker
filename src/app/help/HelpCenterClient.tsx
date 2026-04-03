@@ -17,7 +17,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { LandingHeader } from '@/components/landing/LandingHeader';
+import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { PricingHeroBackground } from '@/components/pricing/PricingHeroBackground';
 import { Footer } from '@/components/shared/Footer';
 
@@ -313,7 +313,7 @@ export function HelpCenterClient() {
 
   return (
     <div className="landing-page-override w-full">
-      <LandingHeader />
+      <LandingNavbar />
 
       <section className="relative overflow-clip">
         <PricingHeroBackground />

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Zap, BarChart3, Loader2, Lock, Info } from 'lucide-react';
 import { PricingHeroBackground } from '@/components/pricing/PricingHeroBackground';
-import { LandingHeader } from '@/components/landing/LandingHeader';
+import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { Footer } from '@/components/shared/Footer';
 import { Button } from '@/components/ui/button';
 import { useParallax } from '@/hooks/useParallax';
@@ -79,7 +79,7 @@ export function PricingPageClient() {
 
   return (
     <div className="landing-page-override w-full">
-      <LandingHeader />
+      <LandingNavbar />
 
       {/* Hero section with gradient dome + grid + pillars */}
       <section ref={sectionRef} className="relative overflow-clip">

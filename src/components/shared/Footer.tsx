@@ -94,7 +94,7 @@ export function Footer() {
       role="contentinfo"
       className={cn(
         "w-full mt-32 bg-transparent",
-        "border-t border-slate-200 dark:border-slate-700/80"
+        "border-t border-slate-200 dark:border-border/40"
       )}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
@@ -125,7 +125,7 @@ export function Footer() {
           </div>
 
           {/* Bottom bar - copyright centered */}
-          <div className="mt-10 pt-6 flex justify-center border-t border-slate-200/70 dark:border-slate-700/70">
+          <div className="mt-10 pt-6 flex justify-center border-t border-slate-200/70 dark:border-border/40">
             <p className="text-sm text-slate-400 dark:text-slate-300">
               © {YEAR} AlphaStats. All rights reserved.
             </p>
