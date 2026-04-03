@@ -201,7 +201,7 @@ export function TradeCard({
           <OutcomeChips trade={trade} />
         </div>
 
-        <div className={cn('space-y-2.5', hideImage ? 'mb-0' : 'mb-5')}>
+        <div className={cn('space-y-2.5', hideImage ? 'mb-2' : 'mb-5')}>
           <div className="flex items-center text-slate-500 dark:text-slate-300 text-sm">
             <svg
               xmlns="http://www.w3.org/2000/svg"
