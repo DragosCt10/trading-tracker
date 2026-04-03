@@ -1,6 +1,6 @@
 'use client';
 
-import { Brain, Sparkles, Target, BarChart3, Zap } from 'lucide-react';
+import { Bot, Sparkles, Target, BarChart3, Zap } from 'lucide-react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { AiVisionPatternPreview } from './ai-vision-previews/AiVisionPatternPreview';
 import { AiVisionScorePreview } from './ai-vision-previews/AiVisionScorePreview';
@@ -9,7 +9,7 @@ import { AiVisionMetricPreview } from './ai-vision-previews/AiVisionMetricPrevie
 /* ── Feature pills ── */
 const FEATURE_PILLS = [
   {
-    icon: Brain,
+    icon: Bot,
     title: 'Pattern Detection',
     description: 'Uncovers strengths, weaknesses, and hidden patterns in your trading data automatically.',
   },
@@ -184,6 +184,11 @@ function AiVisionBackground() {
             animation: 'av-glow-breathe 8s ease-in-out infinite',
           }}
         />
+
+        {/* Bottom gradient fade — smooth transition to next section */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-40 z-[1] bg-gradient-to-t from-white to-transparent dark:from-[#0d0a12] dark:to-transparent"
+        />
       </div>
     </div>
   );
@@ -295,7 +300,7 @@ export function LandingAiVision() {
                       background: `radial-gradient(circle, var(--tc-primary, #a855f7) 0%, transparent 70%)`,
                     }}
                   />
-                  <Brain className="h-7 w-7 text-white relative z-10" />
+                  <Bot className="h-7 w-7 text-white relative z-10" />
                 </div>
 
                 {/* Label below hub */}

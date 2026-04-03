@@ -35,6 +35,7 @@ const LINKABLE_HREFS = new Set([
   "/feed",
   "/feed/rules",
   "/help",
+  "/contact",
 ]);
 
 function FooterLink({

@@ -91,7 +91,7 @@ export function PricingPageClient() {
             data-parallax-speed="0.35"
             className="text-3xl leading-[1.08] font-medium tracking-[-0.04em] text-balance sm:text-5xl"
           >
-            Simple pricing,{' '}
+            Clear pricing,{' '}
             <br className="sm:hidden" />
             <span
               className="bg-clip-text text-transparent"

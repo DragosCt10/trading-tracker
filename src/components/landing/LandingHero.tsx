@@ -341,12 +341,15 @@ export function LandingHero() {
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
             </Link>
 
-            <a
-              href="#features"
-              className="text-sm text-muted-foreground hover:text-white transition-colors duration-200"
+            <button
+              type="button"
+              onClick={() => {
+                document.querySelector('#stats-board')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className="text-sm text-muted-foreground hover:text-white transition-colors duration-200 cursor-pointer"
             >
               See features
-            </a>
+            </button>
           </div>
         </div>
       </div>

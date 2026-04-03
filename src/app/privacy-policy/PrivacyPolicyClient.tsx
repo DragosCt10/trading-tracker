@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { PricingHeroBackground } from '@/components/pricing/PricingHeroBackground';
 import { Footer } from '@/components/shared/Footer';
@@ -158,13 +159,13 @@ const SECTIONS = [
           <li>Object to certain types of data processing</li>
         </ul>
         <p className="mt-3">
-          To exercise your rights, contact us at{' '}
-          <a
-            href="mailto:info@alpha-stats.com"
+          To exercise your rights,{' '}
+          <Link
+            href="/contact"
             className="underline decoration-white text-white underline-offset-2"
           >
-            info@alpha-stats.com
-          </a>
+            contact us
+          </Link>
           .
         </p>
       </>
@@ -200,14 +201,13 @@ const SECTIONS = [
     title: '11. Contact',
     content: (
       <p>
-        If you have any questions about this Privacy Policy or your data,
-        contact us at{' '}
-        <a
-          href="mailto:info@alpha-stats.com"
+        If you have any questions about this Privacy Policy or your data,{' '}
+        <Link
+          href="/contact"
           className="underline decoration-white text-white underline-offset-2"
         >
-          info@alpha-stats.com
-        </a>
+          contact us
+        </Link>
         .
       </p>
     ),

@@ -181,7 +181,7 @@ export function LandingFutureEquity() {
 
         {/* Top gradient blend — matches actual landing page bg */}
         <div
-          className="absolute top-0 left-0 right-0 h-40 z-[1] bg-gradient-to-b from-white to-transparent dark:from-[#0d0a12] dark:to-transparent"
+          className="absolute top-0 left-0 right-0 h-56 z-[1] bg-gradient-to-b from-white to-transparent dark:from-[#0d0a12] dark:to-transparent"
         />
       </div>
 

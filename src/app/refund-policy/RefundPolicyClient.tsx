@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { PricingHeroBackground } from '@/components/pricing/PricingHeroBackground';
 import { Footer } from '@/components/shared/Footer';
@@ -98,13 +99,13 @@ const SECTIONS = [
     title: 'Contact',
     content: (
       <p>
-        If you believe you were charged in error, contact us at{' '}
-        <a
-          href="mailto:info@alpha-stats.com"
+        If you believe you were charged in error,{' '}
+        <Link
+          href="/contact"
           className="underline decoration-white text-white underline-offset-2"
         >
-          info@alpha-stats.com
-        </a>
+          contact us
+        </Link>
         .
       </p>
     ),

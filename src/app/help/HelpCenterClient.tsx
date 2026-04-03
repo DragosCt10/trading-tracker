@@ -392,13 +392,13 @@ export function HelpCenterClient() {
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
                     Try a different search or{' '}
-                    <a
-                      href="mailto:support@alphastats.io"
+                    <Link
+                      href="/contact"
                       className="underline underline-offset-2"
                       style={{ color: 'var(--tc-primary)' }}
                     >
                       contact support
-                    </a>
+                    </Link>
                     .
                   </p>
                 </div>
@@ -462,7 +462,7 @@ export function HelpCenterClient() {
                 </p>
 
                 <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-                  <Link href="mailto:support@alphastats.io">
+                  <Link href="/contact">
                     <Button
                       size="default"
                       className="relative cursor-pointer overflow-hidden min-w-[160px] rounded-lg text-white font-semibold border-0 shadow-lg hover:shadow-xl transition-all duration-300 group"

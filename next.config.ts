@@ -4,6 +4,14 @@ const isDev = process.env.NODE_ENV !== 'production'
 const nextConfig = {
   reactStrictMode: true,
   reactCompiler: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https' as const,
+        hostname: 'images.unsplash.com',
+      },
+    ],
+  },
   async headers() {
     return [
       {

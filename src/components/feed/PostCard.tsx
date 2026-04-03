@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Heart, MessageCircle, MoreHorizontal, Pencil, Trash2, Flag, X } from 'lucide-react';
 import TierBadge from './TierBadge';
@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import TradePreviewCard from './TradePreviewCard';
+import TradingViewEmbed from './TradingViewEmbed';
+import { stripTradingViewUrls } from '@/utils/tradingViewUrl';
 import type { FeedPost } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 import { useTheme } from '@/hooks/useTheme';
@@ -84,6 +86,7 @@ function PostCardComponent({
       ? currentUserTier
       : post.author.tier;
   const isPro = authorTier === 'pro' || authorTier === 'elite';
+  const displayedContent = useMemo(() => stripTradingViewUrls(post.content), [post.content]);
 
   const handleAuthorClick = (e: React.MouseEvent) => {
     if (!onAuthorClick) return;
@@ -172,13 +175,18 @@ function PostCardComponent({
 
       </div>
 
-      {/* Post text */}
-      <p
-        suppressHydrationWarning
-        className={`text-[15px] leading-[1.65] text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words ${!expanded ? 'line-clamp-6' : ''} ${post.trade_snapshot ? 'mb-4' : ''}`}
-      >
-        {post.content}
-      </p>
+      {/* Post text (TradingView URLs stripped — shown as embeds below) */}
+      {displayedContent && (
+        <p
+          suppressHydrationWarning
+          className={`text-[15px] leading-[1.65] text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words ${!expanded ? 'line-clamp-6' : ''} ${post.trade_snapshot ? 'mb-4' : ''}`}
+        >
+          {displayedContent}
+        </p>
+      )}
+
+      {/* TradingView chart embeds (auto-detected from post text) */}
+      <TradingViewEmbed content={post.content} />
 
       {/* Trade card embed */}
       {post.trade_snapshot && <TradePreviewCard snapshot={post.trade_snapshot} />}

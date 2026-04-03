@@ -20,7 +20,7 @@ import Logo from '@/components/shared/Logo';
 import { ThemePickerModal } from '@/components/shared/ThemePickerModal';
 
 const NAV_LINKS = [
-  { label: 'Features', href: '#features' },
+  { label: 'Features', href: '#stats-board' },
   { label: 'Pricing', href: '/pricing' },
   { label: 'Testimonials', href: '#testimonials' },
 ] as const;

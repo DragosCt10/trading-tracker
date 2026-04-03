@@ -6,6 +6,8 @@ import { LandingFutureEquity } from '@/components/landing/LandingFutureEquity';
 import { LandingDailyJournal } from '@/components/landing/LandingDailyJournal';
 import { LandingCustomStats } from '@/components/landing/LandingCustomStats';
 import { LandingAiVision } from '@/components/landing/LandingAiVision';
+import { LandingSocialFeed } from '@/components/landing/LandingSocialFeed';
+import { LandingTestimonials } from '@/components/landing/LandingTestimonials';
 import { LandingPricing } from '@/components/pricing/LandingPricing';
 
 export default function Home() {
@@ -38,6 +40,10 @@ export default function Home() {
       <LandingAiVision />
 
       <LandingFutureEquity />
+
+      <LandingSocialFeed />
+
+      <LandingTestimonials />
 
       {/* <div id="pricing" className="scroll-mt-20 mx-auto max-w-6xl px-4 pb-10">
         <LandingPricing />

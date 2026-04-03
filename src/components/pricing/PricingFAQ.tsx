@@ -178,7 +178,7 @@ export function PricingFAQ({ className }: PricingFAQProps) {
             </p>
 
             <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link href="mailto:support@alphastats.io">
+              <Link href="/contact">
                 <Button
                   size="default"
                   className="relative cursor-pointer overflow-hidden min-w-[160px] rounded-lg text-white font-semibold border-0 shadow-lg hover:shadow-xl transition-all duration-300 group"

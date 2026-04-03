@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link2, Loader2, X, PlusCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -60,6 +60,35 @@ export default function InlineCreatePostCard({
     }
     wasCollapsedRef.current = collapsed;
   }, [collapsed]);
+
+  const manuallyResizedRef = useRef(false);
+
+  const autoResize = useCallback(() => {
+    if (manuallyResizedRef.current) return;
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
+
+  useEffect(() => { autoResize(); }, [content, autoResize]);
+
+  // Detect manual resize via ResizeObserver
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    let prevHeight = el.offsetHeight;
+    const ro = new ResizeObserver(() => {
+      const newHeight = el.offsetHeight;
+      // If height changed but content didn't trigger it, user dragged the handle
+      if (newHeight !== prevHeight) {
+        manuallyResizedRef.current = true;
+      }
+      prevHeight = newHeight;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const displayedName = getPublicDisplayName(profile);
   const maxLen = subscription.definition.limits.maxPostContentLength;
@@ -202,8 +231,10 @@ export default function InlineCreatePostCard({
                   )}
                   {mounted && <TierBadge tier={authorTier} isLightMode={isLightMode} />}
                   {mounted && profile.trade_badge && <RewardsBadge milestoneId={profile.trade_badge} />}
+                  <span className="ml-auto text-[11px] tabular-nums text-slate-400 dark:text-slate-500 select-none">
+                    {content.length}/{maxLen}
+                  </span>
                 </div>
-
                 <textarea
                   ref={textareaRef}
                   data-feed-composer="true"
@@ -213,7 +244,7 @@ export default function InlineCreatePostCard({
                   rows={2}
                   disabled={limitReached || isSubmitting}
                   placeholder="What's your trade thesis today?"
-                  className="w-full resize-none bg-transparent text-[15px] leading-[1.65] text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none disabled:opacity-50"
+                  className="w-full resize-vertical bg-transparent text-[15px] leading-[1.65] text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none disabled:opacity-50"
                 />
 
                 {selectedTrade && <TradePreviewCard snapshot={tradeToSnapshot(selectedTrade)} />}
@@ -231,7 +262,10 @@ export default function InlineCreatePostCard({
               </div>
             </div>
 
-            <div className="mt-4 flex items-center justify-end gap-3 border-t border-slate-200/80 pt-3 dark:border-slate-700/40">
+            <div className="mt-4 flex items-center gap-3 border-t border-slate-200/80 pt-3 dark:border-slate-700/40">
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 mr-auto">
+                TradingView links are auto-embedded
+              </span>
               {canAttach && (
                 <div className="flex items-center gap-2">
                   <button

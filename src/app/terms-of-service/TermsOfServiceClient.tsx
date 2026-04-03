@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { PricingHeroBackground } from '@/components/pricing/PricingHeroBackground';
 import { Footer } from '@/components/shared/Footer';
@@ -196,13 +197,13 @@ const SECTIONS = [
     title: '11. Contact',
     content: (
       <p>
-        If you have any questions about these Terms of Service, contact us at{' '}
-        <a
-          href="mailto:info@alpha-stats.com"
+        If you have any questions about these Terms of Service,{' '}
+        <Link
+          href="/contact"
           className="underline decoration-white text-white underline-offset-2"
         >
-          info@alpha-stats.com
-        </a>
+          contact us
+        </Link>
         .
       </p>
     ),
