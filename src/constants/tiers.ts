@@ -72,7 +72,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       allowedModes: ['demo', 'live', 'backtesting'],
       maxPostsPerWeek: null,
       maxPostsPerDay: 50,
-      maxPostContentLength: 1000,
+      maxPostContentLength: 500,
       maxMonthlyTrades: null,
     },
     features: {
@@ -109,7 +109,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       allowedModes: ['demo', 'live', 'backtesting'],
       maxPostsPerWeek: null,
       maxPostsPerDay: 50,
-      maxPostContentLength: 1000,
+      maxPostContentLength: 500,
       maxMonthlyTrades: null,
     },
     features: {
