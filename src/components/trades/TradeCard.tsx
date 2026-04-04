@@ -18,6 +18,7 @@ export type TradeCardProps = {
   onSelect?: (t: Trade) => void;
   hideImage?: boolean;
   savedTags?: SavedTag[];
+  disableImageLink?: boolean;
 };
 
 export function TradeCard({
@@ -28,6 +29,7 @@ export function TradeCard({
   onSelect,
   hideImage,
   savedTags,
+  disableImageLink,
 }: TradeCardProps) {
   const screenItems = useMemo(
     () =>
@@ -66,10 +68,14 @@ export function TradeCard({
           {activeScreen ? (
             <div className="relative">
               <a
-                href={activeScreen}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block aspect-video bg-slate-100 dark:bg-slate-700/50 rounded-lg relative overflow-hidden cursor-pointer hover:opacity-95 transition-opacity group"
+                href={disableImageLink ? undefined : activeScreen}
+                target={disableImageLink ? undefined : '_blank'}
+                rel={disableImageLink ? undefined : 'noopener noreferrer'}
+                onClick={disableImageLink ? (e) => e.preventDefault() : undefined}
+                className={cn(
+                  'block aspect-video bg-slate-100 dark:bg-slate-700/50 rounded-lg relative overflow-hidden transition-opacity group',
+                  disableImageLink ? 'cursor-default' : 'cursor-pointer hover:opacity-95'
+                )}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
