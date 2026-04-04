@@ -297,40 +297,41 @@ const CpuArchitecture = ({
             stroke="white"
           />
         </mask>
-        {/* Gradients */}
+        {/* Gradients — themed to app palette */}
         <radialGradient id="cpu-blue-grad" fx="1">
-          <stop offset="0%" stopColor="#00E8ED" />
-          <stop offset="50%" stopColor="#08F" />
+          <stop offset="0%" stopColor="var(--tc-primary)" />
+          <stop offset="50%" stopColor="var(--tc-accent)" />
           <stop offset="100%" stopColor="transparent" />
         </radialGradient>
         <radialGradient id="cpu-yellow-grad" fx="1">
-          <stop offset="0%" stopColor="#FFD800" />
-          <stop offset="50%" stopColor="#FFD800" />
+          <stop offset="0%" stopColor="var(--tc-accent-end)" />
+          <stop offset="50%" stopColor="var(--tc-accent-end)" />
           <stop offset="100%" stopColor="transparent" />
         </radialGradient>
         <radialGradient id="cpu-pinkish-grad" fx="1">
-          <stop offset="0%" stopColor="#830CD1" />
-          <stop offset="50%" stopColor="#FF008B" />
+          <stop offset="0%" stopColor="var(--tc-accent)" />
+          <stop offset="50%" stopColor="var(--tc-primary)" />
           <stop offset="100%" stopColor="transparent" />
         </radialGradient>
         <radialGradient id="cpu-white-grad" fx="1">
-          <stop offset="0%" stopColor="white" />
+          <stop offset="0%" stopColor="var(--tc-primary)" />
+          <stop offset="60%" stopColor="var(--tc-accent)" />
           <stop offset="100%" stopColor="transparent" />
         </radialGradient>
         <radialGradient id="cpu-green-grad" fx="1">
-          <stop offset="0%" stopColor="#22c55e" />
+          <stop offset="0%" stopColor="var(--tc-accent-end)" />
           <stop offset="100%" stopColor="transparent" />
         </radialGradient>
         <radialGradient id="cpu-orange-grad" fx="1">
-          <stop offset="0%" stopColor="#f97316" />
+          <stop offset="0%" stopColor="var(--tc-primary)" />
           <stop offset="100%" stopColor="transparent" />
         </radialGradient>
         <radialGradient id="cpu-cyan-grad" fx="1">
-          <stop offset="0%" stopColor="#06b6d4" />
+          <stop offset="0%" stopColor="var(--tc-accent)" />
           <stop offset="100%" stopColor="transparent" />
         </radialGradient>
         <radialGradient id="cpu-rose-grad" fx="1">
-          <stop offset="0%" stopColor="#f43f5e" />
+          <stop offset="0%" stopColor="var(--tc-accent-end)" />
           <stop offset="100%" stopColor="transparent" />
         </radialGradient>
         <filter
@@ -378,7 +379,7 @@ const CpuArchitecture = ({
           x2="0"
           y2="1"
         >
-          <stop offset="0%" stopColor="#4F4F4F" />
+          <stop offset="0%" stopColor="var(--tc-primary)" stopOpacity="0.3" />
           <stop offset="60%" stopColor="#121214" />
         </linearGradient>
         {/* Add CPU Text Gradient */}
