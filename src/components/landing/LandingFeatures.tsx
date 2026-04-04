@@ -21,6 +21,7 @@ import {
 import Link from 'next/link';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { BGPattern } from '@/components/ui/bg-pattern';
+import { CpuArchitecture } from '@/components/ui/cpu-architecture';
 
 /* ── Feature data ── */
 
@@ -73,11 +74,6 @@ const STATS = [
   { value: 5, suffix: '', label: 'Risk Metrics' },
 ];
 
-/* ── Equity curve SVG points ── */
-
-const CURVE_POINTS = '0,80 30,72 55,78 80,60 110,65 140,48 170,52 200,35 230,40 260,22 290,28 320,12';
-const CURVE_POINTS_SHADOW = '0,80 30,72 55,78 80,60 110,65 140,48 170,52 200,35 230,40 260,22 290,28 320,12 320,100 0,100';
-
 /* ── Sub-components ── */
 
 function FeatureCard({
@@ -129,98 +125,6 @@ function FeatureCard({
   );
 }
 
-function CenterVisual() {
-  return (
-    <div className="relative w-full max-w-[280px]">
-      {/* Main card */}
-      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-md p-6 space-y-5">
-        {/* Header row */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-white/25 mb-1">Portfolio</p>
-            <p className="text-xl font-semibold text-foreground/90 tracking-tight">$52,480</p>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-full px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[11px] font-medium text-emerald-400">+12.4%</span>
-          </div>
-        </div>
-
-        {/* Mini equity curve */}
-        <div className="relative h-[80px] w-full">
-          <svg
-            viewBox="0 0 320 100"
-            fill="none"
-            className="w-full h-full"
-            preserveAspectRatio="none"
-          >
-            <defs>
-              <linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--tc-primary)" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="var(--tc-primary)" stopOpacity="0" />
-              </linearGradient>
-              <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="var(--tc-primary)" stopOpacity="0.5" />
-                <stop offset="100%" stopColor="var(--tc-primary)" stopOpacity="1" />
-              </linearGradient>
-            </defs>
-            <polygon points={CURVE_POINTS_SHADOW} fill="url(#curveGrad)" />
-            <polyline
-              points={CURVE_POINTS}
-              stroke="url(#lineGrad)"
-              strokeWidth="2"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            {/* Glow dot at end */}
-            <circle cx="320" cy="12" r="3" fill="var(--tc-primary)" />
-            <circle cx="320" cy="12" r="6" fill="var(--tc-primary)" opacity="0.2" />
-          </svg>
-        </div>
-
-        {/* Stats grid */}
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: 'Win Rate', value: '68%' },
-            { label: 'Profit Factor', value: '2.53' },
-            { label: 'Sharpe', value: '1.84' },
-          ].map((s) => (
-            <div key={s.label} className="text-center">
-              <p className="text-[10px] text-white/25 mb-0.5">{s.label}</p>
-              <p className="text-sm font-semibold text-foreground/80">{s.value}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Mini trade list */}
-        <div className="space-y-2">
-          {[
-            { market: 'NAS100', pnl: '+$1,240', win: true },
-            { market: 'XAUUSD', pnl: '+$890', win: true },
-            { market: 'EURUSD', pnl: '-$380', win: false },
-          ].map((t) => (
-            <div
-              key={t.market}
-              className="flex items-center justify-between rounded-lg border border-white/[0.04] bg-white/[0.02] px-3 py-2"
-            >
-              <span className="text-xs text-white/50 font-medium">{t.market}</span>
-              <span className={`text-xs font-semibold ${t.win ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {t.pnl}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Decorative glow behind card */}
-      <div
-        className="absolute -inset-4 -z-10 rounded-3xl blur-2xl opacity-20"
-        style={{ background: 'radial-gradient(ellipse, var(--tc-primary), transparent 70%)' }}
-      />
-    </div>
-  );
-}
 
 function AnimatedCounter({
   value,
@@ -319,7 +223,7 @@ export function LandingFeatures() {
           >
             Everything you need to
             <br />
-            trade with an edge.
+            trade like a PRO.
           </h2>
 
           <p
@@ -331,45 +235,39 @@ export function LandingFeatures() {
           </p>
         </div>
 
-        {/* ── 3-column layout ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-6 lg:gap-8 items-center">
-          {/* Left column */}
-          <div className="space-y-5 order-2 lg:order-1">
-            {FEATURES_LEFT.map((f, i) => (
-              <FeatureCard
-                key={f.title}
-                icon={f.icon}
-                title={f.title}
-                description={f.description}
-                direction="left"
-                delayMs={300 + i * 150}
-              />
-            ))}
-          </div>
-
-          {/* Center visual */}
-          <div
-            ref={calendarRef}
-            className="flex justify-center order-1 lg:order-2 mb-6 lg:mb-0"
-          >
+        {/* ── Feature grid with CPU background ── */}
+        <div ref={calendarRef} className="relative">
+          {/* CPU Architecture background — centered behind cards */}
+          <div className="absolute inset-0 z-0 hidden lg:flex items-center justify-center pointer-events-none">
             <motion.div
-              className="scroll-reveal"
-              style={{ y: calendarY, '--reveal-delay': '200ms' } as React.CSSProperties & { y: typeof calendarY }}
+              className="w-full h-full max-h-[600px]"
+              style={{ y: calendarY }}
             >
-              <CenterVisual />
+              <CpuArchitecture
+                text="ALPHA STATS"
+                width="100%"
+                height="100%"
+              />
             </motion.div>
           </div>
 
-          {/* Right column */}
-          <div className="space-y-5 order-3">
-            {FEATURES_RIGHT.map((f, i) => (
+          {/* Mobile-only: CPU shown on top */}
+          <div className="lg:hidden flex justify-center mb-8">
+            <div className="w-full max-w-sm h-[200px]">
+              <CpuArchitecture text="ALPHA STATS" width="100%" height="100%" />
+            </div>
+          </div>
+
+          {/* Cards grid — sits on top */}
+          <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-5 lg:gap-x-[28%] lg:gap-y-5">
+            {[...FEATURES_LEFT, ...FEATURES_RIGHT].map((f, i) => (
               <FeatureCard
                 key={f.title}
                 icon={f.icon}
                 title={f.title}
                 description={f.description}
-                direction="right"
-                delayMs={300 + i * 150}
+                direction={i < 3 ? 'left' : 'right'}
+                delayMs={300 + i * 100}
               />
             ))}
           </div>
