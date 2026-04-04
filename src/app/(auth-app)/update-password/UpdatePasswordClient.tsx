@@ -74,7 +74,7 @@ export default function UpdatePasswordClient() {
       const result = await updatePasswordAction(null, formData);
 
       if (result.error) {
-        setError(result.error);
+        setError(result.error ?? '');
         setTimeout(() => setError(''), 2000);
       } else {
         setMessage('Password updated successfully. Redirecting to your strategies...');

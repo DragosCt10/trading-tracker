@@ -39,7 +39,7 @@ export default function ModerationPanel() {
   function handleResolve(reportId: string, action: Parameters<typeof resolveReport>[1]) {
     startMutate(async () => {
       const result = await resolveReport(reportId, action);
-      if ('error' in result) { setMsg(result.error); return; }
+      if ('error' in result) { setMsg(result.error ?? null); return; }
       setReports((prev) => prev?.filter((r) => r.id !== reportId) ?? null);
       setMsg(`Report ${action === 'dismiss' ? 'dismissed' : action === 'hide_post' ? '— post hidden' : '— author banned'}`);
     });
@@ -48,7 +48,7 @@ export default function ModerationPanel() {
   function handleToggleVisibility(postId: string, currentlyHidden: boolean) {
     startMutate(async () => {
       const result = await setPostVisibility(postId, !currentlyHidden);
-      if ('error' in result) { setMsg(result.error); return; }
+      if ('error' in result) { setMsg(result.error ?? null); return; }
       if (!currentlyHidden) {
         // was visible, now hidden — remove from hidden list if we're in hidden view
       } else {
@@ -61,7 +61,7 @@ export default function ModerationPanel() {
   function handleToggleBan(profileId: string, currentlyBanned: boolean) {
     startMutate(async () => {
       const result = await setUserBan(profileId, !currentlyBanned);
-      if ('error' in result) { setMsg(result.error); return; }
+      if ('error' in result) { setMsg(result.error ?? null); return; }
       setBannedUsers((prev) => prev?.filter((u) => u.id !== profileId) ?? null);
       setMsg(`User ${currentlyBanned ? 'unbanned' : 'banned'}`);
     });

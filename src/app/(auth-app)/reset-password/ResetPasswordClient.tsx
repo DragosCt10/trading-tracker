@@ -37,7 +37,7 @@ export default function ResetPasswordClient() {
       const result = await resetPasswordAction(null, formData);
 
       if (result.error) {
-        setError(result.error);
+        setError(result.error ?? '');
         setTimeout(() => setError(''), 2000);
         setIsSubmitting(false);
       } else {

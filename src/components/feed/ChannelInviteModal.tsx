@@ -85,7 +85,7 @@ export default function ChannelInviteModal({ channel, userId, open, onClose }: C
       expiresAt: expiryToDate(expiry),
     });
     if ('error' in result) {
-      setError(result.error);
+      setError(result.error ?? '');
       return;
     }
     setLabel(''); setMaxUses(''); setExpiry('');

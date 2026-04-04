@@ -52,7 +52,7 @@ export default function SignupClient() {
       const result = await signupAction(null, formData);
 
       if (result.error) {
-        setError(result.error);
+        setError(result.error ?? '');
         setTimeout(() => setError(null), 2000);
         setIsSubmitting(false);
       } else {

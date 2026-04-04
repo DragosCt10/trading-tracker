@@ -118,7 +118,7 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
       });
 
       if ('error' in result) {
-        setError(result.error);
+        setError(result.error ?? '');
       } else {
         const updatedProfile = result.data;
         const oldUsername = savedProfile?.username;

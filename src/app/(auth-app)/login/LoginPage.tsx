@@ -97,7 +97,7 @@ export default function LoginPage() {
       const result = await loginAction(null, formData);
 
       if (result.error) {
-        setError(result.error);
+        setError(result.error ?? '');
         setTimeout(() => setError(''), 2000);
         setIsSubmitting(false);
       } else {

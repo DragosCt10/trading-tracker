@@ -56,7 +56,7 @@ export default function CreateChannelModal({ open, onClose, userId }: CreateChan
       isPublic,
     });
     if ('error' in result) {
-      setError(result.error);
+      setError(result.error ?? '');
       return;
     }
     setName(''); setSlug(''); setDesc(''); setIsPublic(true);

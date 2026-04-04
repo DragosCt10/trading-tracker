@@ -88,7 +88,7 @@ export default function ReviewSection({ socialProfile }: { socialProfile: { disp
     startSubmit(async () => {
       const result = await submitReview(text.trim(), rating > 0 ? rating : undefined);
       if ('error' in result) {
-        setErrorMsg(result.error);
+        setErrorMsg(result.error ?? '');
         return;
       }
       setSuccessMsg(existing ? 'Review updated — it will be reviewed again before appearing live.' : 'Review submitted — we\'ll review it shortly.');

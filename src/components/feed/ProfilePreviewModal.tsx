@@ -46,7 +46,7 @@ export default function ProfilePreviewModal({
         if (cancelled) return;
         if ('error' in result) {
           setPreview(null);
-          setError(result.error);
+          setError(result.error ?? '');
         } else {
           setPreview(result.data);
           setIsFollowing(result.data.isFollowing);
