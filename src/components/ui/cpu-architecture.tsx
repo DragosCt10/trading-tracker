@@ -356,7 +356,7 @@ const CpuArchitecture = ({
             dy="1.5"
             stdDeviation="1"
             floodColor="black"
-            floodOpacity="0.1"
+            floodOpacity="1"
           />
         </filter>
         {/* Glass gradient for CPU box */}
