@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCycleAnimation } from '@/hooks/useCycleAnimation';
 
 /**
  * Pure-SVG metric preview mimicking AiVisionMetricRow.
@@ -123,19 +123,7 @@ const METRICS: Metric[] = [
 const trendLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
 
 export function AiVisionMetricPreview() {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setActiveIndex((i) => (i + 1) % METRICS.length);
-        setIsTransitioning(false);
-      }, 300);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+  const { activeIndex, isTransitioning } = useCycleAnimation(METRICS.length, 3000, 300);
 
   const metric = METRICS[activeIndex];
   const is7dNeg = !!metric.negative7d;

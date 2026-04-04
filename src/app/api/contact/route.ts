@@ -10,6 +10,14 @@ const ALLOWED_SUBJECTS = [
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Strip Discord mentions and formatting to prevent abuse via webhook embeds. */
+function sanitizeForDiscord(text: string): string {
+  return text
+    .replace(/@(everyone|here)/gi, '@\u200b$1')
+    .replace(/<@[!&]?\d+>/g, '[mention removed]')
+    .replace(/<#\d+>/g, '[channel removed]');
+}
+
 // In-memory rate limiter (per IP, 1 submission per 30s)
 const rateLimitMap = new Map<string, number>();
 
@@ -49,6 +57,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  // Rate limiting — checked early to reject spammers before wasting compute
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || req.headers.get('x-real-ip')
+    || 'unknown';
+
+  if (!checkContactRateLimit(ip)) {
+    return NextResponse.json(
+      { error: 'Please wait before sending another message' },
+      { status: 429 },
+    );
+  }
+
   // Validation
   const errors: Record<string, string> = {};
 
@@ -72,24 +92,14 @@ export async function POST(req: NextRequest) {
 
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
     errors.message = 'Message is required';
+  } else if (message.trim().length < 10) {
+    errors.message = 'Message must be at least 10 characters';
   } else if (message.length > 5000) {
     errors.message = 'Message must be 5000 characters or less';
   }
 
   if (Object.keys(errors).length > 0) {
     return NextResponse.json({ errors }, { status: 400 });
-  }
-
-  // Rate limiting
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || req.headers.get('x-real-ip')
-    || 'unknown';
-
-  if (!checkContactRateLimit(ip)) {
-    return NextResponse.json(
-      { error: 'Please wait before sending another message' },
-      { status: 429 },
-    );
   }
 
   // Send to Discord
@@ -99,9 +109,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
-  const truncatedMessage = message.length > 4096
-    ? message.slice(0, 4090) + '... (truncated)'
-    : message;
+  const safeName = sanitizeForDiscord(name.trim());
+  const safeEmail = sanitizeForDiscord(email.trim());
+  const safeSubject = sanitizeForDiscord(subject);
+  const safeMessage = sanitizeForDiscord(message);
+
+  const truncatedMessage = safeMessage.length > 4096
+    ? safeMessage.slice(0, 4090) + '... (truncated)'
+    : safeMessage;
 
   try {
     const res = await fetch(webhookUrl, {
@@ -109,13 +124,13 @@ export async function POST(req: NextRequest) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         embeds: [{
-          title: `New Contact: ${subject}`,
+          title: `New Contact: ${safeSubject}`,
           description: truncatedMessage,
           color: 5814783,
           fields: [
-            { name: 'Name', value: name.trim(), inline: true },
-            { name: 'Email', value: email.trim(), inline: true },
-            { name: 'Subject', value: subject, inline: true },
+            { name: 'Name', value: safeName, inline: true },
+            { name: 'Email', value: safeEmail, inline: true },
+            { name: 'Subject', value: safeSubject, inline: true },
           ],
           timestamp: new Date().toISOString(),
           footer: { text: 'AlphaStats Contact Form' },

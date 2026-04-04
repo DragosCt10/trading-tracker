@@ -1,9 +1,5 @@
-'use client';
-
 import Link from 'next/link';
-import { LandingNavbar } from '@/components/landing/LandingNavbar';
-import { PricingHeroBackground } from '@/components/pricing/PricingHeroBackground';
-import { Footer } from '@/components/shared/Footer';
+import { PolicyPageLayout } from '@/components/shared/PolicyPageLayout';
 
 const SECTIONS = [
   {
@@ -113,50 +109,5 @@ const SECTIONS = [
 ] as const;
 
 export function RefundPolicyClient() {
-  return (
-    <div className="landing-page-override w-full">
-      <LandingNavbar />
-
-      <section className="relative overflow-clip">
-        <PricingHeroBackground />
-
-      <main className="relative mx-auto max-w-3xl px-4 sm:px-6 pt-32 sm:pt-40 pb-16 sm:pb-24">
-        {/* Title */}
-        <h1 className="text-3xl sm:text-4xl font-medium tracking-[-0.03em] text-white">
-          Refund Policy
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">Last updated: March 31, 2026</p>
-
-        {/* Divider with theme accent */}
-        <div className="mt-6 mb-10 h-px w-full overflow-hidden">
-          <div
-            className="h-full w-full"
-            style={{
-              background: `linear-gradient(90deg, var(--tc-primary), transparent 80%)`,
-              opacity: 0.3,
-            }}
-          />
-        </div>
-
-        {/* Sections */}
-        <div className="space-y-10">
-          {SECTIONS.map((section) => (
-            <section key={section.title}>
-              <h2 className="text-lg font-semibold text-white/90 mb-3">
-                {section.title}
-              </h2>
-              <div className="text-[15px] leading-relaxed text-muted-foreground">
-                {section.content}
-              </div>
-            </section>
-          ))}
-        </div>
-      </main>
-
-      <div className="relative [&>footer]:bg-transparent [&>footer]:border-0 [&>footer]:mt-0">
-        <Footer />
-      </div>
-      </section>
-    </div>
-  );
+  return <PolicyPageLayout title="Refund Policy" lastUpdated="March 31, 2026" sections={SECTIONS} />;
 }

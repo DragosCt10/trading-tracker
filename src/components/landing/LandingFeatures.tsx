@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, forwardRef } from 'react';
+import { SectionBadge, SectionHeading } from '@/components/landing/shared';
 import {
   CalendarDays,
   CalendarRange,
@@ -19,7 +20,8 @@ import {
 import Link from 'next/link';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { BGPattern } from '@/components/ui/bg-pattern';
-import Logo from '@/components/shared/Logo';
+import { NeuralConnections } from './features/NeuralConnections';
+import { BrainHub } from './features/BrainHub';
 
 /* ── Feature data ── */
 
@@ -109,270 +111,6 @@ const FeatureCard = forwardRef<HTMLDivElement, FeatureCardProps>(
   }
 );
 
-/* ── Neural connections SVG ── */
-
-interface ConnPoint {
-  x1: number; y1: number; // brain center
-  x2: number; y2: number; // near-card end (shortened)
-  id: number;
-}
-
-function NeuralConnections({
-  containerRef,
-  brainRef,
-  leftCardRefs,
-  rightCardRefs,
-  statsRefs,
-}: {
-  containerRef: React.RefObject<HTMLDivElement | null>;
-  brainRef: React.RefObject<HTMLDivElement | null>;
-  leftCardRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
-  rightCardRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
-  statsRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
-}) {
-  const [connections, setConnections] = useState<ConnPoint[]>([]);
-  const isInView = useInView(containerRef, { once: false, amount: 0.2 });
-
-  useEffect(() => {
-    const measure = () => {
-      if (!containerRef.current || !brainRef.current) return;
-      const cont = containerRef.current.getBoundingClientRect();
-      const brain = brainRef.current.getBoundingClientRect();
-      if (brain.width === 0) return; // hidden on mobile
-
-      const bx = brain.left + brain.width / 2 - cont.left;
-      const by = brain.top + brain.height / 2 - cont.top;
-      const GAP = 28; // px to stop before card edge
-
-      const makeConn = (tx: number, ty: number, id: number, lengthFactor = 1): ConnPoint | null => {
-        const dx = tx - bx;
-        const dy = ty - by;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        if (len < GAP) return null;
-        const factor = ((len - GAP) / len) * lengthFactor;
-        return { x1: bx, y1: by, x2: bx + dx * factor, y2: by + dy * factor, id };
-      };
-
-      const pts: ConnPoint[] = [];
-      let id = 0;
-
-      // Left cards → target right-edge center of each card (bottom card = id 2, cut to half)
-      for (let i = 0; i < leftCardRefs.current.length; i++) {
-        const el = leftCardRefs.current[i];
-        if (el && el.getBoundingClientRect().width > 0) {
-          const r = el.getBoundingClientRect();
-          const c = makeConn(r.right - cont.left, r.top + r.height / 2 - cont.top, id, i === 2 ? 0.5 : 1);
-          if (c) pts.push(c);
-        }
-        id++;
-      }
-
-      // Right cards → target left-edge center of each card (bottom card = id 5, cut to half)
-      for (let i = 0; i < rightCardRefs.current.length; i++) {
-        const el = rightCardRefs.current[i];
-        if (el && el.getBoundingClientRect().width > 0) {
-          const r = el.getBoundingClientRect();
-          const c = makeConn(r.left - cont.left, r.top + r.height / 2 - cont.top, id, i === 2 ? 0.5 : 1);
-          if (c) pts.push(c);
-        }
-        id++;
-      }
-
-      // Stats cards → target top-center (outer 2 cut to half, inner 2 full)
-      for (let i = 0; i < statsRefs.current.length; i++) {
-        const el = statsRefs.current[i];
-        if (el && el.getBoundingClientRect().width > 0) {
-          const r = el.getBoundingClientRect();
-          const isOuter = i === 0 || i === statsRefs.current.length - 1;
-          const c = makeConn(r.left + r.width / 2 - cont.left, r.top - cont.top, id, isOuter ? 0.5 : 1);
-          if (c) pts.push(c);
-        }
-        id++;
-      }
-
-      setConnections(pts);
-    };
-
-    const t = setTimeout(measure, 400);
-    const ro = new ResizeObserver(measure);
-    if (containerRef.current) ro.observe(containerRef.current);
-    window.addEventListener('resize', measure);
-    return () => { clearTimeout(t); ro.disconnect(); window.removeEventListener('resize', measure); };
-  }, [containerRef, brainRef, leftCardRefs, rightCardRefs, statsRefs]);
-
-  return (
-    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }} aria-hidden>
-      <svg className="w-full h-full">
-        <defs>
-          {connections.map((conn) => (
-            <linearGradient
-              key={`grad-def-${conn.id}`}
-              id={`lf-grad-${conn.id}`}
-              gradientUnits="userSpaceOnUse"
-              x1={conn.x1} y1={conn.y1}
-              x2={conn.x2} y2={conn.y2}
-            >
-              <stop offset="0%" stopColor="var(--tc-primary)" stopOpacity="0.35" />
-              <stop offset="55%" stopColor="var(--tc-primary)" stopOpacity="0.18" />
-              <stop offset="100%" stopColor="var(--tc-primary)" stopOpacity="0" />
-            </linearGradient>
-          ))}
-        </defs>
-
-        {connections.map((conn) => (
-          <motion.path
-            key={`line-${conn.id}`}
-            d={`M ${conn.x1} ${conn.y1} L ${conn.x2} ${conn.y2}`}
-            stroke={`url(#lf-grad-${conn.id})`}
-            strokeWidth="1"
-            fill="none"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={isInView ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-            transition={{
-              duration: 1.4,
-              delay: 0.6 + (conn.id % 10) * 0.1,
-              ease: 'easeOut',
-            }}
-          />
-        ))}
-      </svg>
-    </div>
-  );
-}
-
-/* ── Brain hub: Logo + orbital rings + glow ── */
-
-function BrainHub() {
-  const hubRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(hubRef, { once: false, amount: 0.4 });
-
-  return (
-    <motion.div
-      ref={hubRef}
-      className="relative flex items-center justify-center"
-      initial={{ opacity: 0, scale: 0.55 }}
-      animate={isInView ? { opacity: 1, scale: 1 } : {}}
-      transition={{ duration: 0.75, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-    >
-      {/* Outermost slow pulse */}
-      <motion.div
-        className="absolute rounded-full"
-        style={{
-          width: 180, height: 180,
-          background: 'radial-gradient(circle, color-mix(in oklch, var(--tc-primary) 16%, transparent) 0%, transparent 70%)',
-        }}
-        animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0.75, 0.4] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-      />
-
-      {/* Secondary pulse (offset phase) */}
-      <motion.div
-        className="absolute rounded-full"
-        style={{
-          width: 130, height: 130,
-          background: 'radial-gradient(circle, color-mix(in oklch, var(--tc-accent) 12%, transparent) 0%, transparent 70%)',
-        }}
-        animate={{ scale: [1.1, 1, 1.1], opacity: [0.3, 0.6, 0.3] }}
-        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
-      />
-
-      {/* Orbital ring 1 — spins clockwise */}
-      <motion.div
-        className="absolute rounded-full"
-        style={{
-          width: 108, height: 108,
-          border: '1px solid color-mix(in oklch, var(--tc-primary) 38%, transparent)',
-        }}
-        animate={{ rotate: 360 }}
-        transition={{ duration: 9, repeat: Infinity, ease: 'linear' }}
-      >
-        <span
-          className="absolute rounded-full"
-          style={{
-            width: 7, height: 7,
-            background: 'var(--tc-primary)',
-            boxShadow: '0 0 10px 3px var(--tc-primary)',
-            top: -3.5, left: 'calc(50% - 3.5px)',
-          }}
-        />
-        <span
-          className="absolute rounded-full"
-          style={{
-            width: 4, height: 4,
-            background: 'color-mix(in oklch, var(--tc-primary) 60%, white)',
-            boxShadow: '0 0 6px 1px var(--tc-primary)',
-            bottom: -2, left: 'calc(50% - 2px)',
-          }}
-        />
-      </motion.div>
-
-      {/* Orbital ring 2 — counter-spins, tilted in 3D */}
-      <motion.div
-        className="absolute rounded-full"
-        style={{
-          width: 132, height: 132,
-          border: '1px solid color-mix(in oklch, var(--tc-accent) 28%, transparent)',
-          rotateX: 58,
-          transformPerspective: 300,
-        }}
-        animate={{ rotate: -360 }}
-        transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
-      >
-        <span
-          className="absolute rounded-full"
-          style={{
-            width: 5, height: 5,
-            background: 'var(--tc-accent)',
-            boxShadow: '0 0 7px 2px var(--tc-accent)',
-            top: -2.5, left: 'calc(50% - 2.5px)',
-          }}
-        />
-      </motion.div>
-
-      {/* Orbital ring 3 — slow, large, barely visible */}
-      <motion.div
-        className="absolute rounded-full"
-        style={{
-          width: 152, height: 152,
-          border: '0.5px solid color-mix(in oklch, var(--tc-primary) 15%, transparent)',
-        }}
-        animate={{ rotate: 360 }}
-        transition={{ duration: 24, repeat: Infinity, ease: 'linear' }}
-      >
-        <span
-          className="absolute rounded-full"
-          style={{
-            width: 4, height: 4,
-            background: 'color-mix(in oklch, var(--tc-primary) 80%, white)',
-            boxShadow: '0 0 6px 1px var(--tc-primary)',
-            right: -2, top: 'calc(50% - 2px)',
-          }}
-        />
-      </motion.div>
-
-      {/* Logo brain center */}
-      <motion.div
-        className="relative z-10 flex items-center justify-center rounded-full"
-        style={{
-          width: 74, height: 74,
-          background:
-            'radial-gradient(ellipse at 45% 45%, color-mix(in oklch, var(--tc-primary) 55%, oklch(0.28 0 0)) 0%, color-mix(in oklch, var(--tc-primary) 22%, oklch(0.1 0 0)) 55%, oklch(0.06 0 0) 100%)',
-          border: '1.5px solid color-mix(in oklch, var(--tc-primary) 55%, transparent)',
-          boxShadow: [
-            '0 0 0 8px color-mix(in oklch, var(--tc-primary) 8%, transparent)',
-            '0 0 36px color-mix(in oklch, var(--tc-primary) 24%, transparent)',
-            'inset 0 1px 0 color-mix(in oklch, var(--tc-primary) 30%, transparent)',
-          ].join(', '),
-        }}
-        animate={{ scale: [1, 1.06, 1] }}
-        transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <Logo width={42} height={42} />
-      </motion.div>
-    </motion.div>
-  );
-}
-
 /* ── AnimatedCounter ── */
 
 function AnimatedCounter({
@@ -453,28 +191,13 @@ export function LandingFeatures() {
       <div className="relative z-[2] mx-auto max-w-6xl px-4 py-24 sm:py-32">
         {/* Section header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <div
-            className="scroll-reveal inline-flex items-center gap-2 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none px-4 py-1.5 backdrop-blur-sm mb-6"
-            style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-          >
-            <span
-              className="h-1.5 w-1.5 rounded-full flex-shrink-0"
-              style={{ backgroundColor: 'var(--tc-accent)' }}
-            />
-            <span className="text-sm text-white/50">Features</span>
-          </div>
+          <SectionBadge label="Features" />
 
-          <h2
-            className="scroll-reveal text-3xl sm:text-4xl lg:text-[42px] font-medium leading-[1.12] tracking-[-0.03em] bg-clip-text text-transparent"
-            style={{
-              backgroundImage: 'linear-gradient(to bottom, var(--foreground) 40%, var(--tc-accent))',
-              '--reveal-delay': '100ms',
-            } as React.CSSProperties}
-          >
+          <SectionHeading>
             Everything you need to
             <br />
             trade like a PRO.
-          </h2>
+          </SectionHeading>
 
           <p
             className="scroll-reveal mt-5 text-base text-muted-foreground leading-relaxed max-w-md mx-auto"
@@ -594,7 +317,7 @@ export function LandingFeatures() {
               boxShadow: '0 0 24px color-mix(in oklch, var(--tc-primary) 30%, transparent)',
             }}
           >
-            Start tracking your edge
+            Start tracking like a pro
             <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
           </Link>
         </div>

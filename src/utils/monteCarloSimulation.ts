@@ -1,5 +1,8 @@
 import type { Trade } from '@/types/trade';
 
+/** Minimum fields required from a Trade to run a Monte Carlo simulation. */
+export type MonteCarloTradeInput = Pick<Trade, 'break_even' | 'trade_outcome' | 'risk_reward_ratio' | 'calculated_profit'>;
+
 export type MonteCarloPoint = {
   tradeIndex: number;
   // R-multiple cumulative bands
@@ -26,7 +29,7 @@ export type MonteCarloPoint = {
  * @param futureTrades   Number of future trades to simulate (default: 50)
  */
 export function runMonteCarloSimulation(
-  trades: Trade[],
+  trades: MonteCarloTradeInput[],
   simulations = 500,
   futureTrades = 50
 ): MonteCarloPoint[] {

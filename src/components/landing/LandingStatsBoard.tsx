@@ -1,6 +1,7 @@
 'use client';
 
 import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { SectionBadge, SectionHeading } from '@/components/landing/shared';
 import { StrategyCard } from '@/components/dashboard/strategy/StrategyCard';
 import type { Strategy } from '@/types/strategy';
 import type { StrategyOverviewRow } from '@/lib/server/strategiesOverview';
@@ -167,29 +168,13 @@ export function LandingStatsBoard() {
       <div className="relative z-[2] mx-auto max-w-6xl px-4 py-24 sm:py-32">
         {/* Section header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <div
-            className="scroll-reveal inline-flex items-center gap-2 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none px-4 py-1.5 backdrop-blur-sm mb-6"
-            style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-          >
-            <span
-              className="h-1.5 w-1.5 rounded-full flex-shrink-0"
-              style={{ backgroundColor: 'var(--tc-accent)' }}
-            />
-            <span className="text-sm text-muted-foreground">Stats Board</span>
-          </div>
+          <SectionBadge label="Stats Board" />
 
-          <h2
-            className="scroll-reveal text-3xl sm:text-4xl lg:text-[42px] font-medium leading-[1.12] tracking-[-0.03em] bg-clip-text text-transparent"
-            style={{
-              backgroundImage:
-                'linear-gradient(to bottom, var(--foreground) 40%, var(--tc-accent))',
-              '--reveal-delay': '100ms',
-            } as React.CSSProperties}
-          >
+          <SectionHeading>
             See your strategies
             <br />
             at a glance.
-          </h2>
+          </SectionHeading>
 
           <p
             className="scroll-reveal mt-5 text-base text-muted-foreground leading-relaxed max-w-md mx-auto"
@@ -202,8 +187,8 @@ export function LandingStatsBoard() {
 
         {/* Real StrategyCard previews */}
         <div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 landing-preview-cards"
-          onClickCapture={(e) => { e.stopPropagation(); e.preventDefault(); }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 landing-preview-cards pointer-events-none"
+          aria-hidden="true"
         >
           {MOCK_STRATEGIES.map((strategy, i) => (
             <div

@@ -1,15 +1,21 @@
 'use client';
 
 import { useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { Shuffle, BarChart3, ToggleLeft, TrendingUp } from 'lucide-react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
-import { MonteCarloChart } from '@/components/trades/MonteCarloChart';
+import { SectionBadge, SectionHeading } from '@/components/landing/shared';
 import { runMonteCarloSimulation } from '@/utils/monteCarloSimulation';
-import type { Trade } from '@/types/trade';
+import type { MonteCarloTradeInput } from '@/utils/monteCarloSimulation';
+
+const MonteCarloChart = dynamic(
+  () => import('@/components/trades/MonteCarloChart').then(mod => ({ default: mod.MonteCarloChart })),
+  { ssr: false },
+);
 
 /* ── Mock trades for simulation (only fields used by runMonteCarloSimulation) ── */
 
-const MOCK_TRADES = [
+const MOCK_TRADES: MonteCarloTradeInput[] = [
   { break_even: false, trade_outcome: 'Win', risk_reward_ratio: 2.5, calculated_profit: 580 },
   { break_even: false, trade_outcome: 'Lose', risk_reward_ratio: 0, calculated_profit: -260 },
   { break_even: false, trade_outcome: 'Win', risk_reward_ratio: 3.2, calculated_profit: 1100 },
@@ -40,7 +46,7 @@ const MOCK_TRADES = [
   { break_even: false, trade_outcome: 'Win', risk_reward_ratio: 2.4, calculated_profit: 540 },
   { break_even: false, trade_outcome: 'Win', risk_reward_ratio: 1.7, calculated_profit: 280 },
   { break_even: false, trade_outcome: 'Lose', risk_reward_ratio: 0, calculated_profit: -240 },
-] as unknown as Trade[];
+];
 
 /* ── Feature pills ── */
 
@@ -188,29 +194,14 @@ export function LandingFutureEquity() {
       {/* ── Content ── */}
       <div className="relative z-[2] mx-auto max-w-6xl px-4 py-24 sm:py-32">
         {/* Badge */}
-        <div
-          className="scroll-reveal inline-flex items-center gap-2 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none px-4 py-1.5 backdrop-blur-sm mb-6"
-          style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-        >
-          <span
-            className="h-1.5 w-1.5 rounded-full flex-shrink-0"
-            style={{ backgroundColor: 'var(--tc-accent)' }}
-          />
-          <span className="text-sm text-muted-foreground">Future Equity</span>
-        </div>
+        <SectionBadge label="Future Equity" revealDelay="0ms" />
 
         {/* Heading */}
-        <h2
-          className="scroll-reveal text-3xl sm:text-4xl lg:text-[42px] font-medium leading-[1.12] tracking-[-0.03em] bg-clip-text text-transparent max-w-2xl"
-          style={{
-            backgroundImage: 'linear-gradient(to bottom, var(--foreground) 40%, var(--tc-accent))',
-            '--reveal-delay': '100ms',
-          } as React.CSSProperties}
-        >
+        <SectionHeading className="max-w-2xl" revealDelay="100ms">
           See Where Your
           <br />
           Edge Takes You.
-        </h2>
+        </SectionHeading>
 
         {/* Description */}
         <p

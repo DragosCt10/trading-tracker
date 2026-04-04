@@ -26,17 +26,9 @@ const footerLinks = {
   ],
 };
 
-const LINKABLE_HREFS = new Set([
-  "/pricing",
-  "/#features",
-  "/privacy-policy",
-  "/terms-of-service",
-  "/refund-policy",
-  "/feed",
-  "/feed/rules",
-  "/help",
-  "/contact",
-]);
+const LINKABLE_HREFS = new Set(
+  Object.values(footerLinks).flatMap((links) => links.map((l) => l.href))
+);
 
 function FooterLink({
   href,

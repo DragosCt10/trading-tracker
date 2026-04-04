@@ -5,9 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Zap, BarChart3, Loader2, Lock, Info } from 'lucide-react';
-import { PricingHeroBackground } from '@/components/pricing/PricingHeroBackground';
-import { LandingNavbar } from '@/components/landing/LandingNavbar';
-import { Footer } from '@/components/shared/Footer';
+import { PublicPageShell } from '@/components/shared/PublicPageShell';
 import { Button } from '@/components/ui/button';
 import { useParallax } from '@/hooks/useParallax';
 import { cn } from '@/lib/utils';
@@ -78,12 +76,9 @@ export function PricingPageClient() {
   }
 
   return (
-    <div className="landing-page-override w-full">
-      <LandingNavbar />
-
+    <PublicPageShell>
       {/* Hero section with gradient dome + grid + pillars */}
-      <section ref={sectionRef} className="relative overflow-clip">
-        <PricingHeroBackground />
+      <section ref={sectionRef}>
 
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pt-30 sm:pt-40 pb-10 text-center">
           {/* Heading */}
@@ -317,11 +312,7 @@ export function PricingPageClient() {
         </div>
 
         <PricingFAQ className="mt-4 sm:mt-8" />
-
-        <div className="relative [&>footer]:bg-transparent [&>footer]:border-0 [&>footer]:mt-0">
-          <Footer />
-        </div>
       </section>
-    </div>
+    </PublicPageShell>
   );
 }

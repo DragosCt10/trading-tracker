@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { SectionBadge, SectionHeading } from '@/components/landing/shared';
 import { getApprovedReviews } from '@/lib/server/reviews';
+import { queryKeys } from '@/lib/queryKeys';
 import TestimonialsSection from '@/components/ui/testimonial-v2';
 import type { Testimonial } from '@/components/ui/testimonial-v2';
 
@@ -19,7 +21,7 @@ export function LandingTestimonialsClient() {
   const sectionRef = useScrollReveal<HTMLElement>();
 
   const { data: testimonials = [] } = useQuery({
-    queryKey: ['approved-reviews'],
+    queryKey: queryKeys.reviews.approved(),
     queryFn: () => getApprovedReviews(),
     staleTime: 60_000,
     refetchOnMount: 'always',
@@ -52,30 +54,14 @@ export function LandingTestimonialsClient() {
       {/* ── Content ── */}
       <div className="relative z-[2] mx-auto max-w-6xl px-4 py-24 sm:py-32">
         {/* Badge */}
-        <div
-          className="scroll-reveal inline-flex items-center gap-2 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none px-4 py-1.5 backdrop-blur-sm mb-6"
-          style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-        >
-          <span
-            className="h-1.5 w-1.5 rounded-full flex-shrink-0"
-            style={{ backgroundColor: 'var(--tc-accent)' }}
-          />
-          <span className="text-sm text-muted-foreground">Testimonials</span>
-        </div>
+        <SectionBadge label="Testimonials" revealDelay="0ms" />
 
         {/* Heading */}
-        <h2
-          className="scroll-reveal text-3xl sm:text-4xl lg:text-[42px] font-medium leading-[1.12] tracking-[-0.03em] bg-clip-text text-transparent max-w-2xl"
-          style={{
-            backgroundImage:
-              'linear-gradient(to bottom, var(--foreground) 40%, var(--tc-accent))',
-            '--reveal-delay': '100ms',
-          } as React.CSSProperties}
-        >
+        <SectionHeading className="max-w-2xl" revealDelay="100ms">
           Trusted by Traders
           <br />
           Around the World.
-        </h2>
+        </SectionHeading>
 
         {/* Description */}
         <p

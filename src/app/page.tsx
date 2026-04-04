@@ -1,17 +1,23 @@
+import dynamic from 'next/dynamic';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { LandingHero } from '@/components/landing/LandingHero';
-import { LandingStatsBoard } from '@/components/landing/LandingStatsBoard';
 import { LandingModes } from '@/components/landing/LandingModes';
 import { LandingFutureEquity } from '@/components/landing/LandingFutureEquity';
 import { LandingDailyJournal } from '@/components/landing/LandingDailyJournal';
-import { LandingCustomStats } from '@/components/landing/LandingCustomStats';
 import { LandingAiVision } from '@/components/landing/LandingAiVision';
 import { LandingSocialFeed } from '@/components/landing/LandingSocialFeed';
-import { LandingTestimonials } from '@/components/landing/LandingTestimonials';
+import { LandingTestimonialsClient } from '@/components/landing/LandingTestimonialsClient';
 import { LandingMidCTA } from '@/components/landing/LandingMidCTA';
 import { LandingCTA } from '@/components/landing/LandingCTA';
 import { LandingFeatures } from '@/components/landing/LandingFeatures';
 import Footer from '@/components/shared/Footer';
+
+const LandingStatsBoard = dynamic(
+  () => import('@/components/landing/LandingStatsBoard').then(m => ({ default: m.LandingStatsBoard })),
+);
+const LandingCustomStats = dynamic(
+  () => import('@/components/landing/LandingCustomStats').then(m => ({ default: m.LandingCustomStats })),
+);
 
 export default function Home() {
   if (process.env.NEXT_PUBLIC_UNDER_CONSTRUCTION === 'true') {
@@ -50,11 +56,7 @@ export default function Home() {
 
       <LandingSocialFeed />
 
-      <LandingTestimonials />
-
-      {/* <div id="pricing" className="scroll-mt-20 mx-auto max-w-6xl px-4 pb-10">
-        <LandingPricing />
-      </div> */}
+      <LandingTestimonialsClient />
 
       <LandingCTA />
 

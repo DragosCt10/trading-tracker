@@ -2,17 +2,43 @@
 
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { ParticleBackground } from './ParticleBackground';
 import { useParallax } from '@/hooks/useParallax';
+
+/* ── Module-level constants (avoid re-creating on every render) ── */
+
+const TRADING_BARS = [
+  { x: 480,  h: 215, d: 0.9 },
+  { x: 520,  h: 175, d: 0.95 },
+  { x: 560,  h: 225, d: 1.0 },
+  { x: 600,  h: 190, d: 1.05 },
+  { x: 640,  h: 255, d: 1.1 },
+  { x: 680,  h: 210, d: 1.15 },
+  { x: 720,  h: 285, d: 1.2 },
+  { x: 760,  h: 230, d: 1.25 },
+  { x: 800,  h: 300, d: 1.3 },
+  { x: 840,  h: 248, d: 1.35 },
+  { x: 880,  h: 330, d: 1.4 },
+  { x: 920,  h: 270, d: 1.42 },
+  { x: 960,  h: 365, d: 1.47 },
+  { x: 1000, h: 298, d: 1.52 },
+  { x: 1040, h: 400, d: 1.57 },
+  { x: 1080, h: 330, d: 1.62 },
+  { x: 1120, h: 445, d: 1.67 },
+  { x: 1160, h: 365, d: 1.72 },
+  { x: 1200, h: 490, d: 1.77 },
+] as const;
+
+const HERO_STATS = [
+  { label: 'Traders',        value: '1,200+' },
+  { label: 'Trades tracked', value: '4.2M+'  },
+  { label: 'Stats Board',    value: '3,800+' },
+] as const;
 
 export function LandingHero() {
   const sectionRef = useParallax(0);
 
   return (
     <section ref={sectionRef} className="relative overflow-hidden">
-      {/* Animated particle background */}
-      {/* <ParticleBackground /> */}
-
       {/* Equity-curve waves */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden" data-parallax-speed="-0.15">
         <svg
@@ -135,27 +161,7 @@ export function LandingHero() {
 
           <g mask="url(#waveMask)">
             {/* ── Trading bars — positioned along the main equity curve ── */}
-            {[
-              { x: 480,  h: 215, d: 0.9 },
-              { x: 520,  h: 175, d: 0.95 },
-              { x: 560,  h: 225, d: 1.0 },
-              { x: 600,  h: 190, d: 1.05 },
-              { x: 640,  h: 255, d: 1.1 },
-              { x: 680,  h: 210, d: 1.15 },
-              { x: 720,  h: 285, d: 1.2 },
-              { x: 760,  h: 230, d: 1.25 },
-              { x: 800,  h: 300, d: 1.3 },
-              { x: 840,  h: 248, d: 1.35 },
-              { x: 880,  h: 330, d: 1.4 },
-              { x: 920,  h: 270, d: 1.42 },
-              { x: 960,  h: 365, d: 1.47 },
-              { x: 1000, h: 298, d: 1.52 },
-              { x: 1040, h: 400, d: 1.57 },
-              { x: 1080, h: 330, d: 1.62 },
-              { x: 1120, h: 445, d: 1.67 },
-              { x: 1160, h: 365, d: 1.72 },
-              { x: 1200, h: 490, d: 1.77 },
-            ].map(({ x, h, d }, i) => (
+            {TRADING_BARS.map(({ x, h, d }, i) => (
               <rect
                 key={i}
                 x={x}
@@ -295,11 +301,7 @@ export function LandingHero() {
             data-parallax-speed="0.36"
           >
             <div className="h-px flex-1 max-w-[40px]" style={{ background: 'color-mix(in oklch, var(--tc-primary) 40%, transparent)' }} />
-            {[
-              { label: 'Traders',               value: '1,200+' },
-              { label: 'Trades tracked',        value: '4.2M+'  },
-              { label: 'Stats Board', value: '3,800+' },
-            ].map(({ label, value }, i) => (
+            {HERO_STATS.map(({ label, value }, i) => (
               <div key={label} className="flex items-baseline gap-1.5">
                 {i > 0 && <span className="text-muted-foreground text-xs">·</span>}
                 <span className="text-xs text-muted-foreground font-medium">{label}</span>

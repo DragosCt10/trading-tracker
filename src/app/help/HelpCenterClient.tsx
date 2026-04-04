@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useDeferredValue } from 'react';
 import Link from 'next/link';
 import {
   Search,
@@ -17,9 +17,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { LandingNavbar } from '@/components/landing/LandingNavbar';
-import { PricingHeroBackground } from '@/components/pricing/PricingHeroBackground';
-import { Footer } from '@/components/shared/Footer';
+import { PublicPageShell } from '@/components/shared/PublicPageShell';
 
 /* ------------------------------------------------------------------ */
 /*  Data                                                               */
@@ -282,13 +280,14 @@ function CategoryCard({
 
 export function HelpCenterClient() {
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearch = useDeferredValue(searchQuery);
   const [openKey, setOpenKey] = useState<string | null>(null);
 
   const isSearching = searchQuery.trim().length > 0;
 
   const searchResults = useMemo(() => {
-    if (!isSearching) return [];
-    const query = searchQuery.toLowerCase();
+    if (!deferredSearch.trim()) return [];
+    const query = deferredSearch.toLowerCase();
     const results: { sectionTitle: string; item: FAQItem }[] = [];
     for (const section of FAQ_SECTIONS) {
       for (const item of section.items) {
@@ -301,7 +300,7 @@ export function HelpCenterClient() {
       }
     }
     return results;
-  }, [searchQuery, isSearching]);
+  }, [deferredSearch]);
 
   function scrollToSection(id: string) {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -312,12 +311,7 @@ export function HelpCenterClient() {
   }
 
   return (
-    <div className="landing-page-override w-full">
-      <LandingNavbar />
-
-      <section className="relative overflow-clip">
-        <PricingHeroBackground />
-
+    <PublicPageShell>
         <main className="relative mx-auto max-w-4xl px-4 sm:px-6 pt-32 sm:pt-40 pb-16 sm:pb-24">
           {/* ---- Hero ---- */}
           <div className="text-center">
@@ -493,11 +487,6 @@ export function HelpCenterClient() {
             </div>
           </div>
         </main>
-
-        <div className="relative [&>footer]:bg-transparent [&>footer]:border-0 [&>footer]:mt-0">
-          <Footer />
-        </div>
-      </section>
-    </div>
+    </PublicPageShell>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,9 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { LandingNavbar } from '@/components/landing/LandingNavbar';
-import { PricingHeroBackground } from '@/components/pricing/PricingHeroBackground';
-import { Footer } from '@/components/shared/Footer';
+import { PublicPageShell } from '@/components/shared/PublicPageShell';
 
 const SUBJECTS = [
   'General Inquiry',
@@ -35,6 +33,7 @@ interface FieldErrors {
 }
 
 export function ContactClient() {
+  const websiteRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
@@ -50,6 +49,7 @@ export function ContactClient() {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Please enter a valid email';
     if (!subject) errors.subject = 'Please select a subject';
     if (!message.trim()) errors.message = 'Message is required';
+    else if (message.trim().length < 10) errors.message = 'Message must be at least 10 characters';
     return errors;
   }
 
@@ -72,7 +72,7 @@ export function ContactClient() {
           email: email.trim(),
           subject,
           message: message.trim(),
-          website: (document.getElementById('website') as HTMLInputElement)?.value || '',
+          website: websiteRef.current?.value || '',
         }),
       });
 
@@ -106,12 +106,7 @@ export function ContactClient() {
   }
 
   return (
-    <div className="landing-page-override w-full">
-      <LandingNavbar />
-
-      <section className="relative overflow-clip">
-        <PricingHeroBackground />
-
+    <PublicPageShell>
         <main className="relative mx-auto max-w-2xl px-4 sm:px-6 pt-32 sm:pt-40 pb-16 sm:pb-24">
           {/* Hero */}
           <div className="text-center mb-10">
@@ -133,7 +128,7 @@ export function ContactClient() {
             }}
           >
             {status === 'success' ? (
-              <div className="flex flex-col items-center py-8 text-center gap-4">
+              <div className="flex flex-col items-center py-8 text-center gap-4" aria-live="polite">
                 <div
                   className="flex h-14 w-14 items-center justify-center rounded-full"
                   style={{
@@ -161,6 +156,7 @@ export function ContactClient() {
                 <div className="absolute opacity-0 h-0 w-0 overflow-hidden" aria-hidden="true">
                   <label htmlFor="website">Website</label>
                   <input
+                    ref={websiteRef}
                     type="text"
                     id="website"
                     name="website"
@@ -279,7 +275,7 @@ export function ContactClient() {
 
                 {/* General error */}
                 {generalError && (
-                  <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400 flex items-center gap-2">
+                  <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400 flex items-center gap-2" aria-live="polite">
                     <AlertCircle className="h-4 w-4 flex-shrink-0" />
                     {generalError}
                   </div>
@@ -316,11 +312,6 @@ export function ContactClient() {
             )}
           </div>
         </main>
-
-        <div className="relative [&>footer]:bg-transparent [&>footer]:border-0 [&>footer]:mt-0">
-          <Footer />
-        </div>
-      </section>
-    </div>
+    </PublicPageShell>
   );
 }

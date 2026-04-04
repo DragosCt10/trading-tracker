@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { SectionBadge, SectionHeading } from '@/components/landing/shared';
 import { Radio, FlaskConical, History, ChevronDown, Pencil, Plus } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
@@ -131,30 +132,14 @@ export function LandingModes() {
           {/* ── Left: Text column ── */}
           <div>
             {/* Badge */}
-            <div
-              className="scroll-reveal inline-flex items-center gap-2 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none px-4 py-1.5 backdrop-blur-sm mb-6"
-              style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-            >
-              <span
-                className="h-1.5 w-1.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: 'var(--tc-accent)' }}
-              />
-              <span className="text-sm text-muted-foreground">Account Modes</span>
-            </div>
+            <SectionBadge label="Account Modes" />
 
             {/* Heading */}
-            <h2
-              className="scroll-reveal text-3xl sm:text-4xl lg:text-[42px] font-medium leading-[1.12] tracking-[-0.03em] bg-clip-text text-transparent"
-              style={{
-                backgroundImage:
-                  'linear-gradient(to bottom, var(--foreground) 40%, var(--tc-accent))',
-                '--reveal-delay': '100ms',
-              } as React.CSSProperties}
-            >
+            <SectionHeading>
               Ready to Track
               <br />
               Every Move.
-            </h2>
+            </SectionHeading>
 
             {/* Description */}
             <p

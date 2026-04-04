@@ -25,6 +25,7 @@ export function ParticleBackground() {
 
     // Stagger delays: sparse fast stars first, then dense slow ones
     const fadeDelays = [0.2, 0.8, 1.4];
+    const elements: HTMLDivElement[] = [];
 
     LAYERS.forEach((layer, i) => {
       const el = document.createElement('div');
@@ -44,7 +45,12 @@ export function ParticleBackground() {
           particle-fade-in 1.2s cubic-bezier(0.16,1,0.3,1) ${fadeDelays[i]}s forwards;
       `;
       container.appendChild(el);
+      elements.push(el);
     });
+
+    return () => {
+      elements.forEach((el) => el.remove());
+    };
   }, []);
 
   return (

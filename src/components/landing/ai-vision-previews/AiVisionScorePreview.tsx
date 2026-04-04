@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCycleAnimation } from '@/hooks/useCycleAnimation';
 
 /**
  * Animated gauge preview mimicking AiVisionScoreCard.
@@ -23,19 +23,7 @@ function getScoreColor(score: number) {
 }
 
 export function AiVisionScorePreview() {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setActiveIndex((i) => (i + 1) % SCORE_STATES.length);
-        setIsTransitioning(false);
-      }, 300);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+  const { activeIndex, isTransitioning } = useCycleAnimation(SCORE_STATES.length, 4000, 300);
 
   const state = SCORE_STATES[activeIndex];
   const scoreColor = getScoreColor(state.score);

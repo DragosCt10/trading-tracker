@@ -178,6 +178,10 @@ export const queryKeys = {
   /** Paginated member list for a channel (any member — public members modal). */
   channelMembersPublic: (channelId: string) => ['channel-members-public', channelId] as const,
 
+  reviews: {
+    approved: () => ['reviews', 'approved'] as const,
+  },
+
   /** Full Trade[] for a single calendar month (for calendar display). */
   calendarTrades: (
     mode: TradingMode,

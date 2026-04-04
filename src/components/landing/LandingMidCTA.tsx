@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
@@ -8,12 +8,21 @@ import { useScrollReveal } from '@/hooks/useScrollReveal';
 export function LandingMidCTA() {
   const sectionRef = useScrollReveal<HTMLElement>();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mousePosition, setMousePosition] = useState({ x: -200, y: -200 });
+  const spotlightRef = useRef<HTMLDivElement>(null);
+  const posRef = useRef({ x: -200, y: -200 });
+
+  const updateSpotlight = useCallback((x: number, y: number) => {
+    posRef.current = { x, y };
+    if (spotlightRef.current) {
+      spotlightRef.current.style.background = `radial-gradient(700px circle at ${x}px ${y}px, color-mix(in oklch, var(--tc-primary) 14%, transparent), transparent 40%)`;
+      spotlightRef.current.style.opacity = x === -200 ? '0' : '1';
+    }
+  }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      setMousePosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+      updateSpotlight(e.clientX - rect.left, e.clientY - rect.top);
     }
   };
 
@@ -21,7 +30,7 @@ export function LandingMidCTA() {
     if (containerRef.current && e.touches.length > 0) {
       const touch = e.touches[0];
       const rect = containerRef.current.getBoundingClientRect();
-      setMousePosition({ x: touch.clientX - rect.left, y: touch.clientY - rect.top });
+      updateSpotlight(touch.clientX - rect.left, touch.clientY - rect.top);
     }
   };
 
@@ -46,19 +55,17 @@ export function LandingMidCTA() {
           <div
             ref={containerRef}
             onMouseMove={handleMouseMove}
-            onMouseLeave={() => setMousePosition({ x: -200, y: -200 })}
+            onMouseLeave={() => updateSpotlight(-200, -200)}
             onTouchMove={handleTouchMove}
             onTouchStart={handleTouchMove}
-            onTouchEnd={() => setMousePosition({ x: -200, y: -200 })}
+            onTouchEnd={() => updateSpotlight(-200, -200)}
             className="group/spotlight relative w-full p-8 sm:p-10 overflow-hidden rounded-2xl bg-transparent"
           >
             {/* Spotlight radial — follows cursor */}
             <div
+              ref={spotlightRef}
               className="absolute inset-0 pointer-events-none transition-opacity duration-300"
-              style={{
-                background: `radial-gradient(700px circle at ${mousePosition.x}px ${mousePosition.y}px, color-mix(in oklch, var(--tc-primary) 14%, transparent), transparent 40%)`,
-                opacity: mousePosition.x === -200 ? 0 : 1,
-              }}
+              style={{ opacity: 0 }}
             />
 
             {/* Top bleeding edge shade */}
@@ -145,7 +152,7 @@ export function LandingMidCTA() {
                       'linear-gradient(to bottom right, var(--foreground) 30%, var(--tc-accent))',
                   }}
                 >
-                  Start tracking your edge
+                  Start tracking like a pro, for free.
                 </h2>
                 <p className="mt-4 text-base text-muted-foreground max-w-md leading-relaxed">
                   Every stat above — custom filters, AI analysis, equity curves

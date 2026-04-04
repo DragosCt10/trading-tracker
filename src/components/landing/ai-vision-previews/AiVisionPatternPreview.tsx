@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, AlertTriangle, Lightbulb, ShieldCheck, Clock, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCycleAnimation } from '@/hooks/useCycleAnimation';
 
 interface Pattern {
   type: 'strength' | 'warning' | 'insight';
@@ -138,19 +138,7 @@ const PATTERN_SETS: Pattern[][] = [
 ];
 
 export function AiVisionPatternPreview() {
-  const [activeSet, setActiveSet] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setActiveSet((i) => (i + 1) % PATTERN_SETS.length);
-        setIsTransitioning(false);
-      }, 300);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  const { activeIndex: activeSet, isTransitioning } = useCycleAnimation(PATTERN_SETS.length, 5000, 300);
 
   const patterns = PATTERN_SETS[activeSet];
 
