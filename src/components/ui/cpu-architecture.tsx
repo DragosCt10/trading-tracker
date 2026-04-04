@@ -55,7 +55,7 @@ const CpuArchitecture = ({
         {/* 3rd */}
         <path d="M 130 20 v 21.8 q 0 5 -5 5 h -10" />
         {/* 4th */}
-        <path d="M 170 120 v -61.8 q 0 -5 -5 -5 h -50" />
+        <path d="M 150 120 v -61.8 q 0 -5 -5 -5 h -50" />
         {/* 5th */}
         <path
           strokeDasharray="100 100"
@@ -65,7 +65,7 @@ const CpuArchitecture = ({
         {/* 6th */}
         <path d="M 94.8 140 v -81" />
         {/* 7th */}
-        <path d="M 88 130 v -57 q 0 -5 -5 -5 h -10 q -5 0 -5 -5 v -5 q 0 -5 5 -5 h 14" />
+        <path d="M 93 130 v -57 q 0 -5 -5 -5 h -10 q -5 0 -5 -5 v -5 q 0 -5 5 -5 h 14" />
         {/* 8th */}
         <path d="M 30 30 h 25 q 5 0 5 5 v 6.5 q 0 5 5 5 h 20" />
         {/* Animation For Path Starting */}
@@ -278,7 +278,7 @@ const CpuArchitecture = ({
         </mask>
         <mask id="cpu-mask-4">
           <path
-            d="M 170 120 v -61.8 q 0 -5 -5 -5 h -50"
+            d="M 150 120 v -61.8 q 0 -5 -5 -5 h -50"
             strokeWidth="0.5"
             stroke="white"
           />
@@ -295,7 +295,7 @@ const CpuArchitecture = ({
         </mask>
         <mask id="cpu-mask-7">
           <path
-            d="M 88 130 v -57 q 0 -5 -5 -5 h -10 q -5 0 -5 -5 v -5 q 0 -5 5 -5 h 28"
+            d="M 93 130 v -57 q 0 -5 -5 -5 h -10 q -5 0 -5 -5 v -5 q 0 -5 5 -5 h 14"
             strokeWidth="0.5"
             stroke="white"
           />
