@@ -238,9 +238,9 @@ export function LandingFeatures() {
         {/* ── Feature grid with CPU background ── */}
         <div ref={calendarRef} className="relative">
           {/* CPU Architecture background — behind cards */}
-          <div className="absolute inset-0 z-[1] hidden lg:flex items-center justify-center pointer-events-none">
+          <div className="absolute -inset-x-0 -top-10 -bottom-32 z-[1] hidden lg:flex items-start justify-center pointer-events-none pt-8">
             <motion.div
-              className="w-full h-full max-h-[600px]"
+              className="w-full h-full"
               style={{ y: calendarY }}
             >
               <CpuArchitecture
@@ -271,10 +271,11 @@ export function LandingFeatures() {
               />
             ))}
           </div>
+
         </div>
 
         {/* ── Stats row ── */}
-        <div className="mt-20 grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="relative z-10 mt-20 grid grid-cols-2 sm:grid-cols-4 gap-4">
           {STATS.map((stat) => (
             <AnimatedCounter
               key={stat.label}
