@@ -29,7 +29,7 @@ const CpuArchitecture = ({
       className={cn("text-muted", className)}
       width={width}
       height={height}
-      viewBox="0 0 200 100"
+      viewBox="0 0 200 120"
     >
       {/* Paths */}
       <g
