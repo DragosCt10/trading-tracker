@@ -29,7 +29,7 @@ const CpuArchitecture = ({
       className={cn("text-muted", className)}
       width={width}
       height={height}
-      viewBox="0 0 200 120"
+      viewBox="0 0 200 150"
     >
       {/* Paths */}
       <g
@@ -55,17 +55,17 @@ const CpuArchitecture = ({
         {/* 3rd */}
         <path d="M 130 20 v 21.8 q 0 5 -5 5 h -10" />
         {/* 4th */}
-        <path d="M 170 80 v -21.8 q 0 -5 -5 -5 h -50" />
+        <path d="M 170 120 v -61.8 q 0 -5 -5 -5 h -50" />
         {/* 5th */}
         <path
           strokeDasharray="100 100"
           pathLength="100"
-          d="M 135 65 h 15 q 5 0 5 5 v 10 q 0 5 -5 5 h -39.8 q -5 0 -5 -5 v -20"
+          d="M 135 100 h 15 q 5 0 5 5 v 10 q 0 5 -5 5 h -39.8 q -5 0 -5 -5 v -55"
         />
         {/* 6th */}
-        <path d="M 94.8 95 v -36" />
+        <path d="M 94.8 140 v -81" />
         {/* 7th */}
-        <path d="M 88 88 v -15 q 0 -5 -5 -5 h -10 q -5 0 -5 -5 v -5 q 0 -5 5 -5 h 14" />
+        <path d="M 88 130 v -57 q 0 -5 -5 -5 h -10 q -5 0 -5 -5 v -5 q 0 -5 5 -5 h 14" />
         {/* 8th */}
         <path d="M 30 30 h 25 q 5 0 5 5 v 6.5 q 0 5 5 5 h 20" />
         {/* Animation For Path Starting */}
@@ -268,24 +268,24 @@ const CpuArchitecture = ({
         </mask>
         <mask id="cpu-mask-4">
           <path
-            d="M 170 80 v -21.8 q 0 -5 -5 -5 h -50"
+            d="M 170 120 v -61.8 q 0 -5 -5 -5 h -50"
             strokeWidth="0.5"
             stroke="white"
           />
         </mask>
         <mask id="cpu-mask-5">
           <path
-            d="M 135 65 h 15 q 5 0 5 5 v 10 q 0 5 -5 5 h -39.8 q -5 0 -5 -5 v -20"
+            d="M 135 100 h 15 q 5 0 5 5 v 10 q 0 5 -5 5 h -39.8 q -5 0 -5 -5 v -55"
             strokeWidth="0.5"
             stroke="white"
           />
         </mask>
         <mask id="cpu-mask-6">
-          <path d="M 94.8 95 v -36" strokeWidth="0.5" stroke="white" />
+          <path d="M 94.8 140 v -81" strokeWidth="0.5" stroke="white" />
         </mask>
         <mask id="cpu-mask-7">
           <path
-            d="M 88 88 v -15 q 0 -5 -5 -5 h -10 q -5 0 -5 -5 v -5 q 0 -5 5 -5 h 28"
+            d="M 88 130 v -57 q 0 -5 -5 -5 h -10 q -5 0 -5 -5 v -5 q 0 -5 5 -5 h 28"
             strokeWidth="0.5"
             stroke="white"
           />
