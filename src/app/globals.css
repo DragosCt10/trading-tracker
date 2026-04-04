@@ -1978,28 +1978,28 @@ body:has(.landing-page-override) > .fixed.z-0 {
 }
 
 .cpu-line-4 {
-  offset-path: path("M 170 80 v -21.8 q 0 -5 -5 -5 h -65");
+  offset-path: path("M 170 120 v -61.8 q 0 -5 -5 -5 h -65");
   animation-delay: 3s;
   animation-duration: 3s;
 }
 
 .cpu-line-5 {
   offset-path: path(
-    "M 135 65 h 15 q 5 0 5 5 v 10 q 0 5 -5 5 h -39.8 q -5 0 -5 -5 v -35"
+    "M 135 100 h 15 q 5 0 5 5 v 10 q 0 5 -5 5 h -39.8 q -5 0 -5 -5 v -55"
   );
   animation-delay: 9s;
   animation-duration: 4s;
 }
 
 .cpu-line-6 {
-  offset-path: path("M 94.8 95 v -46");
+  offset-path: path("M 94.8 140 v -81");
   animation-delay: 3s;
   animation-duration: 7s;
 }
 
 .cpu-line-7 {
   offset-path: path(
-    "M 88 88 v -15 q 0 -5 -5 -5 h -10 q -5 0 -5 -5 v -5 q 0 -5 5 -5 h 28"
+    "M 88 130 v -57 q 0 -5 -5 -5 h -10 q -5 0 -5 -5 v -5 q 0 -5 5 -5 h 28"
   );
   animation-delay: 4s;
   animation-duration: 4s;
