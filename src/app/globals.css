@@ -637,6 +637,7 @@
 .rdrDateDisplay {
   margin-left: 0 !important;
   margin-right: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 .rdrWeekDays .rdrWeekDay {
@@ -647,7 +648,7 @@
   border-radius: 0.5rem !important; /* rounded-lg */
   border: 1px solid rgba(148, 163, 184, 0.5) !important; /* slate-400/50 */
   background-color: transparent !important;
-  padding: 0.5rem 1rem !important; /* increased padding for more space */
+  padding: 0.25rem 1rem !important; /* increased padding for more space */
   font-weight: 500 !important;
   font-size: 0.875rem !important; /* text-sm */
   transition: all 0.2s !important;
