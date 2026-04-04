@@ -227,7 +227,7 @@ function NeuralConnections({
             strokeWidth="1"
             fill="none"
             initial={{ pathLength: 0, opacity: 0 }}
-            animate={isInView ? { pathLength: 1, opacity: 1 } : {}}
+            animate={isInView ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
             transition={{
               duration: 1.4,
               delay: 0.6 + (conn.id % 10) * 0.1,
