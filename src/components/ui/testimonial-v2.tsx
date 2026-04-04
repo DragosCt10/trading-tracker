@@ -1,19 +1,21 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { motion, useAnimate } from 'framer-motion';
+import type { AnimationPlaybackControls } from 'framer-motion';
 
 // --- Types ---
-interface Testimonial {
+export interface Testimonial {
   text: string;
   image: string;
   name: string;
   role: string;
+  rating?: number;
 }
 
-// --- Data ---
-const testimonials: Testimonial[] = [
+// --- Fallback data (used when DB has fewer than 6 approved reviews) ---
+const FALLBACK_TESTIMONIALS: Testimonial[] = [
   {
     text: 'The AI insights completely changed how I review my trades. It spotted a recurring mistake in my entries that I never would have caught on my own.',
     image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150&h=150',
@@ -70,9 +72,16 @@ const testimonials: Testimonial[] = [
   },
 ];
 
-const firstColumn = testimonials.slice(0, 3);
-const secondColumn = testimonials.slice(3, 6);
-const thirdColumn = testimonials.slice(6, 9);
+const TARGET_COUNT = 9;
+
+function buildTestimonialList(external: Testimonial[] | undefined): Testimonial[] {
+  if (!external || external.length === 0) return FALLBACK_TESTIMONIALS;
+  if (external.length >= TARGET_COUNT) return external.slice(0, TARGET_COUNT);
+
+  // Mix real reviews first, pad the rest with fallbacks
+  const needed = TARGET_COUNT - external.length;
+  return [...external, ...FALLBACK_TESTIMONIALS.slice(0, needed)];
+}
 
 // --- Sub-Components ---
 function TestimonialsColumn({
@@ -84,21 +93,31 @@ function TestimonialsColumn({
   testimonials: Testimonial[];
   duration?: number;
 }) {
+  const [scope, animate] = useAnimate();
+  const animation = useRef<AnimationPlaybackControls | null>(null);
+
+  useEffect(() => {
+    animation.current = animate(
+      scope.current,
+      { y: ['0%', '-50%'] },
+      { duration, repeat: Infinity, ease: 'linear' }
+    );
+    return () => { animation.current?.cancel(); };
+  }, [animate, scope, duration]);
+
   return (
-    <div className={className}>
-      <motion.ul
-        animate={{ translateY: '-50%' }}
-        transition={{
-          duration,
-          repeat: Infinity,
-          ease: 'linear',
-          repeatType: 'loop',
-        }}
+    <div
+      className={className}
+      onMouseEnter={() => animation.current?.pause()}
+      onMouseLeave={() => animation.current?.play()}
+    >
+      <ul
+        ref={scope}
         className="flex flex-col gap-6 pb-6 bg-transparent list-none m-0 p-0"
       >
         {[...new Array(2)].map((_, index) => (
           <React.Fragment key={index}>
-            {items.map(({ text, image, name, role }, i) => (
+            {items.map(({ text, image, name, role, rating }, i) => (
               <motion.li
                 key={`${index}-${i}`}
                 aria-hidden={index === 1 ? 'true' : 'false'}
@@ -111,8 +130,22 @@ function TestimonialsColumn({
                 className="p-7 rounded-2xl border border-white/[0.06] shadow-lg shadow-black/10 max-w-xs w-full bg-slate-800/20 backdrop-blur-sm transition-all duration-300 cursor-default select-none group focus:outline-none focus:ring-2 focus:ring-[var(--tc-primary)]/30"
               >
                 <blockquote className="m-0 p-0">
+                  {rating && (
+                    <div className="flex items-center gap-0.5 mb-3">
+                      {Array.from({ length: 5 }).map((_, s) => (
+                        <span
+                          key={s}
+                          className={`text-[13px] leading-none ${s < rating ? 'text-amber-400' : 'text-slate-600/40'}`}
+                        >
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <p className="text-muted-foreground leading-relaxed font-normal m-0 text-[15px]">
+                    <span className="text-[var(--tc-primary)] opacity-40 text-lg font-serif leading-none mr-0.5">&ldquo;</span>
                     {text}
+                    <span className="text-[var(--tc-primary)] opacity-40 text-lg font-serif leading-none ml-0.5">&rdquo;</span>
                   </p>
                   <footer className="flex items-center gap-3 mt-5">
                     <Image
@@ -136,13 +169,18 @@ function TestimonialsColumn({
             ))}
           </React.Fragment>
         ))}
-      </motion.ul>
+      </ul>
     </div>
   );
 }
 
 // --- Main Section ---
-export default function TestimonialsSection() {
+export default function TestimonialsSection({ testimonials: external }: { testimonials?: Testimonial[] }) {
+  const items = buildTestimonialList(external);
+  const firstColumn = items.slice(0, 3);
+  const secondColumn = items.slice(3, 6);
+  const thirdColumn = items.slice(6, 9);
+
   return (
     <div>
       <div className="flex justify-center gap-6 mt-10 [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_90%,transparent)] max-h-[740px] overflow-hidden">

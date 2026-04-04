@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, UserCheck, UserX, Shield, Loader2, AlertCircle, Flag } from 'lucide-react';
+import { Search, UserCheck, UserX, Shield, Loader2, AlertCircle, Flag, Star } from 'lucide-react';
 import ModerationPanel from '@/components/admin/ModerationPanel';
+import ReviewsPanel from '@/components/admin/ReviewsPanel';
 import {
   findUserByEmail,
   adminGrantSubscription,
@@ -32,7 +33,7 @@ interface AdminClientProps {
 
 export default function AdminClient({ currentUserId, admins: initialAdmins, isSuperAdmin }: AdminClientProps) {
   const router = useRouter();
-  const [tab, setTab] = useState<'users' | 'team' | 'moderation'>('users');
+  const [tab, setTab] = useState<'users' | 'team' | 'moderation' | 'reviews'>('users');
 
   // User search state
   const [email, setEmail] = useState('');
@@ -153,7 +154,7 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
       {/* Tabs */}
       {isSuperAdmin && (
         <div className="flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-900/20 p-1 mb-8 backdrop-blur-sm">
-          {(['users', 'team', 'moderation'] as const).map((t) => (
+          {(['users', 'team', 'moderation', 'reviews'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -165,7 +166,8 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
               )}
             >
               {t === 'moderation' && <Flag className="h-3.5 w-3.5" />}
-              {t === 'users' ? 'Subscriptions' : t === 'team' ? 'Admin Team' : 'Moderation'}
+              {t === 'reviews' && <Star className="h-3.5 w-3.5" />}
+              {t === 'users' ? 'Subscriptions' : t === 'team' ? 'Admin Team' : t === 'moderation' ? 'Moderation' : 'Reviews'}
             </button>
           ))}
         </div>
@@ -379,6 +381,9 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
 
       {/* Moderation tab */}
       {tab === 'moderation' && <ModerationPanel />}
+
+      {/* Reviews tab */}
+      {tab === 'reviews' && <ReviewsPanel />}
     </div>
   );
 }

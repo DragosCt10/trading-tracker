@@ -36,6 +36,7 @@ function mapRow(row: Record<string, unknown>): SocialProfile {
     following_count: row.following_count as number,
     tier:            (row.tier as TierId) ?? 'starter',
     trade_badge:     (row.trade_badge as string | null) ?? null,
+    trader_style:    (row.trader_style as string | null) ?? null,
     created_at:      row.created_at as string,
     updated_at:      row.updated_at as string,
   };
@@ -266,6 +267,7 @@ export async function updateSocialProfile(data: {
   bio?: string | null;
   avatar_url?: string | null;
   is_public?: boolean;
+  trader_style?: string | null;
   /** Internal-only: set by subscription sync, not user input */
   tier?: TierId;
 }): Promise<ProfileResult<SocialProfile>> {

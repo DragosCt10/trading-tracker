@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { Award, CreditCard, Loader2, Settings, User, Users } from 'lucide-react';
 import { BillingSettingsPanel } from '@/components/settings/BillingSettingsPanel';
 import ProfileSettingsPanel from '@/components/settings/ProfileSettingsPanel';
+import ReviewSection from '@/components/settings/ReviewSection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -137,7 +138,7 @@ export default function SettingsClient({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <aside className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/20 p-3 h-fit">
+        <aside className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-3 h-fit">
           <div className="space-y-2">
             <Button asChild variant="ghost" className={navItemClass(activeTab === 'billing')}>
               <Link href="/settings?tab=billing">
@@ -174,7 +175,10 @@ export default function SettingsClient({
               featureContext={featureContext}
             />
           ) : activeTab === 'profile' ? (
-            <ProfileSettingsPanel initialProfile={socialProfile} />
+            <div className="space-y-6">
+              <ProfileSettingsPanel initialProfile={socialProfile} />
+              <ReviewSection socialProfile={socialProfile} />
+            </div>
           ) : (
             <div className="space-y-6">
               <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-6">

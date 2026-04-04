@@ -40,6 +40,8 @@ export interface SocialProfile {
   tier: TierId;
   /** Denormalized highest trade milestone badge (e.g. 'rookie_trader'). */
   trade_badge: string | null;
+  /** Self-declared trading style (e.g. 'Scalper', 'Day trader', or custom). */
+  trader_style: string | null;
   created_at: string;
   updated_at: string;
 }

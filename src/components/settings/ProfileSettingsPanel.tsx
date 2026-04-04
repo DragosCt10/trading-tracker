@@ -8,7 +8,9 @@ import { Loader2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { updateSocialProfile, checkUsernameAvailability, getFollowing, unfollowUser } from '@/lib/server/socialProfile';
+import { TRADER_STYLES } from '@/constants/traderStyles';
 import { queryKeys, FOLLOW_QUERY_PREFIXES } from '@/lib/queryKeys';
 import type { SocialProfile } from '@/types/social';
 
@@ -28,6 +30,15 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
   const [bio, setBio]                   = useState(initialProfile?.bio ?? '');
   const [avatarUrl, setAvatarUrl]       = useState(initialProfile?.avatar_url ?? '');
   const [isPublic, setIsPublic]         = useState(initialProfile?.is_public ?? true);
+
+  const savedStyle = initialProfile?.trader_style ?? '';
+  const isPresetStyle = (TRADER_STYLES as readonly string[]).includes(savedStyle) && savedStyle !== 'Other';
+  const [traderStyleSelect, setTraderStyleSelect] = useState(
+    isPresetStyle ? savedStyle : savedStyle ? 'Other' : ''
+  );
+  const [traderStyleCustom, setTraderStyleCustom] = useState(
+    isPresetStyle ? '' : savedStyle
+  );
 
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [usernameChecking, setUsernameChecking]   = useState(false);
@@ -81,6 +92,11 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
   });
   const following = followingPages?.pages.flatMap((p) => p.items) ?? [];
 
+  const resolvedTraderStyle =
+    traderStyleSelect === 'Other'
+      ? traderStyleCustom.trim() || null
+      : traderStyleSelect || null;
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
@@ -93,11 +109,12 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
 
     startTransition(async () => {
       const result = await updateSocialProfile({
-        display_name: displayName.trim() || undefined,
-        username:     username.trim() || undefined,
-        bio:          bio.trim() || null,
-        avatar_url:   avatarUrl.trim() || null,
-        is_public:    isPublic,
+        display_name:  displayName.trim() || undefined,
+        username:      username.trim() || undefined,
+        bio:           bio.trim() || null,
+        avatar_url:    avatarUrl.trim() || null,
+        is_public:     isPublic,
+        trader_style:  resolvedTraderStyle,
       });
 
       if ('error' in result) {
@@ -112,6 +129,12 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
         setBio(updatedProfile.bio ?? '');
         setAvatarUrl(updatedProfile.avatar_url ?? '');
         setIsPublic(updatedProfile.is_public);
+
+        const updatedStyle = updatedProfile.trader_style ?? '';
+        const updatedIsPreset = (TRADER_STYLES as readonly string[]).includes(updatedStyle) && updatedStyle !== 'Other';
+        setTraderStyleSelect(updatedIsPreset ? updatedStyle : updatedStyle ? 'Other' : '');
+        setTraderStyleCustom(updatedIsPreset ? '' : updatedStyle);
+
         setUsernameAvailable(null);
         setUsernameChecking(false);
 
@@ -224,6 +247,38 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
               placeholder="Tell traders who you are..."
               className="w-full px-4 py-3 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm resize-none focus:outline-none themed-focus transition-all duration-300"
             />
+          </div>
+
+          {/* Trader Style */}
+          <div className="space-y-1.5">
+            <Label htmlFor="trader-style" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Trader style
+            </Label>
+            <Select value={traderStyleSelect} onValueChange={setTraderStyleSelect}>
+              <SelectTrigger
+                id="trader-style"
+                className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              >
+                <SelectValue placeholder="Select your style" />
+              </SelectTrigger>
+              <SelectContent>
+                {TRADER_STYLES.map((style) => (
+                  <SelectItem key={style} value={style}>
+                    {style}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {traderStyleSelect === 'Other' && (
+              <Input
+                id="trader-style-custom"
+                value={traderStyleCustom}
+                onChange={(e) => setTraderStyleCustom(e.target.value)}
+                maxLength={50}
+                className={INPUT_CLASS}
+                placeholder="Describe your style..."
+              />
+            )}
           </div>
 
           {/* Avatar URL */}

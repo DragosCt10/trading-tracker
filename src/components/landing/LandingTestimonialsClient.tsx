@@ -1,0 +1,133 @@
+'use client';
+
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { getApprovedReviews } from '@/lib/server/reviews';
+import TestimonialsSection from '@/components/ui/testimonial-v2';
+import type { Testimonial } from '@/components/ui/testimonial-v2';
+
+function calcAvgRating(testimonials: Testimonial[]): { avg: string; count: number } | null {
+  const rated = testimonials.filter((t) => t.rating != null);
+  if (rated.length === 0) return null;
+  const sum = rated.reduce((acc, t) => acc + (t.rating ?? 0), 0);
+  return { avg: (sum / rated.length).toFixed(1), count: rated.length };
+}
+
+export function LandingTestimonialsClient() {
+  const sectionRef = useScrollReveal<HTMLElement>();
+
+  const { data: testimonials = [] } = useQuery({
+    queryKey: ['approved-reviews'],
+    queryFn: () => getApprovedReviews(),
+    staleTime: 60_000,
+    refetchOnMount: 'always',
+  });
+
+  const avgRating = calcAvgRating(testimonials);
+
+  return (
+    <section ref={sectionRef} id="testimonials" className="relative scroll-mt-20">
+      {/* ── Background: theme-aware radial glow ── */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
+        <div
+          className="absolute inset-0 -z-30"
+          style={{
+            backgroundImage: [
+              'radial-gradient(60% 45% at 50% 50%, color-mix(in oklch, var(--tc-primary) 12%, transparent) 0%, color-mix(in oklch, var(--tc-accent) 8%, transparent) 35%, transparent 70%)',
+              'radial-gradient(45% 35% at 25% 30%, color-mix(in oklch, var(--tc-primary) 8%, transparent) 0%, transparent 60%)',
+              'radial-gradient(40% 30% at 75% 70%, color-mix(in oklch, var(--tc-accent) 6%, transparent) 0%, transparent 60%)',
+            ].join(','),
+          }}
+        />
+
+        {/* Soft vignette */}
+        <div className="absolute inset-0 -z-20 bg-[radial-gradient(140%_120%_at_50%_0%,transparent_65%,#ffffff_100%)] dark:bg-[radial-gradient(140%_120%_at_50%_0%,transparent_65%,#0d0a12_100%)]" />
+
+        {/* Top gradient blend */}
+        <div className="absolute top-0 left-0 right-0 h-56 z-[1] bg-gradient-to-b from-white to-transparent dark:from-[#0d0a12] dark:to-transparent" />
+      </div>
+
+      {/* ── Content ── */}
+      <div className="relative z-[2] mx-auto max-w-6xl px-4 py-24 sm:py-32">
+        {/* Badge */}
+        <div
+          className="scroll-reveal inline-flex items-center gap-2 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none px-4 py-1.5 backdrop-blur-sm mb-6"
+          style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
+        >
+          <span
+            className="h-1.5 w-1.5 rounded-full flex-shrink-0"
+            style={{ backgroundColor: 'var(--tc-accent)' }}
+          />
+          <span className="text-sm text-muted-foreground">Testimonials</span>
+        </div>
+
+        {/* Heading */}
+        <h2
+          className="scroll-reveal text-3xl sm:text-4xl lg:text-[42px] font-medium leading-[1.12] tracking-[-0.03em] bg-clip-text text-transparent max-w-2xl"
+          style={{
+            backgroundImage:
+              'linear-gradient(to bottom, var(--foreground) 40%, var(--tc-accent))',
+            '--reveal-delay': '100ms',
+          } as React.CSSProperties}
+        >
+          Trusted by Traders
+          <br />
+          Around the World.
+        </h2>
+
+        {/* Description */}
+        <p
+          className="scroll-reveal mt-5 text-base text-muted-foreground leading-relaxed max-w-lg"
+          style={{ '--reveal-delay': '200ms' } as React.CSSProperties}
+        >
+          See how traders are using journaling, AI insights, and analytics to
+          sharpen their edge and grow their accounts.
+        </p>
+
+        {/* CTA */}
+        <div
+          className="scroll-reveal flex items-center gap-5 flex-wrap mt-8"
+          style={{ '--reveal-delay': '250ms' } as React.CSSProperties}
+        >
+          <Link
+            href="/settings?tab=profile"
+            className="group relative overflow-hidden inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold text-white border-0 transition-all duration-300 themed-btn-primary"
+          >
+            <span className="relative z-10 flex items-center gap-2">
+              Share your experience
+              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform duration-300" />
+            </span>
+            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
+          </Link>
+
+          {avgRating && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={`text-sm leading-none ${i < Math.round(parseFloat(avgRating.avg)) ? 'text-amber-400' : 'text-slate-500/40'}`}
+                  >
+                    ★
+                  </span>
+                ))}
+              </div>
+              <span className="text-sm font-semibold text-foreground">{avgRating.avg}/5</span>
+              <span className="text-sm text-muted-foreground">· {avgRating.count} {avgRating.count === 1 ? 'rating' : 'ratings'}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Scrolling testimonials */}
+        <div
+          className="scroll-reveal"
+          style={{ '--reveal-delay': '300ms' } as React.CSSProperties}
+        >
+          <TestimonialsSection testimonials={testimonials} />
+        </div>
+      </div>
+    </section>
+  );
+}
