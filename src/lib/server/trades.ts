@@ -10,6 +10,7 @@ import { ensureOfferNotification, checkTradeMilestones } from '@/lib/server/feed
 import { validateTradeFields } from '@/utils/validateTradeFields';
 import { getRemainingTrades } from '@/lib/server/subscription';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { isReadOnlyMode } from './readOnlyMode';
 
 /** Per-minute rate limits for individual trade mutations (bot abuse protection). */
 const TRADE_RATE_LIMITS = {
@@ -197,6 +198,7 @@ export async function createTrade(params: {
 }): Promise<{ error: { message: string } | null }> {
   const { user } = await getCachedUserSession();
   if (!user) return { error: { message: 'Unauthorized' } };
+  if (isReadOnlyMode()) return { error: { message: 'READ_ONLY_MODE' } };
 
   const supabase = await createClient();
   // Ensure the account belongs to the session user (defense in depth)
@@ -259,6 +261,7 @@ export async function updateTrade(
 ): Promise<{ error: { message: string } | null }> {
   const { user } = await getCachedUserSession();
   if (!user) return { error: { message: 'Unauthorized' } };
+  if (isReadOnlyMode()) return { error: { message: 'READ_ONLY_MODE' } };
 
   // Rate limit: 60 single-trade updates per minute per user/mode
   if (!await checkRateLimit(`trade:update:${mode}:${user.id}`, TRADE_RATE_LIMITS.update.limit, TRADE_RATE_LIMITS.update.windowMs)) {
@@ -300,6 +303,7 @@ export async function deleteTrade(
 ): Promise<{ error: { message: string } | null }> {
   const { user } = await getCachedUserSession();
   if (!user) return { error: { message: 'Unauthorized' } };
+  if (isReadOnlyMode()) return { error: { message: 'READ_ONLY_MODE' } };
 
   // Rate limit: 30 single-trade deletes per minute per user/mode
   if (!await checkRateLimit(`trade:delete:${mode}:${user.id}`, TRADE_RATE_LIMITS.delete.limit, TRADE_RATE_LIMITS.delete.windowMs)) {
@@ -333,6 +337,7 @@ export async function moveTradestoStrategy(
   if (tradeIds.length === 0) return { error: null };
   const { user } = await getCachedUserSession();
   if (!user) return { error: { message: 'Unauthorized' } };
+  if (isReadOnlyMode()) return { error: { message: 'READ_ONLY_MODE' } };
 
   const supabase = await createClient();
   const { error } = await supabase.rpc('move_trades_to_strategy', {
@@ -358,6 +363,7 @@ export async function deleteTrades(
   }
   const { user } = await getCachedUserSession();
   if (!user) return { error: { message: 'Unauthorized' } };
+  if (isReadOnlyMode()) return { error: { message: 'READ_ONLY_MODE' } };
 
   const supabase = await createClient();
   const tableName = `${mode}_trades`;
@@ -697,6 +703,7 @@ export async function bulkUpdateTradeTags(params: {
 
   const { user } = await getCachedUserSession();
   if (!user) return { error: { message: 'Unauthorized' } };
+  if (isReadOnlyMode()) return { error: { message: 'READ_ONLY_MODE' } };
 
   const normalizedAdd = params.tagsToAdd.map(t => t.toLowerCase().trim()).filter(Boolean);
   const normalizedRemove = params.tagsToRemove.map(t => t.toLowerCase().trim()).filter(Boolean);

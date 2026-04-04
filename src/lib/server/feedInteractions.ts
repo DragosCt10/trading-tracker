@@ -6,6 +6,7 @@ import { getCachedSocialProfile } from './socialProfile';
 import { createNotification, checkPostMilestones } from './feedNotifications';
 import { isPublicChannelReadOnlyForProfile } from './feedChannels';
 import { mapAuthorRow, isValidCursor, AUTHOR_SELECT_FIELDS } from './feedHelpers';
+import { isReadOnlyMode } from './readOnlyMode';
 import type { AuthorRow } from './feedHelpers';
 import type { FeedComment, PaginatedResult } from '@/types/social';
 
@@ -48,6 +49,7 @@ export async function likePost(
 ): Promise<InteractionResult<{ liked: boolean; like_count: number }>> {
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (isReadOnlyMode()) return { error: 'READ_ONLY_MODE', code: 'UNAUTHORIZED' };
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
@@ -151,6 +153,7 @@ export async function addComment(
 
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (isReadOnlyMode()) return { error: 'READ_ONLY_MODE', code: 'UNAUTHORIZED' };
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
@@ -246,6 +249,7 @@ export async function editComment(
 
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (isReadOnlyMode()) return { error: 'READ_ONLY_MODE', code: 'UNAUTHORIZED' };
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
@@ -277,6 +281,7 @@ export async function editComment(
 export async function deleteComment(commentId: string): Promise<InteractionResult<{ id: string }>> {
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (isReadOnlyMode()) return { error: 'READ_ONLY_MODE', code: 'UNAUTHORIZED' };
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
@@ -317,6 +322,7 @@ export async function reportContent(
 
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (isReadOnlyMode()) return { error: 'READ_ONLY_MODE', code: 'UNAUTHORIZED' };
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };

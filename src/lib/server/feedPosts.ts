@@ -7,6 +7,7 @@ import { getCachedSubscription } from './subscription';
 import { isPublicChannelReadOnlyForProfile } from './feedChannels';
 import { checkPostMilestones } from './feedNotifications';
 import { mapAuthorRow, isValidCursor, AUTHOR_SELECT_FIELDS } from './feedHelpers';
+import { isReadOnlyMode } from './readOnlyMode';
 import type { AuthorRow } from './feedHelpers';
 import type { FeedPost, TradeSnapshot, TradeSelectorItem, PaginatedResult } from '@/types/social';
 
@@ -387,6 +388,7 @@ export async function createPost(input: {
 }): Promise<PostResult<FeedPost>> {
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (isReadOnlyMode()) return { error: 'READ_ONLY_MODE', code: 'UNAUTHORIZED' };
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Social profile not found', code: 'NOT_FOUND' };
@@ -538,6 +540,7 @@ export async function updatePost(
 ): Promise<PostResult<FeedPost>> {
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (isReadOnlyMode()) return { error: 'READ_ONLY_MODE', code: 'UNAUTHORIZED' };
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
@@ -573,6 +576,7 @@ export async function updatePost(
 export async function deletePost(postId: string): Promise<PostResult<{ id: string }>> {
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (isReadOnlyMode()) return { error: 'READ_ONLY_MODE', code: 'UNAUTHORIZED' };
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };

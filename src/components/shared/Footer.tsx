@@ -124,9 +124,17 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Bottom bar - copyright centered */}
-          <div className="mt-10 pt-6 flex justify-center border-t border-slate-200/70 dark:border-border/40">
-            <p className="text-sm text-slate-400 dark:text-slate-300">
+          {/* Disclaimer + copyright */}
+          <div className="mt-10 pt-6 border-t border-slate-200/70 dark:border-border/40 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
+              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 pt-px">
+                Disclaimer
+              </span>
+              <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed">
+                AlphaStats is a trade journal and performance tracking tool. We do not provide financial advice, investment recommendations, or trading signals. Past performance does not guarantee future results. Always do your own research.
+              </p>
+            </div>
+            <p className="text-sm text-slate-400 dark:text-slate-300 text-center">
               © {YEAR} AlphaStats. All rights reserved.
             </p>
           </div>

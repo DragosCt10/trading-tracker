@@ -8,6 +8,7 @@ import { getCachedSubscription } from './subscription';
 import type { ChannelMember, FeedChannel, PaginatedResult } from '@/types/social';
 import { isValidCursor, PROFILE_SELECT_FIELDS } from './feedHelpers';
 import { notifyChannelMemberAdded, notifyChannelMemberRemoved, notifyPrivateChannelMemberAdded, notifyPrivateChannelMemberRemoved } from './feedNotifications';
+import { isReadOnlyMode } from './readOnlyMode';
 import type { TierId } from '@/types/subscription';
 
 type ChannelResult<T> =
@@ -303,6 +304,7 @@ export async function createChannel(input: {
 }): Promise<ChannelResult<FeedChannel>> {
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (isReadOnlyMode()) return { error: 'READ_ONLY_MODE', code: 'UNAUTHORIZED' };
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
@@ -366,6 +368,7 @@ export async function updateChannel(
 ): Promise<ChannelResult<FeedChannel>> {
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (isReadOnlyMode()) return { error: 'READ_ONLY_MODE', code: 'UNAUTHORIZED' };
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
@@ -437,6 +440,7 @@ export async function updateChannel(
 export async function deleteChannel(channelId: string): Promise<ChannelResult<{ id: string }>> {
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (isReadOnlyMode()) return { error: 'READ_ONLY_MODE', code: 'UNAUTHORIZED' };
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
@@ -461,6 +465,7 @@ export async function deleteChannel(channelId: string): Promise<ChannelResult<{ 
 export async function joinChannel(channelId: string): Promise<ChannelResult<{ channel_id: string }>> {
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (isReadOnlyMode()) return { error: 'READ_ONLY_MODE', code: 'UNAUTHORIZED' };
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
@@ -504,6 +509,7 @@ export async function joinChannel(channelId: string): Promise<ChannelResult<{ ch
 export async function leaveChannel(channelId: string): Promise<ChannelResult<{ channel_id: string }>> {
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (isReadOnlyMode()) return { error: 'READ_ONLY_MODE', code: 'UNAUTHORIZED' };
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
@@ -662,6 +668,7 @@ export async function addChannelMemberByHandle(
 ): Promise<ChannelResult<ChannelMember>> {
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (isReadOnlyMode()) return { error: 'READ_ONLY_MODE', code: 'UNAUTHORIZED' };
 
   const profile = await getCachedSocialProfile(session.user.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
@@ -753,6 +760,7 @@ export async function removeChannelMemberByUserId(
 ): Promise<ChannelResult<{ channel_id: string; user_id: string }>> {
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (isReadOnlyMode()) return { error: 'READ_ONLY_MODE', code: 'UNAUTHORIZED' };
 
   const profile = await getCachedSocialProfile(session.user.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
