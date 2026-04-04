@@ -10,6 +10,7 @@ import { LandingSocialFeed } from '@/components/landing/LandingSocialFeed';
 import { LandingTestimonials } from '@/components/landing/LandingTestimonials';
 import { LandingMidCTA } from '@/components/landing/LandingMidCTA';
 import { LandingCTA } from '@/components/landing/LandingCTA';
+import { LandingFeatures } from '@/components/landing/LandingFeatures';
 import Footer from '@/components/shared/Footer';
 
 export default function Home() {
@@ -32,6 +33,8 @@ export default function Home() {
       <LandingHero />
 
       <LandingStatsBoard />
+
+      <LandingFeatures />
 
       <LandingModes />
 
