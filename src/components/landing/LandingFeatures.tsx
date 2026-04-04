@@ -12,8 +12,6 @@ import {
 } from 'lucide-react';
 import {
   motion,
-  useScroll,
-  useTransform,
   useSpring,
   useInView,
   useMotionValue,
@@ -21,7 +19,6 @@ import {
 import Link from 'next/link';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { BGPattern } from '@/components/ui/bg-pattern';
-import { CpuArchitecture } from '@/components/ui/cpu-architecture';
 
 /* ── Feature data ── */
 
@@ -91,24 +88,12 @@ function FeatureCard({
 }) {
   return (
     <motion.div
-      className="scroll-reveal group relative rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm text-card-foreground p-6 transition-colors duration-500 hover:border-slate-300/50 dark:hover:border-slate-600/50 hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
+      className="scroll-reveal relative rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm text-card-foreground p-6"
       style={{ '--reveal-delay': `${delayMs}ms` } as React.CSSProperties}
-      whileHover={{ y: -4, transition: { type: 'spring', stiffness: 300, damping: 20 } }}
     >
-      {/* Corner accent on hover */}
-      <div
-        className={`absolute top-0 ${direction === 'left' ? 'left-0 rounded-tl-2xl' : 'right-0 rounded-tr-2xl'} w-12 h-12 opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
-        style={{
-          background:
-            direction === 'left'
-              ? 'linear-gradient(135deg, color-mix(in oklch, var(--tc-primary) 15%, transparent), transparent)'
-              : 'linear-gradient(225deg, color-mix(in oklch, var(--tc-primary) 15%, transparent), transparent)',
-        }}
-      />
-
       <div className="flex items-start gap-4">
         <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors duration-300 group-hover:brightness-125"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
           style={{
             backgroundColor: 'color-mix(in oklch, var(--tc-primary) 10%, transparent)',
             border: '1px solid color-mix(in oklch, var(--tc-primary) 22%, transparent)',
@@ -171,14 +156,6 @@ function AnimatedCounter({
 
 export function LandingFeatures() {
   const sectionRef = useScrollReveal<HTMLElement>();
-  const calendarRef = useRef<HTMLDivElement>(null);
-
-  const { scrollYProgress } = useScroll({
-    target: calendarRef,
-    offset: ['start end', 'end start'],
-  });
-
-  const calendarY = useTransform(scrollYProgress, [0, 1], [30, -30]);
 
   return (
     <section
@@ -227,7 +204,7 @@ export function LandingFeatures() {
           </h2>
 
           <p
-            className="scroll-reveal mt-5 text-base text-white/40 leading-relaxed max-w-md mx-auto"
+            className="scroll-reveal mt-5 text-base text-muted-foreground leading-relaxed max-w-md mx-auto"
             style={{ '--reveal-delay': '200ms' } as React.CSSProperties}
           >
             Deep analytics, risk management, and journaling tools designed for
@@ -235,31 +212,9 @@ export function LandingFeatures() {
           </p>
         </div>
 
-        {/* ── Feature grid with CPU background ── */}
-        <div ref={calendarRef} className="relative">
-          {/* CPU Architecture background — behind cards */}
-          <div className="absolute -inset-x-0 -top-10 -bottom-[200px] z-[1] hidden lg:flex items-start justify-center pointer-events-none pt-8">
-            <motion.div
-              className="w-full h-full"
-              style={{ y: calendarY }}
-            >
-              <CpuArchitecture
-                text="ALPHA STATS"
-                width="100%"
-                height="100%"
-              />
-            </motion.div>
-          </div>
-
-          {/* Mobile-only: CPU shown on top */}
-          <div className="lg:hidden flex justify-center mb-8">
-            <div className="w-full max-w-sm h-[200px]">
-              <CpuArchitecture text="ALPHA STATS" width="100%" height="100%" />
-            </div>
-          </div>
-
-          {/* Cards grid — sits on top */}
-          <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-5 lg:gap-x-[28%] lg:gap-y-5">
+        {/* ── Feature grid ── */}
+        <div className="relative">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {[...FEATURES_LEFT, ...FEATURES_RIGHT].map((f, i) => (
               <FeatureCard
                 key={f.title}
