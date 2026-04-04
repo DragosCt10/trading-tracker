@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, forwardRef } from 'react';
 import {
   CalendarDays,
   CalendarRange,
@@ -74,46 +74,182 @@ const STATS = [
 
 /* ── FeatureCard ── */
 
-function FeatureCard({
-  icon: Icon,
-  title,
-  description,
-  delayMs,
-}: {
+interface FeatureCardProps {
   icon: typeof CalendarDays;
   title: string;
   description: string;
   delayMs: number;
+}
+
+const FeatureCard = forwardRef<HTMLDivElement, FeatureCardProps>(
+  function FeatureCard({ icon: Icon, title, description, delayMs }, ref) {
+    return (
+      <motion.div
+        ref={ref}
+        className="scroll-reveal relative rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm text-muted-foreground p-6"
+        style={{ '--reveal-delay': `${delayMs}ms` } as React.CSSProperties}
+      >
+        <div className="flex items-start gap-4">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+            style={{
+              backgroundColor: 'color-mix(in oklch, var(--tc-primary) 10%, transparent)',
+              border: '1px solid color-mix(in oklch, var(--tc-primary) 22%, transparent)',
+            }}
+          >
+            <Icon className="h-5 w-5" style={{ color: 'var(--tc-primary)' }} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[15px] font-semibold text-foreground/90 mb-1">{title}</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+);
+
+/* ── Neural connections SVG ── */
+
+interface ConnPoint {
+  x1: number; y1: number; // brain center
+  x2: number; y2: number; // near-card end (shortened)
+  id: number;
+}
+
+function NeuralConnections({
+  containerRef,
+  brainRef,
+  leftCardRefs,
+  rightCardRefs,
+  statsRefs,
+}: {
+  containerRef: React.RefObject<HTMLDivElement>;
+  brainRef: React.RefObject<HTMLDivElement>;
+  leftCardRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
+  rightCardRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
+  statsRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
 }) {
+  const [connections, setConnections] = useState<ConnPoint[]>([]);
+  const isInView = useInView(containerRef, { once: true, amount: 0.2 });
+
+  useEffect(() => {
+    const measure = () => {
+      if (!containerRef.current || !brainRef.current) return;
+      const cont = containerRef.current.getBoundingClientRect();
+      const brain = brainRef.current.getBoundingClientRect();
+      if (brain.width === 0) return; // hidden on mobile
+
+      const bx = brain.left + brain.width / 2 - cont.left;
+      const by = brain.top + brain.height / 2 - cont.top;
+      const GAP = 28; // px to stop before card edge
+
+      const makeConn = (tx: number, ty: number, id: number): ConnPoint | null => {
+        const dx = tx - bx;
+        const dy = ty - by;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len < GAP) return null;
+        const factor = (len - GAP) / len;
+        return { x1: bx, y1: by, x2: bx + dx * factor, y2: by + dy * factor, id };
+      };
+
+      const pts: ConnPoint[] = [];
+      let id = 0;
+
+      // Left cards → target right-edge center of each card
+      for (const el of leftCardRefs.current) {
+        if (el && el.getBoundingClientRect().width > 0) {
+          const r = el.getBoundingClientRect();
+          const c = makeConn(r.right - cont.left, r.top + r.height / 2 - cont.top, id);
+          if (c) pts.push(c);
+        }
+        id++;
+      }
+
+      // Right cards → target left-edge center of each card
+      for (const el of rightCardRefs.current) {
+        if (el && el.getBoundingClientRect().width > 0) {
+          const r = el.getBoundingClientRect();
+          const c = makeConn(r.left - cont.left, r.top + r.height / 2 - cont.top, id);
+          if (c) pts.push(c);
+        }
+        id++;
+      }
+
+      // Stats cards → target top-center of each card
+      for (const el of statsRefs.current) {
+        if (el && el.getBoundingClientRect().width > 0) {
+          const r = el.getBoundingClientRect();
+          const c = makeConn(r.left + r.width / 2 - cont.left, r.top - cont.top, id);
+          if (c) pts.push(c);
+        }
+        id++;
+      }
+
+      setConnections(pts);
+    };
+
+    const t = setTimeout(measure, 400);
+    const ro = new ResizeObserver(measure);
+    if (containerRef.current) ro.observe(containerRef.current);
+    window.addEventListener('resize', measure);
+    return () => { clearTimeout(t); ro.disconnect(); window.removeEventListener('resize', measure); };
+  }, [containerRef, brainRef, leftCardRefs, rightCardRefs, statsRefs]);
+
   return (
-    <motion.div
-      className="scroll-reveal relative rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm text-card-foreground p-6"
-      style={{ '--reveal-delay': `${delayMs}ms` } as React.CSSProperties}
-    >
-      <div className="flex items-start gap-4">
-        <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-          style={{
-            backgroundColor: 'color-mix(in oklch, var(--tc-primary) 10%, transparent)',
-            border: '1px solid color-mix(in oklch, var(--tc-primary) 22%, transparent)',
-          }}
-        >
-          <Icon className="h-5 w-5" style={{ color: 'var(--tc-primary)' }} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[15px] font-semibold text-foreground/90 mb-1">{title}</p>
-          <p className="text-sm text-white/40 leading-relaxed">{description}</p>
-        </div>
-      </div>
-    </motion.div>
+    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }} aria-hidden>
+      <svg className="w-full h-full">
+        <defs>
+          {connections.map((conn) => (
+            <linearGradient
+              key={`grad-def-${conn.id}`}
+              id={`lf-grad-${conn.id}`}
+              gradientUnits="userSpaceOnUse"
+              x1={conn.x1} y1={conn.y1}
+              x2={conn.x2} y2={conn.y2}
+            >
+              <stop offset="0%" stopColor="var(--tc-primary)" stopOpacity="0.35" />
+              <stop offset="55%" stopColor="var(--tc-primary)" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="var(--tc-primary)" stopOpacity="0" />
+            </linearGradient>
+          ))}
+        </defs>
+
+        {connections.map((conn) => (
+          <motion.path
+            key={`line-${conn.id}`}
+            d={`M ${conn.x1} ${conn.y1} L ${conn.x2} ${conn.y2}`}
+            stroke={`url(#lf-grad-${conn.id})`}
+            strokeWidth="1"
+            fill="none"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={isInView ? { pathLength: 1, opacity: 1 } : {}}
+            transition={{
+              duration: 1.4,
+              delay: 0.6 + (conn.id % 10) * 0.1,
+              ease: 'easeOut',
+            }}
+          />
+        ))}
+      </svg>
+    </div>
   );
 }
 
 /* ── Brain hub: Logo + orbital rings + glow ── */
 
 function BrainHub() {
+  const hubRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(hubRef, { once: true, amount: 0.4 });
+
   return (
-    <div className="relative flex items-center justify-center">
+    <motion.div
+      ref={hubRef}
+      className="relative flex items-center justify-center"
+      initial={{ opacity: 0, scale: 0.55 }}
+      animate={isInView ? { opacity: 1, scale: 1 } : {}}
+      transition={{ duration: 0.75, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+    >
       {/* Outermost slow pulse */}
       <motion.div
         className="absolute rounded-full"
@@ -216,7 +352,7 @@ function BrainHub() {
         style={{
           width: 74, height: 74,
           background:
-            'linear-gradient(145deg, color-mix(in oklch, var(--tc-primary) 22%, #100d1e) 0%, #100d1e 100%)',
+            'radial-gradient(ellipse at 45% 45%, color-mix(in oklch, var(--tc-primary) 55%, oklch(0.28 0 0)) 0%, color-mix(in oklch, var(--tc-primary) 22%, oklch(0.1 0 0)) 55%, oklch(0.06 0 0) 100%)',
           border: '1.5px solid color-mix(in oklch, var(--tc-primary) 55%, transparent)',
           boxShadow: [
             '0 0 0 8px color-mix(in oklch, var(--tc-primary) 8%, transparent)',
@@ -229,7 +365,7 @@ function BrainHub() {
       >
         <Logo width={42} height={42} />
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -280,6 +416,14 @@ function AnimatedCounter({
 
 export function LandingFeatures() {
   const sectionRef = useScrollReveal<HTMLElement>();
+
+  // Refs for desktop neural connections
+  const containerRef = useRef<HTMLDivElement>(null);
+  const brainRef = useRef<HTMLDivElement>(null);
+  const leftCardRefs = useRef<(HTMLDivElement | null)[]>([null, null, null]);
+  const rightCardRefs = useRef<(HTMLDivElement | null)[]>([null, null, null]);
+  const statsRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null]);
+
   const allFeatures = [...FEATURES_LEFT, ...FEATURES_RIGHT];
 
   return (
@@ -337,14 +481,77 @@ export function LandingFeatures() {
           </p>
         </div>
 
-        {/* ── Feature grid ── */}
+        {/* ── Desktop (lg+): feature grid + stats in one relative container ── */}
+        <div ref={containerRef} className="hidden lg:block relative">
 
-        {/* Desktop (lg+): 3-col — [left cards | brain | right cards] */}
-        <div className="hidden lg:grid lg:grid-cols-[1fr_220px_1fr] lg:gap-x-8 lg:gap-y-5">
+          {/* SVG neural connections — behind all content */}
+          <NeuralConnections
+            containerRef={containerRef}
+            brainRef={brainRef}
+            leftCardRefs={leftCardRefs}
+            rightCardRefs={rightCardRefs}
+            statsRefs={statsRefs}
+          />
 
-          {/* Left cards */}
-          <div className="flex flex-col gap-5">
-            {FEATURES_LEFT.map((f, i) => (
+          {/* 3-col feature grid */}
+          <div className="grid grid-cols-[1fr_220px_1fr] gap-x-8">
+
+            {/* Left cards */}
+            <div className="flex flex-col gap-5 relative z-10">
+              {FEATURES_LEFT.map((f, i) => (
+                <FeatureCard
+                  key={f.title}
+                  ref={(el) => { leftCardRefs.current[i] = el; }}
+                  icon={f.icon}
+                  title={f.title}
+                  description={f.description}
+                  delayMs={300 + i * 100}
+                />
+              ))}
+            </div>
+
+            {/* Brain center */}
+            <div
+              ref={brainRef}
+              className="flex items-center justify-center pointer-events-none"
+              style={{ zIndex: 20 }}
+            >
+              <BrainHub />
+            </div>
+
+            {/* Right cards */}
+            <div className="flex flex-col gap-5 relative z-10">
+              {FEATURES_RIGHT.map((f, i) => (
+                <FeatureCard
+                  key={f.title}
+                  ref={(el) => { rightCardRefs.current[i] = el; }}
+                  icon={f.icon}
+                  title={f.title}
+                  description={f.description}
+                  delayMs={300 + (i + 3) * 100}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Stats row — inside same container so SVG can reach them */}
+          <div className="mt-20 grid grid-cols-4 gap-4 relative z-10">
+            {STATS.map((stat, i) => (
+              <div key={stat.label} ref={(el) => { statsRefs.current[i] = el; }}>
+                <AnimatedCounter
+                  value={stat.value}
+                  suffix={stat.suffix}
+                  label={stat.label}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Mobile / tablet (<lg): plain stacked layout ── */}
+        <div className="lg:hidden">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {allFeatures.map((f, i) => (
               <FeatureCard
                 key={f.title}
                 icon={f.icon}
@@ -355,48 +562,16 @@ export function LandingFeatures() {
             ))}
           </div>
 
-          {/* Brain center */}
-          <div className="flex items-center justify-center pointer-events-none">
-            <BrainHub />
-          </div>
-
-          {/* Right cards */}
-          <div className="flex flex-col gap-5">
-            {FEATURES_RIGHT.map((f, i) => (
-              <FeatureCard
-                key={f.title}
-                icon={f.icon}
-                title={f.title}
-                description={f.description}
-                delayMs={300 + (i + 3) * 100}
+          <div className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {STATS.map((stat) => (
+              <AnimatedCounter
+                key={stat.label}
+                value={stat.value}
+                suffix={stat.suffix}
+                label={stat.label}
               />
             ))}
           </div>
-        </div>
-
-        {/* Mobile / tablet (<lg): 2-col grid */}
-        <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {allFeatures.map((f, i) => (
-            <FeatureCard
-              key={f.title}
-              icon={f.icon}
-              title={f.title}
-              description={f.description}
-              delayMs={300 + i * 100}
-            />
-          ))}
-        </div>
-
-        {/* ── Stats row ── */}
-        <div className="relative z-10 mt-20 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {STATS.map((stat) => (
-            <AnimatedCounter
-              key={stat.label}
-              value={stat.value}
-              suffix={stat.suffix}
-              label={stat.label}
-            />
-          ))}
         </div>
 
         {/* ── CTA ── */}
