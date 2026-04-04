@@ -144,43 +144,47 @@ function NeuralConnections({
       const by = brain.top + brain.height / 2 - cont.top;
       const GAP = 28; // px to stop before card edge
 
-      const makeConn = (tx: number, ty: number, id: number): ConnPoint | null => {
+      const makeConn = (tx: number, ty: number, id: number, lengthFactor = 1): ConnPoint | null => {
         const dx = tx - bx;
         const dy = ty - by;
         const len = Math.sqrt(dx * dx + dy * dy);
         if (len < GAP) return null;
-        const factor = (len - GAP) / len;
+        const factor = ((len - GAP) / len) * lengthFactor;
         return { x1: bx, y1: by, x2: bx + dx * factor, y2: by + dy * factor, id };
       };
 
       const pts: ConnPoint[] = [];
       let id = 0;
 
-      // Left cards → target right-edge center of each card
-      for (const el of leftCardRefs.current) {
+      // Left cards → target right-edge center of each card (bottom card = id 2, cut to half)
+      for (let i = 0; i < leftCardRefs.current.length; i++) {
+        const el = leftCardRefs.current[i];
         if (el && el.getBoundingClientRect().width > 0) {
           const r = el.getBoundingClientRect();
-          const c = makeConn(r.right - cont.left, r.top + r.height / 2 - cont.top, id);
+          const c = makeConn(r.right - cont.left, r.top + r.height / 2 - cont.top, id, i === 2 ? 0.5 : 1);
           if (c) pts.push(c);
         }
         id++;
       }
 
-      // Right cards → target left-edge center of each card
-      for (const el of rightCardRefs.current) {
+      // Right cards → target left-edge center of each card (bottom card = id 5, cut to half)
+      for (let i = 0; i < rightCardRefs.current.length; i++) {
+        const el = rightCardRefs.current[i];
         if (el && el.getBoundingClientRect().width > 0) {
           const r = el.getBoundingClientRect();
-          const c = makeConn(r.left - cont.left, r.top + r.height / 2 - cont.top, id);
+          const c = makeConn(r.left - cont.left, r.top + r.height / 2 - cont.top, id, i === 2 ? 0.5 : 1);
           if (c) pts.push(c);
         }
         id++;
       }
 
-      // Stats cards → target top-center of each card
-      for (const el of statsRefs.current) {
+      // Stats cards → target top-center (outer 2 cut to half, inner 2 full)
+      for (let i = 0; i < statsRefs.current.length; i++) {
+        const el = statsRefs.current[i];
         if (el && el.getBoundingClientRect().width > 0) {
           const r = el.getBoundingClientRect();
-          const c = makeConn(r.left + r.width / 2 - cont.left, r.top - cont.top, id);
+          const isOuter = i === 0 || i === statsRefs.current.length - 1;
+          const c = makeConn(r.left + r.width / 2 - cont.left, r.top - cont.top, id, isOuter ? 0.5 : 1);
           if (c) pts.push(c);
         }
         id++;
