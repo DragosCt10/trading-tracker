@@ -761,6 +761,7 @@ function DashboardMockup() {
                 key={trade.id}
                 trade={trade}
                 onOpenModal={noop}
+                disableImageLink
               />
             ))}
           </div>
