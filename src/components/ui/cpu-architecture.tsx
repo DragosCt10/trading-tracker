@@ -220,28 +220,38 @@ const CpuArchitecture = ({
             />
           </g>
         )}
-        {/* Main CPU Rectangle */}
+        {/* Main CPU Rectangle — glass effect */}
         <rect
           x="85"
           y="40"
           width="30"
           height="20"
           rx="2"
-          fill="#181818"
+          fill="url(#cpu-glass-grad)"
+          stroke="var(--tc-primary)"
+          strokeWidth="0.35"
+          strokeOpacity="0.45"
           filter="url(#cpu-light-shadow)"
         />
-        {/* CPU Text */}
-        <text
-          x="100"
-          y="52.5"
-          fontSize="4.2"
-          fill={animateText ? "url(#cpu-text-gradient)" : "white"}
-          fontWeight="600"
-          letterSpacing="0.05em"
-          textAnchor="middle"
-        >
-          {text}
-        </text>
+        {/* Logo mark — centered in the box */}
+        <g transform="translate(87.65 38.925) scale(0.025)">
+          {/* White shape */}
+          <path
+            d="M 219 656.5 L 498 172.5 L 608.5 369 L 545 429.5 L 496 345.5 L 383.5 546 L 335 582.5 Z"
+            fill="white"
+            fillOpacity="0.85"
+          />
+          {/* Arrow */}
+          <path
+            d="M 163 713.5 L 157.5 713 L 242 672.5 L 366 597.5 L 463 528.5 L 533 471.5 L 617.5 390 L 667.5 333 L 633 300.5 L 789.5 270 L 763 424.5 L 730 388.5 L 673 447.5 L 611 501.5 L 549 547.5 L 473 596.5 L 413 629.5 L 314 672.5 L 232 698.5 Z"
+            fill="var(--tc-primary)"
+          />
+          {/* Triangle */}
+          <path
+            d="M 831 707.5 L 341.5 707 L 448 658.5 L 530 611.5 L 637 611.5 L 599.5 543 L 690 472.5 Z"
+            fill="var(--tc-accent)"
+          />
+        </g>
       </g>
       {/* Masks */}
       <defs>
@@ -349,6 +359,11 @@ const CpuArchitecture = ({
             floodOpacity="0.1"
           />
         </filter>
+        {/* Glass gradient for CPU box */}
+        <linearGradient id="cpu-glass-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="white" stopOpacity="0.1" />
+          <stop offset="100%" stopColor="white" stopOpacity="0.02" />
+        </linearGradient>
         <marker
           id="cpu-circle-marker"
           viewBox="0 0 10 10"
