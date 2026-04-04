@@ -219,7 +219,7 @@ export function LandingModes() {
             style={{ '--reveal-delay': '200ms' } as React.CSSProperties}
           >
             {/* Mock ActionBar — separate card above, centered */}
-            <div className="relative mb-3 flex justify-center">
+            <div className="relative mb-6 flex justify-center">
               <div className="inline-flex rounded-2xl border border-slate-700/50 bg-slate-800/30 px-3 py-2 backdrop-blur-sm shadow-md">
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   {/* Mode badge — colored per mode (green/amber/blue) */}
