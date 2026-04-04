@@ -104,14 +104,17 @@ export async function getPendingReviews(): Promise<ActionResult<Review[]>> {
   if (error) return { error: 'Failed to fetch pending reviews.' };
   if (!reviews || reviews.length === 0) return { data: [] };
 
-  const userIds = reviews.map((r) => r.user_id);
+  type ReviewRow = { user_id: string; [key: string]: unknown };
+  type ProfileRow = { user_id: string; display_name: string; username: string; avatar_url: string | null; tier: string };
+  const typedReviews = reviews as ReviewRow[];
+  const userIds = typedReviews.map((r) => r.user_id);
   const { data: profiles } = await supabase
     .from('social_profiles')
     .select('user_id, display_name, username, avatar_url, tier')
     .in('user_id', userIds);
 
-  const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
-  const result = reviews.map((r) => ({ ...r, author: profileMap.get(r.user_id) ?? null }));
+  const profileMap = new Map((profiles as ProfileRow[] ?? []).map((p) => [p.user_id, p]));
+  const result = typedReviews.map((r) => ({ ...r, author: profileMap.get(r.user_id) ?? null }));
 
   return { data: result as Review[] };
 }
@@ -130,14 +133,17 @@ export async function getReviewsByStatus(status: 'pending' | 'approved' | 'rejec
   if (error) return { error: `Failed to fetch ${status} reviews.` };
   if (!reviews || reviews.length === 0) return { data: [] };
 
-  const userIds = reviews.map((r) => r.user_id);
+  type ReviewRow = { user_id: string; [key: string]: unknown };
+  type ProfileRow = { user_id: string; display_name: string; username: string; avatar_url: string | null; tier: string };
+  const typedReviews = reviews as ReviewRow[];
+  const userIds = typedReviews.map((r) => r.user_id);
   const { data: profiles } = await supabase
     .from('social_profiles')
     .select('user_id, display_name, username, avatar_url, tier')
     .in('user_id', userIds);
 
-  const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
-  const result = reviews.map((r) => ({ ...r, author: profileMap.get(r.user_id) ?? null }));
+  const profileMap = new Map((profiles as ProfileRow[] ?? []).map((p) => [p.user_id, p]));
+  const result = typedReviews.map((r) => ({ ...r, author: profileMap.get(r.user_id) ?? null }));
 
   return { data: result as Review[] };
 }
