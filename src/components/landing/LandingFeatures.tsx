@@ -501,7 +501,7 @@ export function LandingFeatures() {
           <div className="grid grid-cols-[1fr_220px_1fr] gap-x-8">
 
             {/* Left cards */}
-            <div className="flex flex-col gap-5 relative z-10">
+            <div className="flex flex-col gap-6 relative z-10">
               {FEATURES_LEFT.map((f, i) => (
                 <FeatureCard
                   key={f.title}
@@ -524,7 +524,7 @@ export function LandingFeatures() {
             </div>
 
             {/* Right cards */}
-            <div className="flex flex-col gap-5 relative z-10">
+            <div className="flex flex-col gap-6 relative z-10">
               {FEATURES_RIGHT.map((f, i) => (
                 <FeatureCard
                   key={f.title}
@@ -539,7 +539,7 @@ export function LandingFeatures() {
           </div>
 
           {/* Stats row — inside same container so SVG can reach them */}
-          <div className="mt-20 grid grid-cols-4 gap-4 relative z-10">
+          <div className="mt-20 grid grid-cols-4 gap-6 relative z-10">
             {STATS.map((stat, i) => (
               <div key={stat.label} ref={(el) => { statsRefs.current[i] = el; }}>
                 <AnimatedCounter
