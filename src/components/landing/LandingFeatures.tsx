@@ -91,7 +91,7 @@ function FeatureCard({
 }) {
   return (
     <motion.div
-      className="scroll-reveal group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 backdrop-blur-sm transition-colors duration-500 hover:border-white/[0.12] hover:bg-white/[0.04]"
+      className="scroll-reveal group relative rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm text-card-foreground p-6 transition-colors duration-500 hover:border-slate-300/50 dark:hover:border-slate-600/50 hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
       style={{ '--reveal-delay': `${delayMs}ms` } as React.CSSProperties}
       whileHover={{ y: -4, transition: { type: 'spring', stiffness: 300, damping: 20 } }}
     >
@@ -153,7 +153,7 @@ function AnimatedCounter({
   return (
     <div
       ref={ref}
-      className="group flex flex-col items-center text-center rounded-2xl border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-6 transition-colors duration-300 hover:border-white/[0.08] hover:bg-white/[0.04]"
+      className="group flex flex-col items-center text-center rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm text-card-foreground p-6 transition-colors duration-300 hover:border-slate-300/50 dark:hover:border-slate-600/50 hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
     >
       <span className="text-3xl font-bold text-foreground tracking-tight">
         {display}{suffix}
