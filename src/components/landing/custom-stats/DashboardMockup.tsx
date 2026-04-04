@@ -7,13 +7,36 @@ import {
   PanelLeft,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
-import { TotalTradesDonut } from '@/components/dashboard/analytics/TotalTradesChartCard';
-import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';
-import { AvgWinLossCard } from '@/components/dashboard/analytics/AvgWinLossCard';
-import { ExpectancyCard } from '@/components/dashboard/analytics/ExpectancyCard';
-import { RecoveryFactorChart } from '@/components/dashboard/analytics/RecoveryFactorChart';
-import { TradeCard } from '@/components/trades/TradeCard';
+import dynamic from 'next/dynamic';
+
+const EquityCurveChart = dynamic(
+  () => import('@/components/dashboard/analytics/EquityCurveChart').then(m => ({ default: m.EquityCurveChart })),
+  { ssr: false, loading: () => <div className="bg-slate-800/40 rounded-lg animate-pulse h-full w-full" /> }
+);
+const TotalTradesDonut = dynamic(
+  () => import('@/components/dashboard/analytics/TotalTradesChartCard').then(m => ({ default: m.TotalTradesDonut })),
+  { ssr: false, loading: () => <div className="bg-slate-800/40 rounded-lg animate-pulse h-full w-full" /> }
+);
+const SummaryHalfGauge = dynamic(
+  () => import('@/components/dashboard/analytics/SummaryHalfGauge').then(m => ({ default: m.SummaryHalfGauge })),
+  { ssr: false, loading: () => <div className="bg-slate-800/40 rounded-lg animate-pulse h-full w-full" /> }
+);
+const AvgWinLossCard = dynamic(
+  () => import('@/components/dashboard/analytics/AvgWinLossCard').then(m => ({ default: m.AvgWinLossCard })),
+  { ssr: false, loading: () => <div className="bg-slate-800/40 rounded-lg animate-pulse h-full w-full" /> }
+);
+const ExpectancyCard = dynamic(
+  () => import('@/components/dashboard/analytics/ExpectancyCard').then(m => ({ default: m.ExpectancyCard })),
+  { ssr: false, loading: () => <div className="bg-slate-800/40 rounded-lg animate-pulse h-full w-full" /> }
+);
+const RecoveryFactorChart = dynamic(
+  () => import('@/components/dashboard/analytics/RecoveryFactorChart').then(m => ({ default: m.RecoveryFactorChart })),
+  { ssr: false, loading: () => <div className="bg-slate-800/40 rounded-lg animate-pulse h-full w-full" /> }
+);
+const TradeCard = dynamic(
+  () => import('@/components/trades/TradeCard').then(m => ({ default: m.TradeCard })),
+  { ssr: false, loading: () => <div className="bg-slate-800/40 rounded-lg animate-pulse h-full w-full" /> }
+);
 import { MOCK_EQUITY, MOCK_DASHBOARD_TRADES, DASHBOARD_CARD_CLASS } from './mockData';
 
 const noop = () => {};

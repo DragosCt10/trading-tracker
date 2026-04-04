@@ -11,6 +11,7 @@ import { LandingMidCTA } from '@/components/landing/LandingMidCTA';
 import { LandingCTA } from '@/components/landing/LandingCTA';
 import { LandingFeatures } from '@/components/landing/LandingFeatures';
 import Footer from '@/components/shared/Footer';
+import { getCachedUserSession } from '@/lib/server/session';
 
 const LandingStatsBoard = dynamic(
   () => import('@/components/landing/LandingStatsBoard').then(m => ({ default: m.LandingStatsBoard })),
@@ -19,7 +20,9 @@ const LandingCustomStats = dynamic(
   () => import('@/components/landing/LandingCustomStats').then(m => ({ default: m.LandingCustomStats })),
 );
 
-export default function Home() {
+export default async function Home() {
+  const session = await getCachedUserSession().catch(() => null);
+
   if (process.env.NEXT_PUBLIC_UNDER_CONSTRUCTION === 'true') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white">
@@ -34,7 +37,7 @@ export default function Home() {
 
   return (
     <div className="landing-page-override w-full">
-      <LandingNavbar />
+      <LandingNavbar isLoggedIn={!!session?.user} />
 
       <LandingHero />
 

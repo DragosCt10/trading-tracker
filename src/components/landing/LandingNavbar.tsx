@@ -25,16 +25,23 @@ const NAV_LINKS = [
   { label: 'Testimonials', href: '#testimonials' },
 ] as const;
 
-export function LandingNavbar() {
+interface LandingNavbarProps {
+  isLoggedIn?: boolean;
+}
+
+export function LandingNavbar({ isLoggedIn: isLoggedInProp }: LandingNavbarProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
-  const [authState, setAuthState] = useState<'loading' | 'logged-in' | 'logged-out'>('loading');
+  const [authState, setAuthState] = useState<'loading' | 'logged-in' | 'logged-out'>(
+    () => isLoggedInProp !== undefined ? (isLoggedInProp ? 'logged-in' : 'logged-out') : 'loading',
+  );
   const isLoggedIn = authState === 'logged-in';
   useTheme();
 
   useEffect(() => {
+    if (isLoggedInProp !== undefined) return;
     const supabase = createClient();
     supabase.auth.getSession().then(({ data }) => {
       setAuthState(data.session?.user ? 'logged-in' : 'logged-out');
@@ -43,7 +50,7 @@ export function LandingNavbar() {
       setAuthState(session?.user ? 'logged-in' : 'logged-out');
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isLoggedInProp]);
 
   // Landing and pricing pages are always dark — force regardless of stored preference
   useLayoutEffect(() => {

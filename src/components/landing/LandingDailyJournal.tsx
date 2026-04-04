@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SectionBadge, SectionHeading } from '@/components/landing/shared';
-import Image from 'next/image';
 import { ChevronRight, CalendarDays, BarChart3, TableProperties, ArrowUp, ArrowDown, MoveHorizontal } from 'lucide-react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { cn } from '@/lib/utils';
@@ -13,10 +12,10 @@ import type { EquityPoint } from '@/components/dashboard/analytics/EquityCurveCh
 
 /* ── Mock data ── */
 
-const MOCK_TRADES = [
-  { symbol: 'NQ', name: 'NAS100', time: '10:00 – 11:59', direction: 'Long' as const, rr: '2.5', pnl: '+$580', pnlPositive: true, outcome: 'Win' as const, risk: '0.50%', screen: 'https://www.tradingview.com/x/jQunmvqG/' },
-  { symbol: 'ES', name: 'SP500', time: '12:00 – 13:59', direction: 'Short' as const, rr: '1.8', pnl: '-$260', pnlPositive: false, outcome: 'Lose' as const, risk: '0.50%', screen: 'https://www.tradingview.com/x/ljnfQy4G/' },
-  { symbol: 'GC', name: 'XAUUSD', time: '14:00 – 15:59', direction: 'Long' as const, rr: '3.2', pnl: '+$1,100', pnlPositive: true, outcome: 'Win' as const, risk: '0.35%', screen: 'https://www.tradingview.com/x/h87FdCLo/' },
+const MOCK_TRADES: { symbol: string; name: string; time: string; direction: 'Long' | 'Short'; rr: string; pnl: string; pnlPositive: boolean; outcome: 'Win' | 'Lose'; risk: string; screen: string | null }[] = [
+  { symbol: 'NQ', name: 'NAS100', time: '10:00 – 11:59', direction: 'Long', rr: '2.5', pnl: '+$580', pnlPositive: true, outcome: 'Win', risk: '0.50%', screen: null },
+  { symbol: 'ES', name: 'SP500', time: '12:00 – 13:59', direction: 'Short', rr: '1.8', pnl: '-$260', pnlPositive: false, outcome: 'Lose', risk: '0.50%', screen: null },
+  { symbol: 'GC', name: 'XAUUSD', time: '14:00 – 15:59', direction: 'Long', rr: '3.2', pnl: '+$1,100', pnlPositive: true, outcome: 'Win', risk: '0.35%', screen: null },
 ];
 
 const MOCK_STATS = [
@@ -191,22 +190,30 @@ function DailyJournalCardContent({
                         isDark ? 'border-slate-600/30 bg-slate-700/30' : 'border-slate-200 bg-slate-100',
                       )}
                     >
-                      <Image
-                        src={trade.screen}
-                        alt={`${trade.name} chart`}
-                        className="w-full h-full object-cover"
-                        width={140}
-                        height={75}
-                        unoptimized
-                      />
-                      <span
-                        className={cn(
-                          'absolute top-1.5 right-1.5 text-[9px] font-medium backdrop-blur-sm rounded px-1.5 py-0.5',
-                          isDark ? 'text-slate-300 bg-slate-800/80' : 'text-slate-600 bg-white/80',
-                        )}
-                      >
-                        1/2
-                      </span>
+                      {trade.screen ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={trade.screen}
+                            alt={`${trade.name} chart`}
+                            className="w-full h-full object-cover"
+                            width={140}
+                            height={75}
+                          />
+                          <span
+                            className={cn(
+                              'absolute top-1.5 right-1.5 text-[9px] font-medium backdrop-blur-sm rounded px-1.5 py-0.5',
+                              isDark ? 'text-slate-300 bg-slate-800/80' : 'text-slate-600 bg-white/80',
+                            )}
+                          >
+                            1/2
+                          </span>
+                        </>
+                      ) : (
+                        <div className="w-[140px] h-[75px] rounded bg-slate-700/50 flex items-center justify-center text-xs text-slate-500">
+                          Chart
+                        </div>
+                      )}
                     </div>
                   </td>
                   {/* Time */}

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { sanitizeForDiscord } from '@/utils/sanitize';
 
 const ALLOWED_SUBJECTS = [
   'General Inquiry',
@@ -9,14 +10,6 @@ const ALLOWED_SUBJECTS = [
 ] as const;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-/** Strip Discord mentions and formatting to prevent abuse via webhook embeds. */
-function sanitizeForDiscord(text: string): string {
-  return text
-    .replace(/@(everyone|here)/gi, '@\u200b$1')
-    .replace(/<@[!&]?\d+>/g, '[mention removed]')
-    .replace(/<#\d+>/g, '[channel removed]');
-}
 
 // In-memory rate limiter (per IP, 1 submission per 30s)
 const rateLimitMap = new Map<string, number>();

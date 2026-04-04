@@ -7,8 +7,12 @@ interface PublicPageShellProps {
 }
 
 /**
- * Shared shell for all public pages (pricing, policies, help, contact).
- * Wraps content with LandingNavbar, PricingHeroBackground, and Footer.
+ * Server Component — intentionally no 'use client'.
+ *
+ * Renders client components (LandingNavbar, PricingHeroBackground) as
+ * leaves. If you need stateful logic, add a separate client wrapper
+ * component rather than adding hooks here, which would push the entire
+ * shell into the client bundle.
  */
 export function PublicPageShell({ children }: PublicPageShellProps) {
   return (

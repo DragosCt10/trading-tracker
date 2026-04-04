@@ -19,20 +19,20 @@ export function LandingMidCTA() {
     }
   }, []);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       updateSpotlight(e.clientX - rect.left, e.clientY - rect.top);
     }
-  };
+  }, [updateSpotlight]);
 
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     if (containerRef.current && e.touches.length > 0) {
       const touch = e.touches[0];
       const rect = containerRef.current.getBoundingClientRect();
       updateSpotlight(touch.clientX - rect.left, touch.clientY - rect.top);
     }
-  };
+  }, [updateSpotlight]);
 
   return (
     <section ref={sectionRef} className="relative">
