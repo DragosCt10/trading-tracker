@@ -1978,7 +1978,7 @@ body:has(.landing-page-override) > .fixed.z-0 {
 }
 
 .cpu-line-4 {
-  offset-path: path("M 170 120 v -61.8 q 0 -5 -5 -5 h -65");
+  offset-path: path("M 150 120 v -61.8 q 0 -5 -5 -5 h -50");
   animation-delay: 3s;
   animation-duration: 3s;
 }
@@ -1999,7 +1999,7 @@ body:has(.landing-page-override) > .fixed.z-0 {
 
 .cpu-line-7 {
   offset-path: path(
-    "M 88 130 v -57 q 0 -5 -5 -5 h -10 q -5 0 -5 -5 v -5 q 0 -5 5 -5 h 28"
+    "M 93 130 v -57 q 0 -5 -5 -5 h -10 q -5 0 -5 -5 v -5 q 0 -5 5 -5 h 14"
   );
   animation-delay: 4s;
   animation-duration: 4s;
