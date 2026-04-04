@@ -143,7 +143,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
   if (isMarketOnly) {
     const { selectedMarket, onSelectedMarketChange, markets } = props as MarketOnlyTradeFiltersBarProps;
     return (
-      <Card className="mb-4 z-1 relative border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+      <Card className="mb-4 z-10 relative border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
         <div className="flex flex-wrap items-center gap-3 px-4 py-2.5">
           {/* Market filter */}
           <div className="ml-auto flex items-center gap-2">
@@ -208,7 +208,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
   const displayRange = `${displayStartDate ?? dateRange.startDate} ~ ${dateRange.endDate}`;
 
   return (
-    <Card className="mb-4 z-1 relative border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+    <Card className="mb-4 z-10 relative border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
       <div className="flex flex-wrap items-start gap-3 px-4 py-2.5">
         {/* Left: Period (label + input) and preset buttons stacked */}
         <div className="flex flex-col gap-2">
@@ -288,7 +288,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
                       direction="vertical"
                       />
 
-                      <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-transparent dark:bg-transparent px-3 py-2">
+                      <div className="flex justify-end gap-2 border-t border-slate-200 dark:border-border/40 bg-transparent px-3 pt-2 pb-0">
                       <Button
                         type="button"
                         variant="outline"
