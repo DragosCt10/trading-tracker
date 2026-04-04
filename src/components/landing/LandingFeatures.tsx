@@ -124,8 +124,8 @@ function NeuralConnections({
   rightCardRefs,
   statsRefs,
 }: {
-  containerRef: React.RefObject<HTMLDivElement>;
-  brainRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  brainRef: React.RefObject<HTMLDivElement | null>;
   leftCardRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
   rightCardRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
   statsRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
@@ -407,7 +407,7 @@ function AnimatedCounter({
       <span className="text-3xl font-bold text-foreground tracking-tight">
         {display}{suffix}
       </span>
-      <span className="text-sm text-white/35 mt-1">{label}</span>
+      <span className="text-sm text-muted-foreground mt-1">{label}</span>
       <div
         className="w-8 h-0.5 mt-3 rounded-full group-hover:w-12 transition-all duration-300"
         style={{ backgroundColor: 'var(--tc-primary)', opacity: 0.5 }}
