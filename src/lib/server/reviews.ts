@@ -189,16 +189,18 @@ export async function getApprovedReviews(): Promise<Testimonial[]> {
 
   if (error || !reviews || reviews.length === 0) return [];
 
-  const userIds = reviews.map((r) => r.user_id);
+  type ReviewRow = { text: string; user_id: string; rating: number | null };
+  type ProfileRow = { user_id: string; display_name: string | null; avatar_url: string | null; tier: string | null; trader_style: string | null };
+  const typedReviews = reviews as ReviewRow[];
+  const userIds = typedReviews.map((r) => r.user_id);
   const { data: profiles } = await supabase
     .from('social_profiles')
     .select('user_id, display_name, avatar_url, tier, trader_style')
     .in('user_id', userIds);
 
-  type ProfileRow = { user_id: string; display_name: string | null; avatar_url: string | null; tier: string | null; trader_style: string | null };
   const profileMap = new Map((profiles as ProfileRow[] ?? []).map((p) => [p.user_id, p]));
 
-  return (reviews as { text: string; user_id: string; rating: number | null }[]).map((row) => {
+  return typedReviews.map((row) => {
     const author = profileMap.get(row.user_id);
     return {
       text: row.text,
