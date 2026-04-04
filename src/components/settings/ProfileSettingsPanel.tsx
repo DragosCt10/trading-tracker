@@ -181,7 +181,7 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
           Social Profile
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
-          Your public identity in the Alpha Level feed.
+          Your public identity on the social feed
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
