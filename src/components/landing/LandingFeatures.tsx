@@ -454,7 +454,7 @@ export function LandingFeatures() {
         {/* Section header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
           <div
-            className="scroll-reveal inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 backdrop-blur-sm mb-6"
+            className="scroll-reveal inline-flex items-center gap-2 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none px-4 py-1.5 backdrop-blur-sm mb-6"
             style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
           >
             <span
