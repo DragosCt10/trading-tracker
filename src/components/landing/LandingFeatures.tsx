@@ -238,7 +238,7 @@ export function LandingFeatures() {
         {/* ── Feature grid with CPU background ── */}
         <div ref={calendarRef} className="relative">
           {/* CPU Architecture background — behind cards */}
-          <div className="absolute -inset-x-0 -top-10 -bottom-32 z-[1] hidden lg:flex items-start justify-center pointer-events-none pt-8">
+          <div className="absolute -inset-x-0 -top-10 -bottom-[200px] z-[1] hidden lg:flex items-start justify-center pointer-events-none pt-8">
             <motion.div
               className="w-full h-full"
               style={{ y: calendarY }}
