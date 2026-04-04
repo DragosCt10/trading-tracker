@@ -42,7 +42,7 @@ export default function ReviewsPanel() {
     startLoad(async () => {
       const result = await getReviewsByStatus(tab);
       if ('error' in result) {
-        setMsg(result.error);
+        setMsg(result.error ?? null);
         return;
       }
       setReviews(result.data);
@@ -53,7 +53,7 @@ export default function ReviewsPanel() {
     startMutate(async () => {
       const result = await setReviewStatus(reviewId, status);
       if ('error' in result) {
-        setMsg(result.error);
+        setMsg(result.error ?? null);
         return;
       }
       // Remove from current list
@@ -65,7 +65,7 @@ export default function ReviewsPanel() {
         setMsg('Review revoked — see it in the Pending tab.');
         startLoad(async () => {
           const fresh = await getReviewsByStatus('pending');
-          if ('data' in fresh) setPendingReviews(fresh.data);
+          if ('data' in fresh) setPendingReviews(fresh.data ?? null);
         });
       } else {
         const labels: Record<string, string> = { approved: 'approved', rejected: 'rejected' };
