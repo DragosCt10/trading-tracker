@@ -206,40 +206,54 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
   return (
     <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
       {/* Header */}
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Previous month"
-          disabled={!canNavigateMonth('prev')}
-          onClick={() => onMonthNavigate('prev')}
-          className={cn(
-            'h-9 w-9 rounded-xl border border-slate-300/60 dark:border-slate-700/70 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 shadow-sm hover:bg-slate-200/80 dark:hover:bg-slate-700/60 hover:border-slate-300/80 dark:hover:border-slate-600/80 transition-all duration-200',
-            !canNavigateMonth('prev') &&
-              'cursor-not-allowed text-slate-400 dark:text-slate-600 hover:bg-slate-100/60 dark:hover:bg-slate-900/40 hover:border-slate-300/60 dark:hover:border-slate-700/70',
-          )}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
+      <CardHeader className="flex flex-row space-y-3 pb-4 items-center justify-between sm:space-y-0">
+        {/* Left: navigation buttons */}
+        <div className="inline-flex -space-x-px rounded-lg shadow-sm shadow-black/5">
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Previous month"
+            disabled={!canNavigateMonth('prev')}
+            onClick={() => onMonthNavigate('prev')}
+            className="h-9 w-9 cursor-pointer rounded-none shadow-none first:rounded-s-lg last:rounded-e-lg focus-visible:z-10 border-slate-300/60 dark:border-slate-700/50 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-700/60 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Next month"
+            disabled={!canNavigateMonth('next')}
+            onClick={() => onMonthNavigate('next')}
+            className="h-9 w-9 cursor-pointer rounded-none shadow-none first:rounded-s-lg last:rounded-e-lg focus-visible:z-10 border-slate-300/60 dark:border-slate-700/50 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-700/60 disabled:cursor-not-allowed"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
 
-        <CardTitle className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-          {format(currentDate, 'MMMM yyyy')}
-        </CardTitle>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Next month"
-          disabled={!canNavigateMonth('next')}
-          onClick={() => onMonthNavigate('next')}
-          className={cn(
-            'h-9 w-9 rounded-xl border border-slate-300/60 dark:border-slate-700/70 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 shadow-sm hover:bg-slate-200/80 dark:hover:bg-slate-700/60 hover:border-slate-300/80 dark:hover:border-slate-600/80 transition-all duration-200',
-            !canNavigateMonth('next') &&
-              'cursor-not-allowed text-slate-400 dark:text-slate-600 hover:bg-slate-100/60 dark:hover:bg-slate-900/40 hover:border-slate-300/60 dark:hover:border-slate-700/70',
-          )}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+        {/* Right: trades widget + month info */}
+        <div className="flex items-center gap-4">
+          <div className="flex flex-col text-right">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {format(currentDate, 'MMMM, yyyy')}
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {format(startOfMonth(currentDate), 'MMM d, yyyy')}
+              {' — '}
+              {format(endOfMonth(currentDate), 'MMM d, yyyy')}
+            </p>
+          </div>
+          <div className="hidden flex-col items-center justify-center rounded-xl border border-slate-300/60 dark:border-slate-700/50 bg-transparent px-3 py-1.5 md:flex">
+            <span className="text-xs capitalize font-medium text-slate-500 dark:text-slate-400 mb-1">trades</span>
+            <div className="flex w-full items-center justify-center px-2 py-0.5 text-lg font-bold text-slate-900 dark:text-slate-100">
+              {mounted
+                ? (selectedMarket === 'all'
+                    ? calendarMonthTrades.length
+                    : calendarMonthTrades.filter((t) => t.market === selectedMarket).length)
+                : '—'}
+            </div>
+          </div>
+        </div>
       </CardHeader>
 
       <CardContent>
