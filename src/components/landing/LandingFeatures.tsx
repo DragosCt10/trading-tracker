@@ -131,7 +131,7 @@ function NeuralConnections({
   statsRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
 }) {
   const [connections, setConnections] = useState<ConnPoint[]>([]);
-  const isInView = useInView(containerRef, { once: true, amount: 0.2 });
+  const isInView = useInView(containerRef, { once: false, amount: 0.2 });
 
   useEffect(() => {
     const measure = () => {
@@ -244,7 +244,7 @@ function NeuralConnections({
 
 function BrainHub() {
   const hubRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(hubRef, { once: true, amount: 0.4 });
+  const isInView = useInView(hubRef, { once: false, amount: 0.4 });
 
   return (
     <motion.div
