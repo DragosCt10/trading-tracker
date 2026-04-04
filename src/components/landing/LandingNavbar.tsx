@@ -90,14 +90,16 @@ export function LandingNavbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
-      <nav
-        className={cn(
-          'relative transition-all duration-500',
-          scrolled
-            ? 'bg-white/70 dark:bg-[#08060e]/80 backdrop-blur-2xl'
-            : 'bg-transparent',
-        )}
-      >
+      <nav className="relative">
+        {/* ── Scrolled bg + blur — faded as one unit so both disappear together ── */}
+        <div
+          aria-hidden
+          className={cn(
+            'absolute inset-0 pointer-events-none transition-opacity duration-500',
+            'bg-white/70 dark:bg-[#08060e]/80 backdrop-blur-2xl',
+            scrolled ? 'opacity-100' : 'opacity-0',
+          )}
+        />
         {/* ── Animated scan line (login page gradient) ── */}
         <div className="absolute bottom-0 left-0 right-0 h-px overflow-hidden">
           <div
