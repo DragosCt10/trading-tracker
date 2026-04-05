@@ -120,7 +120,7 @@ const FAQ_SECTIONS: FAQSection[] = [
       {
         question: 'How do I upgrade to a paid plan?',
         answer:
-          'Go to the pricing page and select your plan. Complete the payment through Polar.',
+          'Go to the pricing page and select your plan. Complete the payment through Lemon Squeezy.',
       },
       {
         question: 'How do I cancel my subscription?',

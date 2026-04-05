@@ -20,7 +20,7 @@ const SECTIONS = [
         </ul>
         <p className="mt-3">
           Payment information is processed securely by our payment provider,
-          Polar. We do not store your card details or billing information.
+          Lemon Squeezy. We do not store your card details or billing information.
         </p>
         <p className="mt-3 mb-3">
           We also collect data automatically when you use the platform:
@@ -80,7 +80,7 @@ const SECTIONS = [
           We may share your data with trusted third parties only when necessary:
         </p>
         <ul className="list-disc pl-6 space-y-1.5 text-muted-foreground">
-          <li>Polar, for payment processing</li>
+          <li>Lemon Squeezy, for payment processing</li>
           <li>Analytics providers, to understand platform usage</li>
           <li>Infrastructure providers, for hosting and storage</li>
         </ul>

@@ -314,7 +314,7 @@ export async function cancelCurrentSubscription(): Promise<{
   );
 
   if (!cancelTarget?.provider_subscription_id) {
-    return { ok: false, userId: session.user.id, message: 'No active Polar subscription to cancel.' };
+    return { ok: false, userId: session.user.id, message: 'No active Lemon Squeezy subscription to cancel.' };
   }
 
   const provider = getPaymentProvider();

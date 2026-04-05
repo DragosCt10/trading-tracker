@@ -285,7 +285,7 @@ export function PricingPageClient() {
           <div className="mx-auto mt-2 flex max-w-xl flex-col items-center gap-5 text-center">
             <p className="flex items-center gap-1 text-sm font-medium text-foreground/80">
               <Lock className="h-3.5 w-3.5" />
-              Secured Payment by <span className="underline m-0 font-semibold">Polar</span> with:
+              Secured Payment by <span className="underline m-0 font-semibold">Lemon Squeezy</span> with:
             </p>
 
             {/* Payment method icons */}
