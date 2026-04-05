@@ -52,13 +52,13 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
     label: 'PRO',
     pricing: {
       monthly: {
-        usd: 9.99,
+        usd: 11.99,
         polarProductId: isSandbox
           ? process.env.POLAR_SANDBOX_PRO_PRODUCT_ID_MONTHLY ?? ''
           : process.env.POLAR_PRO_PRODUCT_ID_MONTHLY ?? '',
       },
       annual: {
-        usd: 99.99,
+        usd: 114.99,
         polarProductId: isSandbox
           ? process.env.POLAR_SANDBOX_PRO_PRODUCT_ID_ANNUAL ?? ''
           : process.env.POLAR_PRO_PRODUCT_ID_ANNUAL ?? '',
