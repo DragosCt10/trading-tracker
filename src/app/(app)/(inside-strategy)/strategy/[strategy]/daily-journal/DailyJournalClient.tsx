@@ -11,8 +11,7 @@ import { TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBa
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import NotesModal from '@/components/NotesModal';
 import { useStrategyClientContext } from '@/hooks/useStrategyClientContext';
-import { useStrategyDateBoundedTrades } from '@/hooks/useStrategyDateBoundedTrades';
-import { buildPresetRange } from '@/utils/dateRangeHelpers';
+import { useStrategyAllTimeTrades } from '@/hooks/useStrategyAllTimeTrades';
 import { useTradeFilters } from '@/hooks/useTradeFilters';
 import { applyTradeClientFilters } from '@/utils/applyTradeClientFilters';
 import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
@@ -59,6 +58,15 @@ export default function DailyJournalClient({
     initialActiveAccount,
   });
   const { isPro, isError: subscriptionError, refetchSubscription } = useSubscription({ userId });
+  const { allTradesData, tradesLoading, tradesError, refetchTrades } = useStrategyAllTimeTrades({
+    userId,
+    activeAccountId: activeAccount?.id,
+    mode,
+    strategyId,
+    isPro,
+    initialTrades,
+    isInitialContext,
+  });
 
   const currencySymbol = activeAccount
     ? getCurrencySymbolFromAccount(activeAccount)
@@ -109,27 +117,6 @@ export default function DailyJournalClient({
     [lockedPreviewDayGroups]
   );
 
-  // Server-side date range: tracks the filter's date range to scope the query.
-  // Initialized to the default "year" range to avoid fetching all-time data.
-  const [serverDateRange, setServerDateRange] = useState(
-    () => buildPresetRange('year').dateRange
-  );
-
-  // Fetch trades scoped to the server date range.
-  // When serverDateRange changes → new query key → server refetch.
-  const { tradesData, tradesLoading, tradesError, refetchTrades } = useStrategyDateBoundedTrades({
-    userId,
-    activeAccountId: activeAccount?.id,
-    mode,
-    strategyId,
-    isPro,
-    initialTrades,
-    isInitialContext,
-    startDate: serverDateRange.startDate,
-    endDate: serverDateRange.endDate,
-  });
-
-  // Filter state (markets derived from the fetched trades).
   const {
     dateRange,
     activeFilter,
@@ -143,29 +130,19 @@ export default function DailyJournalClient({
     handleDateRangeChange,
     handleExecutionChange,
   } = useTradeFilters({
-    tradesForMarkets: tradesData,
-    tradesForEarliestDate: isPro ? tradesData : nonProEarliestSource,
+    tradesForMarkets: allTradesData,
+    tradesForEarliestDate: isPro ? allTradesData : nonProEarliestSource,
   });
 
-  // Sync filter date range → server fetch range. When the user changes the
-  // filter (e.g. "year" → "30 days"), this triggers a server refetch for just
-  // that range instead of keeping all-time data in memory.
-  useEffect(() => {
-    if (dateRange.startDate !== serverDateRange.startDate || dateRange.endDate !== serverDateRange.endDate) {
-      setServerDateRange(dateRange);
-    }
-  }, [dateRange, serverDateRange]);
-
-  // Market + execution filtering still done client-side (date already handled by server).
   const filteredTrades = useMemo(
     () =>
       applyTradeClientFilters({
-        trades: tradesData,
+        trades: allTradesData,
         dateRange,
         selectedMarket,
         executionFilter,
       }),
-    [tradesData, dateRange, executionFilter, selectedMarket]
+    [allTradesData, dateRange, executionFilter, selectedMarket]
   );
 
   // Group trades by day
