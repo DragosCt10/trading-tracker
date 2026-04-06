@@ -19,13 +19,13 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
     endDate: format(endOfYear(today), 'yyyy-MM-dd'),
   };
 
-  // Fetch strategy metadata and resolve active account/mode from cookies in parallel.
-  // getStrategyBySlug filters by user_id + slug which is unique — accountId is an
-  // optional extra filter not needed here.
-  const [{ mode, activeAccount }, strategy] = await Promise.all([
-    resolveActiveAccountFromCookies(user.id),
-    strategySlug ? getStrategyBySlug(user.id, strategySlug) : Promise.resolve(null),
-  ]);
+  // Resolve active account first, then fetch strategy filtered by that account.
+  // The accountId filter ensures we only render if the strategy belongs to the
+  // active account — otherwise the dashboard stats would query the wrong account.
+  const { mode, activeAccount } = await resolveActiveAccountFromCookies(user.id);
+  const strategy = strategySlug
+    ? await getStrategyBySlug(user.id, strategySlug, activeAccount?.id)
+    : null;
 
   const strategyId = strategy?.id ?? null;
   const initialExtraCards = (strategy?.extra_cards ?? []) as ExtraCardKey[];
@@ -56,8 +56,6 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
   // (~500 ms) — far better than blocking the Suspense boundary for 3–7 s.
   let initialDashboardStats: Awaited<ReturnType<typeof getDashboardApiResponse>> | null = null;
   try {
-    // Always false: compact_trades can be 3-4 MB and are only needed after initial paint.
-    // The client's useDashboardData fetches them separately when extra cards are enabled.
     initialDashboardStats = await raceWithTimeoutAndAbort(
       () =>
         getDashboardApiResponse({
