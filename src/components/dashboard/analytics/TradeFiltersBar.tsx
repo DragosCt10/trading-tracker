@@ -24,6 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useColorTheme } from '@/hooks/useColorTheme';
 import { useBECalc } from '@/contexts/BECalcContext';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 type PresetKey = 'year' | '15days' | '30days' | 'month' | 'all';
 
@@ -77,6 +78,7 @@ type TradeFiltersBarProps = FullTradeFiltersBarProps | MarketOnlyTradeFiltersBar
 export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
   const { colorTheme } = useColorTheme();
   const { beCalcEnabled, toggleBECalc } = useBECalc();
+  const { isDark } = useDarkMode();
   const rangeColor = React.useMemo(() => {
     if (typeof window === 'undefined') return '#a855f7';
     const value = getComputedStyle(document.documentElement)
@@ -408,9 +410,10 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
                   side="bottom"
                   align="end"
                   sideOffset={6}
-                  className="w-64 text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50"
+                  className="w-64 text-xs rounded-2xl p-3 relative overflow-hidden border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50"
                 >
-                  When enabled, all win rate values include break-even trades in the calculation.
+                  {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+                  <div className="relative">When enabled, all win rate values include break-even trades in the calculation.</div>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
