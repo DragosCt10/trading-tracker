@@ -375,9 +375,9 @@ export function LandingDailyJournal() {
               <SectionBadge label="Daily Journal" className="mb-5" />
 
               <SectionHeading>
-                Replay Every Day.
+                Review every trade.
                 <br />
-                Refine Every Edge.
+                Fix your mistakes faster.
               </SectionHeading>
 
               <p
