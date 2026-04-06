@@ -28,42 +28,42 @@ import { BrainHub } from './features/BrainHub';
 const FEATURES_LEFT = [
   {
     icon: CalendarDays,
-    title: 'Trades Calendar',
+    title: 'See your trading performance instantly',
     description:
-      'Monthly view with color-coded daily P&L, weekly breakdowns, and per-market filtering at a glance.',
+      'Track your daily P&L, spot winning days, and identify losing patterns at a glance.',
   },
   {
     icon: CalendarRange,
-    title: 'Date Range Picker',
+    title: 'Analyze any period in seconds',
     description:
-      'Flexible date filtering with quick presets, custom ranges, and full year-level views.',
+      'Filter your trades by any date range and instantly understand what worked and what didn’t.',
   },
   {
     icon: Newspaper,
-    title: 'News Trade Marking',
+    title: 'Know how news impacts your trades',
     description:
-      'Flag trades around CPI, NFP, and FOMC events with low-medium-high intensity levels.',
+      'Tag trades around major events and see exactly how news affects your results.',
   },
 ];
 
 const FEATURES_RIGHT = [
   {
     icon: Tags,
-    title: 'Custom Trade Tags',
+    title: 'Find your most profitable setups fast',
     description:
-      '10 color-coded tags — pin your favorites for instant one-click categorization.',
+      'Tag your trades and instantly see which setups bring you the most profit.',
   },
   {
     icon: BarChart3,
-    title: '60+ Analytics Cards',
+    title: 'Understand your edge with real data',
     description:
-      'Performance, risk, psychology, and market analysis — all computed in real time.',
+      'Track performance, risk, and behavior with 60+ metrics that reveal what truly works.',
   },
   {
     icon: ShieldCheck,
-    title: 'Risk Management',
+    title: 'Control your risk before it controls you',
     description:
-      'Track max drawdown, recovery factor, and risk-per-trade across every account.',
+      'Track drawdown, risk per trade, and recovery to protect your account.',
   },
 ];
 
