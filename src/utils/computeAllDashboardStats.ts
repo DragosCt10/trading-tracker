@@ -7,7 +7,7 @@ import {
   calculateMaxDrawdown,
   calculateTradeQualityIndex,
   calculateProfitFactor,
-  calculateConsistencyScore,
+  calculateMonthlyConsistency,
 } from '@/utils/analyticsCalculations';
 import { calculateStreaks } from '@/utils/calculateStreaks';
 import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
@@ -259,7 +259,7 @@ export function computeAllDashboardStats(
 
   // ── 12. Monthly data + macro ──────────────────────────────────────────────
   const { monthly_data, best_month, worst_month } = computeMonthlyData(profitTrades);
-  const consistencyScore = calculateConsistencyScore(monthly_data);
+  const consistencyScore = calculateMonthlyConsistency(monthly_data);
   const profitFactor     = calculateProfitFactor(profitTrades, totalWins, totalLosses);
 
   // ── 13. Trade months + earliest date ──────────────────────────────────────

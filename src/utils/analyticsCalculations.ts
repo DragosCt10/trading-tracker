@@ -40,12 +40,28 @@ export function calculateProfitFactor(
   return 0;
 }
 
-export function calculateConsistencyScore(monthlyStats: MonthlyStats): number {
+export function calculateMonthlyConsistency(monthlyStats: MonthlyStats): number {
   const profitableMonths = Object.keys(monthlyStats).filter(
     month => (monthlyStats[month]?.profit || 0) > 0
   ).length;
   const totalMonths = Object.keys(monthlyStats).length;
   return totalMonths > 0 ? (profitableMonths / totalMonths) * 100 : 0;
+}
+
+/**
+ * Daily consistency: ratio of profitable trades (including partials) to
+ * all "real" trades (non-BE, or BE with partials taken).
+ */
+export function calculateDailyConsistency(trades: Trade[]): number {
+  const realTrades = trades.filter(
+    (t) => !t.break_even || (t.break_even && t.partials_taken)
+  );
+  const profitableTrades = realTrades.filter(
+    (t) =>
+      (!t.break_even && t.trade_outcome === 'Win') ||
+      (t.break_even && t.partials_taken)
+  );
+  return realTrades.length > 0 ? (profitableTrades.length / realTrades.length) * 100 : 0;
 }
 
 export function calculateSharpeRatio(

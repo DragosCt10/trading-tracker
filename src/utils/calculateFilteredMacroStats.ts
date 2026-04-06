@@ -1,5 +1,5 @@
 import { Trade } from '@/types/trade';
-import { calculateProfitFactor, calculateConsistencyScore, calculateSharpeRatio } from '@/utils/analyticsCalculations';
+import { calculateProfitFactor, calculateMonthlyConsistency, calculateSharpeRatio } from '@/utils/analyticsCalculations';
 
 interface StatsToUse {
   totalWins: number;
@@ -73,7 +73,7 @@ export function calculateFilteredMacroStats({
   // Calculate consistency score from monthly stats
   // monthlyStatsToUse includes all trades from tradesToUse (non-executed trades will have 0 profit)
   // Consistency score = percentage of profitable months
-  const consistencyScore = calculateConsistencyScore(monthlyStatsToUse);
+  const consistencyScore = calculateMonthlyConsistency(monthlyStatsToUse);
 
   // Compute Sharpe ratio (simplified - would need returns array for full calculation)
   // For now, use a simplified version based on profit and drawdown

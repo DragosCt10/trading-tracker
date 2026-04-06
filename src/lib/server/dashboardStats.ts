@@ -31,7 +31,7 @@ import { calculateRRStats } from '@/utils/calculateRMultiple';
 import { computeStatsFromTrades } from '@/utils/computeStatsFromTrades';
 import {
   calculateProfitFactor,
-  calculateConsistencyScore,
+  calculateMonthlyConsistency,
   calculateSharpeRatio,
   calculateTradeQualityIndex,
 } from '@/utils/analyticsCalculations';

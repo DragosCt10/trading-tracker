@@ -70,6 +70,7 @@ export function useSubscription({ userId, initialData }: UseSubscriptionOptions 
     isElite,
     isLoading: query.isFetching && !subscription,
     isFetching: query.isFetching,
+    isError: query.isError,
     hasFeature,
     withinLimit,
     refetchSubscription: query.refetch,

@@ -2,10 +2,11 @@ import { QueryClient, dehydrate, type DehydratedState } from '@tanstack/react-qu
 import { getFilteredTrades } from '@/lib/server/trades';
 import { resolveActiveAccountFromCookies } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
-import { createAllTimeRange } from '@/utils/dateRangeHelpers';
+import { createAllTimeRange, buildPresetRange } from '@/utils/dateRangeHelpers';
 import { queryKeys } from '@/lib/queryKeys';
 import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
 import { raceWithTimeout } from '@/utils/raceWithTimeout';
+import { resolveSubscription } from '@/lib/server/subscription';
 import type { Trade } from '@/types/trade';
 import type { Strategy } from '@/types/strategy';
 import type { AccountRow, AccountMode } from '@/lib/server/accounts';
@@ -16,6 +17,9 @@ type LoadInsideStrategySubpageDataParams = {
   userId: string;
   strategySlug: string;
   prefetchTimeoutMs?: number;
+  /** When set, prefetch trades for this date range instead of all-time.
+   *  Reduces initial payload for pages that default to a scoped view. */
+  dateRangePreset?: 'year' | 'all';
 };
 
 export type InsideStrategySubpageData = {
@@ -32,6 +36,7 @@ export async function loadInsideStrategySubpageData({
   userId,
   strategySlug,
   prefetchTimeoutMs = SUBPAGE_PREFETCH_TIMEOUT_MS,
+  dateRangePreset = 'all',
 }: LoadInsideStrategySubpageDataParams): Promise<InsideStrategySubpageData> {
   const { mode, activeAccount } = await resolveActiveAccountFromCookies(userId);
   const strategy = await getStrategyBySlug(userId, strategySlug, activeAccount?.id);
@@ -41,7 +46,9 @@ export async function loadInsideStrategySubpageData({
   let accountBalance: number | null = null;
 
   if (activeAccount && strategy) {
-    const allTime = createAllTimeRange();
+    const allTime = dateRangePreset === 'year'
+      ? buildPresetRange('year').dateRange
+      : createAllTimeRange();
     const tradesResult = await raceWithTimeout(
       getFilteredTrades({
         userId,
@@ -77,6 +84,14 @@ export async function loadInsideStrategySubpageData({
       strategy.id
     );
     queryClient.setQueryData(filteredKey, initialTrades);
+  }
+
+  // Pre-fetch subscription so the client doesn't need a separate round-trip.
+  try {
+    const subscription = await resolveSubscription(userId);
+    queryClient.setQueryData(queryKeys.subscription(userId), subscription);
+  } catch {
+    // Non-blocking: client will retry via useSubscription if this fails.
   }
 
   return {
