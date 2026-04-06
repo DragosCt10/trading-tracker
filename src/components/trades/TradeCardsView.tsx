@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/tooltip';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import TradeDetailsPanel from '@/components/TradeDetailsPanel';
+import NotesModal from '@/components/NotesModal';
 import { TradeCard } from '@/components/trades/TradeCard';
 import { TradesTableView } from '@/components/trades/TradesTableView';
 import { Columns2, Eye, LayoutGrid, Loader2, MoveRight, PanelLeft, Tag, Trash2 } from 'lucide-react';
@@ -135,6 +136,8 @@ export function TradeCardsView({
   const [showTagDialog, setShowTagDialog] = useState(false);
   const [bulkTagging, setBulkTagging] = useState(false);
   const [pendingTagSelection, setPendingTagSelection] = useState<string[]>([]);
+  const [notesModalOpen, setNotesModalOpen] = useState(false);
+  const [notesModalContent, setNotesModalContent] = useState('');
 
   // Use prop if provided (controlled), otherwise use internal state (uncontrolled)
   const currentViewMode = cardViewMode !== undefined ? cardViewMode : internalCardViewMode;
@@ -555,6 +558,10 @@ export function TradeCardsView({
                   setSelectedTrade(trade);
                   setIsModalOpen(true);
                 }}
+                onOpenNotes={(notes) => {
+                  setNotesModalContent(notes);
+                  setNotesModalOpen(true);
+                }}
               />
               {!externalPagination && hasMore && !showSkeletons && displayedTrades.length > 0 && (
                 <div
@@ -844,6 +851,11 @@ export function TradeCardsView({
           savedTags={savedTags}
         />
       )}
+      <NotesModal
+        isOpen={notesModalOpen}
+        onClose={() => setNotesModalOpen(false)}
+        notes={notesModalContent}
+      />
     </TooltipProvider>
   );
 }
