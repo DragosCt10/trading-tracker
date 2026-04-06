@@ -97,9 +97,6 @@ export function ExpectancyCard({ trades: rawTrades, currencySymbol = '$', isLoad
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">High expectancy relative to risk. Scale carefully while preserving edge.</div>
         </div>
       </div>
-      <div className="text-xs text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-200/40 dark:border-slate-700/30">
-        Formula: (Win Rate × Avg Win) − (Loss Rate × Avg Loss)
-      </div>
     </div>
   );
 
