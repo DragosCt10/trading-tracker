@@ -290,9 +290,9 @@ export function LandingHero() {
               backgroundImage: 'linear-gradient(to bottom, var(--foreground) 54%, var(--tc-accent))',
             }}
           >
-            Know your numbers.
+            Track your trades.
             <br />
-            Own your results.
+            Stop losing money
           </h1>
 
           {/* Divider with stats */}
@@ -337,7 +337,7 @@ export function LandingHero() {
               }}
             >
               <span className="relative z-10 flex items-center gap-2">
-                Start for free
+                Track your trades free
                 <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
               </span>
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
