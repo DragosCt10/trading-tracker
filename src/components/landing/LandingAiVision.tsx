@@ -211,9 +211,9 @@ export function LandingAiVision() {
 
         {/* Heading */}
         <SectionHeading className="max-w-2xl">
-          Your Data Flows In.
+          AI finds what you miss.
           <br />
-          Insights Come Out.
+          Detects your worst trading habits
         </SectionHeading>
 
         {/* Description */}
