@@ -17,7 +17,8 @@ import {
   createAllTimeRange,
   DateRangeState,
 } from '@/utils/dateRangeHelpers';
-import { queryKeys, TRADE_QUERY_PREFIXES } from '@/lib/queryKeys';
+import { queryKeys } from '@/lib/queryKeys';
+import { invalidateAndRefetchTradeQueries } from '@/lib/tradeQueryInvalidation';
 import { useStrategies } from '@/hooks/useStrategies';
 import { exportTradesToCsv } from '@/utils/exportTradesToCsv';
 import { Button } from '@/components/ui/button';
@@ -403,21 +404,16 @@ export default function MyTradesClient({
         console.error('Move trades error:', error);
         return;
       }
-      // Invalidate all trade + stats caches — refetchType:'all' forces a background
-      // refetch of inactive queries too (e.g. StrategyClient while unmounted),
-      // so the data is fresh before the user navigates back.
-      queryClient.invalidateQueries({
-        predicate: (q) => Array.isArray(q.queryKey) && TRADE_QUERY_PREFIXES.has(q.queryKey[0] as string),
-        refetchType: 'all',
+      await invalidateAndRefetchTradeQueries({
+        queryClient,
+        strategyIds: [initialStrategyId, newStrategyId],
+        mode,
+        accountId: activeAccount?.id,
+        userId,
       });
-      // Tell StrategyClient's hydrateQueryCache to skip stale server-props on next mount
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
-      }
-      // Flush Next.js router cache so navigating back to the strategy dashboard re-fetches
       router.refresh();
     },
-    [mode, queryClient, router]
+    [mode, queryClient, router, initialStrategyId, activeAccount?.id, userId]
   );
 
   const handleBulkDelete = useCallback(
@@ -428,21 +424,16 @@ export default function MyTradesClient({
         console.error('Bulk delete error:', error);
         return;
       }
-      // Invalidate all trade + stats caches — refetchType:'all' forces a background
-      // refetch of inactive queries too (e.g. Analytics cards while unmounted),
-      // so the data is fresh before the user navigates back.
-      queryClient.invalidateQueries({
-        predicate: (q) => Array.isArray(q.queryKey) && TRADE_QUERY_PREFIXES.has(q.queryKey[0] as string),
-        refetchType: 'all',
+      await invalidateAndRefetchTradeQueries({
+        queryClient,
+        strategyIds: [initialStrategyId],
+        mode,
+        accountId: activeAccount?.id,
+        userId,
       });
-      // Tell StrategyClient's hydrateQueryCache to skip stale server-props on next mount
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
-      }
-      // Flush Next.js router cache so navigating back to the strategy dashboard re-fetches
       router.refresh();
     },
-    [mode, queryClient, router]
+    [mode, queryClient, router, initialStrategyId, activeAccount?.id, userId]
   );
 
   const handleBulkTag = useCallback(
@@ -459,12 +450,15 @@ export default function MyTradesClient({
         console.error('Bulk tag error:', error);
         return;
       }
-      // Invalidate all trade caches so tag changes are reflected everywhere
-      queryClient.invalidateQueries({
-        predicate: (q) => Array.isArray(q.queryKey) && TRADE_QUERY_PREFIXES.has(q.queryKey[0] as string),
+      await invalidateAndRefetchTradeQueries({
+        queryClient,
+        strategyIds: [initialStrategyId],
+        mode,
+        accountId: activeAccount.id,
+        userId,
       });
     },
-    [mode, activeAccount?.id, queryClient]
+    [mode, activeAccount?.id, queryClient, initialStrategyId, userId]
   );
 
   if (activeAccount && tradesLoading && !isInitialContext) {
