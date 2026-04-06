@@ -2,7 +2,7 @@ import { QueryClient, dehydrate, type DehydratedState } from '@tanstack/react-qu
 import { getFilteredTrades } from '@/lib/server/trades';
 import { resolveActiveAccountFromCookies } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
-import { createAllTimeRange, buildPresetRange } from '@/utils/dateRangeHelpers';
+import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import { queryKeys } from '@/lib/queryKeys';
 import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
 import { raceWithTimeout } from '@/utils/raceWithTimeout';
@@ -17,9 +17,6 @@ type LoadInsideStrategySubpageDataParams = {
   userId: string;
   strategySlug: string;
   prefetchTimeoutMs?: number;
-  /** When set, prefetch trades for this date range instead of all-time.
-   *  Reduces initial payload for pages that default to a scoped view. */
-  dateRangePreset?: 'year' | 'all';
 };
 
 export type InsideStrategySubpageData = {
@@ -36,7 +33,6 @@ export async function loadInsideStrategySubpageData({
   userId,
   strategySlug,
   prefetchTimeoutMs = SUBPAGE_PREFETCH_TIMEOUT_MS,
-  dateRangePreset = 'all',
 }: LoadInsideStrategySubpageDataParams): Promise<InsideStrategySubpageData> {
   const { mode, activeAccount } = await resolveActiveAccountFromCookies(userId);
   const strategy = await getStrategyBySlug(userId, strategySlug, activeAccount?.id);
@@ -46,9 +42,7 @@ export async function loadInsideStrategySubpageData({
   let accountBalance: number | null = null;
 
   if (activeAccount && strategy) {
-    const allTime = dateRangePreset === 'year'
-      ? buildPresetRange('year').dateRange
-      : createAllTimeRange();
+    const allTime = createAllTimeRange();
     const tradesResult = await raceWithTimeout(
       getFilteredTrades({
         userId,
