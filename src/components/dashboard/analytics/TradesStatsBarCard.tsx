@@ -55,7 +55,7 @@ function StatsTooltip({ active, payload, mode, valueKey, valueLabel, beCalcEnabl
     const v = Number(d[valueKey as keyof TradeStatDatum] ?? 0);
     const displayValue = Number.isInteger(v) ? v.toString() : v.toFixed(2);
     return (
-      <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
         <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
           {d.category}
         </div>

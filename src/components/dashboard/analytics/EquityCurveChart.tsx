@@ -25,8 +25,8 @@ const EquityTooltipContent: React.FC<{
   return (
     <div className={`relative overflow-hidden rounded-2xl border backdrop-blur-xl p-4 ${
       isDark
-        ? 'border-slate-800/70 bg-slate-900/70 shadow-black/40 text-slate-100'
-        : 'border-slate-200/70 bg-slate-50/80 shadow-slate-900/5 text-slate-900'
+        ? 'border-slate-700/50 bg-slate-800/90 shadow-black/40 text-slate-100'
+        : 'border-slate-300/40 bg-slate-50/80 shadow-slate-900/5 text-slate-900'
     } shadow-lg`}>
       {isDark && (
         <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />

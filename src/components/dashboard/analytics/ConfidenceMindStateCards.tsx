@@ -34,7 +34,7 @@ const MIND_STATE_LABELS: Record<number, string> = {
 };
 const LOCKED_CARD_TOOLTIP_TEXT = 'The data shown under the blur card is fictive and for demo purposes only.';
 const LOCKED_CARD_TOOLTIP_CLASS =
-  'max-w-sm text-xs rounded-2xl p-3 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm shadow-md shadow-slate-200/50 dark:shadow-none text-slate-900 dark:text-slate-50';
+  'max-w-sm text-xs rounded-2xl p-3 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50';
 
 function wrapLockedCard(card: React.ReactElement, isLocked: boolean) {
   if (!isLocked) {

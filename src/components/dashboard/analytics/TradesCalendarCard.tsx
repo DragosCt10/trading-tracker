@@ -497,7 +497,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                     <TooltipContent
                       side="top"
                       align="center"
-                      className="w-56 rounded-2xl p-4 relative overflow-hidden border border-slate-300/60 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
+                      className="w-56 rounded-2xl p-4 relative overflow-hidden border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
                       sideOffset={6}
                     >
                       {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}

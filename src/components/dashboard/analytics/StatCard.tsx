@@ -21,9 +21,9 @@ interface StatCardProps {
   lockedChip?: React.ReactNode;
 }
 
-const tooltipClassCalendar = 'w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-300/80 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/10 dark:shadow-black/40 text-slate-900 dark:text-slate-100';
-const tooltipClassDefault = 'w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-300/40 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100';
-const lockedTooltipClass = 'max-w-sm text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50';
+const tooltipClassCalendar = 'w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100';
+const tooltipClassDefault = 'w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100';
+const lockedTooltipClass = 'max-w-sm text-xs rounded-2xl p-3 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50';
 const lockedTooltipText = 'The data shown under the blur card is fictive and for demo purposes only.';
 
 export const StatCard: React.FC<StatCardProps> = React.memo(({

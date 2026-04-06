@@ -63,7 +63,7 @@ function CustomTooltip({
   if (activeMarkets.length === 0) return null;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm shadow-md shadow-slate-200/50 dark:shadow-none p-4 text-slate-900 dark:text-slate-100">
+    <div className="relative overflow-hidden rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
       {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
       <div className="relative text-xs">
         <div className="font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-3">

@@ -86,7 +86,7 @@ function CustomTooltip({
   const colors = colorMap[color] || colorMap.emerald;
   const percentage = data.pct ?? (totalTrades > 0 ? (value / totalTrades) * 100 : 0);
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm shadow-md shadow-slate-200/50 dark:shadow-none p-3 text-slate-900 dark:text-slate-100">
+    <div className="relative overflow-hidden rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-3 text-slate-900 dark:text-slate-100">
       {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
       <div className="relative flex flex-col">
         <div className="flex items-center gap-2">
@@ -198,7 +198,7 @@ export const BEStatisticsCard: React.FC<BEStatisticsCardProps> = React.memo(
                   side="top"
                   align="center"
                   sideOffset={6}
-                  className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm shadow-md shadow-slate-200/50 dark:shadow-none text-slate-900 dark:text-slate-100"
+                  className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
                 >
                   {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
                   <div className="relative text-xs sm:text-sm text-slate-400 dark:text-slate-300">Break-even trades only. For accurate wins/losses, set trade outcome to BE and specify After BE (Win or Lose).</div>
