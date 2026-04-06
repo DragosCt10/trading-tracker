@@ -182,8 +182,12 @@ export default function DailyJournalClient({
 
   // Infinite scroll for days (mirrors TradeCardsView behavior)
   const [displayedCount, setDisplayedCount] = useState(DAYS_PER_LOAD);
-  const [mounted] = useState(() => typeof window !== 'undefined');
+  const [mounted, setMounted] = useState(false);
   const observerTarget = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Per-day collapse state
   const [openByDate, setOpenByDate] = useState<Record<string, boolean>>({});
