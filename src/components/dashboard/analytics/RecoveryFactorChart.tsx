@@ -71,23 +71,23 @@ export const RecoveryFactorChart = React.memo(function RecoveryFactorChart({ rec
         Recovery Factor Interpretation
       </div>
       <div className="space-y-2">
-        <div className={cn('rounded-xl p-2.5 transition-all', recoveryFactor < 0.5 ? 'bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200/50 dark:border-rose-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', recoveryFactor < 0.5 ? 'bg-rose-50/80 dark:bg-rose-900/40 border border-rose-300/60 dark:border-rose-600/50 ring-1 ring-rose-200/40 dark:ring-rose-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🔴 &lt; 0.5</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Poor — Profits barely cover drawdown risk. Strategy may not be viable long-term.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', recoveryFactor >= 0.5 && recoveryFactor < 1 ? 'bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', recoveryFactor >= 0.5 && recoveryFactor < 1 ? 'bg-amber-50/80 dark:bg-amber-900/40 border border-amber-300/60 dark:border-amber-600/50 ring-1 ring-amber-200/40 dark:ring-amber-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟠 0.5 – 0.99</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Developing — Profitable but recovery from drawdowns is slow.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', recoveryFactor >= 1 && recoveryFactor < 2 ? 'bg-yellow-50/80 dark:bg-yellow-950/30 border border-yellow-200/50 dark:border-yellow-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', recoveryFactor >= 1 && recoveryFactor < 2 ? 'bg-yellow-50/80 dark:bg-yellow-900/40 border border-yellow-300/60 dark:border-yellow-600/50 ring-1 ring-yellow-200/40 dark:ring-yellow-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟡 1.0 – 1.99</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Good — Net profits exceed max drawdown. Strategy recovers efficiently.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', recoveryFactor >= 2 && recoveryFactor < 3 ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', recoveryFactor >= 2 && recoveryFactor < 3 ? 'bg-emerald-50/80 dark:bg-emerald-900/40 border border-emerald-300/60 dark:border-emerald-600/50 ring-1 ring-emerald-200/40 dark:ring-emerald-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟢 2.0 – 2.99</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Strong — High profitability relative to risk. Drawdowns are well-controlled.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', recoveryFactor >= 3 ? 'bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', recoveryFactor >= 3 ? 'bg-blue-50/80 dark:bg-blue-900/40 border border-blue-300/60 dark:border-blue-600/50 ring-1 ring-blue-200/40 dark:ring-blue-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">💎 3.0+</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Exceptional — Profits significantly outpace drawdowns. Highly resilient strategy.</div>
         </div>

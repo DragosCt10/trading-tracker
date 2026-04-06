@@ -99,23 +99,23 @@ export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesT
         Profit Factor Interpretation
       </div>
       <div className="space-y-2">
-        <div className={cn('rounded-xl p-2.5 transition-all', profitFactor < 1 ? 'bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', profitFactor < 1 ? 'bg-blue-50/80 dark:bg-blue-900/40 border border-blue-300/60 dark:border-blue-600/50 ring-1 ring-blue-200/40 dark:ring-blue-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🔹 &lt; 1.0</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Negative Efficiency — Losses outweigh gains.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', profitFactor >= 1 && profitFactor < 1.5 ? 'bg-orange-100/80 dark:bg-orange-950/40 border border-orange-200/50 dark:border-orange-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', profitFactor >= 1 && profitFactor < 1.5 ? 'bg-orange-100/80 dark:bg-orange-900/40 border border-orange-300/60 dark:border-orange-600/50 ring-1 ring-orange-200/40 dark:ring-orange-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟠 1.0 – 1.49</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Marginal Efficiency — Profitable but limited.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', profitFactor >= 1.5 && profitFactor < 2 ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', profitFactor >= 1.5 && profitFactor < 2 ? 'bg-emerald-50/80 dark:bg-emerald-900/40 border border-emerald-300/60 dark:border-emerald-600/50 ring-1 ring-emerald-200/40 dark:ring-emerald-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟢 1.5 – 1.99</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Solid Efficiency — Consistent and sustainable edge.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', profitFactor >= 2 && profitFactor < 3 ? 'bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', profitFactor >= 2 && profitFactor < 3 ? 'bg-blue-50/80 dark:bg-blue-900/40 border border-blue-300/60 dark:border-blue-600/50 ring-1 ring-blue-200/40 dark:ring-blue-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🔷 2.0 – 2.99</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">High Efficiency — Strong reward relative to risk.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', profitFactor >= 3 ? 'bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', profitFactor >= 3 ? 'bg-blue-50/80 dark:bg-blue-900/40 border border-blue-300/60 dark:border-blue-600/50 ring-1 ring-blue-200/40 dark:ring-blue-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">💎 3.0+</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Exceptional Efficiency — Very high edge — confirm durability.</div>
         </div>

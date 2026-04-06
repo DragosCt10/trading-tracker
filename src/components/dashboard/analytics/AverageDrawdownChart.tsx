@@ -63,23 +63,23 @@ export const AverageDrawdownChart = React.memo(function AverageDrawdownChart({ a
         Average Drawdown Interpretation
       </div>
       <div className="space-y-2">
-        <div className={cn('rounded-xl p-2.5 transition-all', averageDrawdown <= 2 ? 'bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', averageDrawdown <= 2 ? 'bg-blue-50/80 dark:bg-blue-900/40 border border-blue-300/60 dark:border-blue-600/50 ring-1 ring-blue-200/40 dark:ring-blue-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🔹 0% – 2%</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Excellent — Very low average drawdown, consistent performance.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', averageDrawdown > 2 && averageDrawdown <= 5 ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', averageDrawdown > 2 && averageDrawdown <= 5 ? 'bg-emerald-50/80 dark:bg-emerald-900/40 border border-emerald-300/60 dark:border-emerald-600/50 ring-1 ring-emerald-200/40 dark:ring-emerald-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">✅ 2% – 5%</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Healthy — Acceptable average drawdown for most strategies.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', averageDrawdown > 5 && averageDrawdown <= 10 ? 'bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', averageDrawdown > 5 && averageDrawdown <= 10 ? 'bg-amber-50/80 dark:bg-amber-900/40 border border-amber-300/60 dark:border-amber-600/50 ring-1 ring-amber-200/40 dark:ring-amber-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">⚠️ 5% – 10%</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Moderate — Higher average drawdown, monitor risk management.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', averageDrawdown > 10 && averageDrawdown <= 15 ? 'bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/50 dark:border-orange-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', averageDrawdown > 10 && averageDrawdown <= 15 ? 'bg-orange-50/80 dark:bg-orange-900/40 border border-orange-300/60 dark:border-orange-600/50 ring-1 ring-orange-200/40 dark:ring-orange-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">❗ 10% – 15%</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">High Risk — Significant average drawdown exposure.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', averageDrawdown > 15 ? 'bg-red-50/80 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', averageDrawdown > 15 ? 'bg-red-50/80 dark:bg-red-900/40 border border-red-300/60 dark:border-red-600/50 ring-1 ring-red-200/40 dark:ring-red-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🚫 15%+</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Danger Zone — Extreme average drawdown, immediate review required.</div>
         </div>

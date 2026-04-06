@@ -80,19 +80,19 @@ export function ExpectancyCard({ trades: rawTrades, currencySymbol = '$', isLoad
         Expectancy Interpretation
       </div>
       <div className="space-y-2">
-        <div className={cn('rounded-xl p-2.5 transition-all', percentage < 30 ? 'bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200/50 dark:border-rose-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', percentage < 30 ? 'bg-rose-50/80 dark:bg-rose-900/40 border border-rose-300/60 dark:border-rose-600/50 ring-1 ring-rose-200/40 dark:ring-rose-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🔴 Negative Edge</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Losses outweigh wins on average. Review risk/reward or entry criteria.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', percentage >= 30 && percentage < 50 ? 'bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', percentage >= 30 && percentage < 50 ? 'bg-amber-50/80 dark:bg-amber-900/40 border border-amber-300/60 dark:border-amber-600/50 ring-1 ring-amber-200/40 dark:ring-amber-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟠 Near Breakeven</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Edge is marginal. Costs (spread, commission) likely erode profitability.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', percentage >= 50 && percentage < 70 ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', percentage >= 50 && percentage < 70 ? 'bg-emerald-50/80 dark:bg-emerald-900/40 border border-emerald-300/60 dark:border-emerald-600/50 ring-1 ring-emerald-200/40 dark:ring-emerald-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟢 Positive Edge</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Strategy earns more per winner than it loses per loser. Compounding works in your favour.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', percentage >= 70 ? 'bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', percentage >= 70 ? 'bg-blue-50/80 dark:bg-blue-900/40 border border-blue-300/60 dark:border-blue-600/50 ring-1 ring-blue-200/40 dark:ring-blue-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">💎 Strong Edge</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">High expectancy relative to risk. Scale carefully while preserving edge.</div>
         </div>

@@ -67,23 +67,23 @@ export const SharpeRatioChart = React.memo(function SharpeRatioChart({ sharpeRat
         Sharpe Ratio Interpretation
       </div>
       <div className="space-y-2">
-        <div className={cn('rounded-xl p-2.5 transition-all', sharpeRatio < 0.2 ? 'bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/50 dark:border-orange-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', sharpeRatio < 0.2 ? 'bg-orange-50/80 dark:bg-orange-900/40 border border-orange-300/60 dark:border-orange-600/50 ring-1 ring-orange-200/40 dark:ring-orange-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🔹 &lt; 0.20</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">High Variability — Large swings relative to returns.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', sharpeRatio >= 0.2 && sharpeRatio < 0.5 ? 'bg-orange-100/80 dark:bg-orange-950/40 border border-orange-200/50 dark:border-orange-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', sharpeRatio >= 0.2 && sharpeRatio < 0.5 ? 'bg-orange-100/80 dark:bg-orange-900/40 border border-orange-300/60 dark:border-orange-600/50 ring-1 ring-orange-200/40 dark:ring-orange-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟠 0.20 – 0.49</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Developing Stability — Profitable but uneven.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', sharpeRatio >= 0.5 && sharpeRatio < 1 ? 'bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', sharpeRatio >= 0.5 && sharpeRatio < 1 ? 'bg-amber-50/80 dark:bg-amber-900/40 border border-amber-300/60 dark:border-amber-600/50 ring-1 ring-amber-200/40 dark:ring-amber-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟡 0.50 – 0.99</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Balanced Performance — Returns generally outweigh risk.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', sharpeRatio >= 1 && sharpeRatio < 2 ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', sharpeRatio >= 1 && sharpeRatio < 2 ? 'bg-emerald-50/80 dark:bg-emerald-900/40 border border-emerald-300/60 dark:border-emerald-600/50 ring-1 ring-emerald-200/40 dark:ring-emerald-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟢 1.0 – 1.99</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Strong Efficiency — Consistent returns with controlled risk.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', sharpeRatio >= 2 ? 'bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', sharpeRatio >= 2 ? 'bg-blue-50/80 dark:bg-blue-900/40 border border-blue-300/60 dark:border-blue-600/50 ring-1 ring-blue-200/40 dark:ring-blue-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">💎 2.0+</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Exceptional Efficiency — Rare stability and optimized execution.</div>
         </div>

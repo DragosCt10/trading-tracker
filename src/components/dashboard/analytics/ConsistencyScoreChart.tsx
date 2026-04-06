@@ -63,23 +63,23 @@ export const ConsistencyScoreChart = React.memo(function ConsistencyScoreChart({
         Consistency Score Interpretation
       </div>
       <div className="space-y-2">
-        <div className={cn('rounded-xl p-2.5 transition-all', consistencyScore < 40 ? 'bg-red-50/80 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', consistencyScore < 40 ? 'bg-red-50/80 dark:bg-red-900/40 border border-red-300/60 dark:border-red-600/50 ring-1 ring-red-200/40 dark:ring-red-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🔹 0% – 39%</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Low — Results are highly variable.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', consistencyScore >= 40 && consistencyScore < 60 ? 'bg-orange-100/80 dark:bg-orange-950/40 border border-orange-200/50 dark:border-orange-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', consistencyScore >= 40 && consistencyScore < 60 ? 'bg-orange-100/80 dark:bg-orange-900/40 border border-orange-300/60 dark:border-orange-600/50 ring-1 ring-orange-200/40 dark:ring-orange-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟠 40% – 59%</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Developing — Some patterns, but still unreliable.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', consistencyScore >= 60 && consistencyScore < 75 ? 'bg-yellow-50/80 dark:bg-yellow-950/30 border border-yellow-200/50 dark:border-yellow-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', consistencyScore >= 60 && consistencyScore < 75 ? 'bg-yellow-50/80 dark:bg-yellow-900/40 border border-yellow-300/60 dark:border-yellow-600/50 ring-1 ring-yellow-200/40 dark:ring-yellow-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟡 60% – 74%</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Moderate — Improving, with room to refine.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', consistencyScore >= 75 && consistencyScore < 90 ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', consistencyScore >= 75 && consistencyScore < 90 ? 'bg-emerald-50/80 dark:bg-emerald-900/40 border border-emerald-300/60 dark:border-emerald-600/50 ring-1 ring-emerald-200/40 dark:ring-emerald-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟢 75% – 89%</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Strong — Reliable performance across trades.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', consistencyScore >= 90 ? 'bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', consistencyScore >= 90 ? 'bg-blue-50/80 dark:bg-blue-900/40 border border-blue-300/60 dark:border-blue-600/50 ring-1 ring-blue-200/40 dark:ring-blue-700/40' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">💎 90% – 100%</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Exceptional — Top-tier, highly repeatable results.</div>
         </div>
