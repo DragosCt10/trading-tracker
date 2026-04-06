@@ -9,3 +9,4 @@ multiplexing and cuts tail latency by 50–70%, which should bring p95 below the
 
 **When unblocked:** switch to Pro plan → enable pgBouncer in Supabase dashboard → re-run
 `k6 run tests/load/scenarios/stats-dashboard.js` to verify p95 < 2000ms.
+

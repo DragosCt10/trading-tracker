@@ -20,7 +20,7 @@ import {
 import { queryKeys } from '@/lib/queryKeys';
 import { invalidateAndRefetchTradeQueries } from '@/lib/tradeQueryInvalidation';
 import { useStrategies } from '@/hooks/useStrategies';
-import { exportTradesToCsv } from '@/utils/exportTradesToCsv';
+import { ExportTradesModal } from '@/components/ExportTradesModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -71,7 +71,7 @@ export default function MyTradesClient({
     field: 'trade_date',
     direction: 'asc',
   });
-  const [exporting, setExporting] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const [cardViewMode, setCardViewMode] = useState<'grid-4' | 'grid-2' | 'split' | 'table'>('grid-4');
 
   const router = useRouter();
@@ -381,20 +381,9 @@ export default function MyTradesClient({
   // TradeDetailsPanel.invalidateAndRefetchTradeQueries already handles scoped cache invalidation
   const handleTradeUpdated = useCallback(() => {}, []);
 
-  const handleExportTrades = useCallback(() => {
-    if (trades.length === 0) return;
-    setExporting(true);
-    try {
-      exportTradesToCsv({
-        trades,
-        filename: `alpha_stats_trades_${dateRange.startDate}_to_${dateRange.endDate}`,
-      });
-    } catch (error) {
-      console.error('Error exporting trades:', error);
-    } finally {
-      setExporting(false);
-    }
-  }, [trades, dateRange.startDate, dateRange.endDate]);
+  const handleOpenExportModal = useCallback(() => {
+    setExportModalOpen(true);
+  }, []);
 
   const handleBulkMoveToStrategy = useCallback(
     async (ids: string[], newStrategyId: string) => {
@@ -458,7 +447,7 @@ export default function MyTradesClient({
         userId,
       });
     },
-    [mode, activeAccount?.id, queryClient, initialStrategyId, userId]
+    [mode, activeAccount, queryClient, initialStrategyId, userId]
   );
 
   if (activeAccount && tradesLoading && !isInitialContext) {
@@ -479,11 +468,11 @@ export default function MyTradesClient({
         </div>
         <div className="flex items-center gap-4 flex-shrink-0">
           <Button
-            onClick={handleExportTrades}
-            disabled={exporting || trades.length === 0}
+            onClick={handleOpenExportModal}
+            disabled={baseList.length === 0}
             className="cursor-pointer relative overflow-hidden rounded-xl themed-btn-primary text-white font-semibold px-4 py-2 group border-0 [&_svg]:text-white disabled:opacity-60"
           >
-            <span className="relative z-10">{exporting ? 'Exporting…' : 'Export Trades'}</span>
+            <span className="relative z-10">Export Trades</span>
             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
           </Button>
         </div>
@@ -843,6 +832,13 @@ export default function MyTradesClient({
           savedTags={liveSavedTags}
         />
       </div>
+
+      <ExportTradesModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        trades={baseList}
+        mode={mode as 'live' | 'backtesting' | 'demo'}
+      />
     </div>
   );
 }

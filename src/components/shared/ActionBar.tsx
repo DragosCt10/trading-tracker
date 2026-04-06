@@ -23,17 +23,12 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { queryKeys, TRADE_QUERY_PREFIXES } from '@/lib/queryKeys';
 import type { Strategy } from '@/types/strategy';
 import { Plus } from 'lucide-react';
+import { MODE_BADGE } from '@/constants/modeBadge';
 
 const MODE_LABELS: Record<TradingMode, string> = {
   live: 'Live',
   demo: 'Demo',
   backtesting: 'Backtesting',
-};
-
-const MODE_BADGE: Record<TradingMode, string> = {
-  live: 'themed-badge-live',
-  demo: 'themed-badge-demo',
-  backtesting: 'themed-badge-backtesting',
 };
 
 /** Optional server-fetched initial data. When provided, hydrates TanStack cache so hooks use it without client fetch. */
