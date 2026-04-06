@@ -3,6 +3,7 @@
 // src/app/(app)/(inside-strategy)/strategy/[strategy]/ai-vision/AiVisionClient.tsx
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
+import { Crown } from 'lucide-react';
 import { AiVisionPatternsSkeleton, AiVisionScoreCardsSkeleton, AiVisionMetricRowsSkeleton } from '@/components/dashboard/ai-vision/AiVisionSkeleton';
 import { AiVisionLoadingOverlay } from '@/components/dashboard/ai-vision/AiVisionLoadingOverlay';
 import { AiVisionScoreCard } from '@/components/dashboard/ai-vision/AiVisionScoreCard';
@@ -16,10 +17,12 @@ import {
 } from '@/hooks/useAiVisionData';
 import { calculatePeriodMetrics, type PeriodMetrics } from '@/utils/calculatePeriodMetrics';
 import { calculateAiVisionScore } from '@/utils/calculateAiVisionScore';
-import { detectTradingPatterns, detectMultiPeriodTrends, mergePatternsByPeriod } from '@/utils/detectTradingPatterns';
+import { detectTradingPatterns, detectMultiPeriodTrends, mergePatternsByPeriod, type DetectedPattern } from '@/utils/detectTradingPatterns';
 import { AiVisionPatterns } from '@/components/dashboard/ai-vision/AiVisionPatterns';
 import { SectionHeading } from '../sections/SectionHeading';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
 
 interface AiVisionClientProps {
@@ -144,6 +147,58 @@ function labelForKey(key: PeriodKey): string {
   return AI_VISION_ALL_PERIODS.find((p) => p.key === key)?.label ?? key;
 }
 
+// ─── Static demo data shown when feature is locked (non-PRO) ────────────────
+
+const DEMO_METRICS_A: PeriodMetrics = {
+  winRate: 63.2, netPnlPct: 4.1, profitFactor: 1.87, expectancy: 182,
+  maxDrawdown: 6.4, recoveryFactor: 1.9, avgWinLossRatio: 1.62,
+  tradeFrequency: 2.3, longWinRate: 67.1, shortWinRate: 58.4,
+  consistencyScore: 71.5, currentStreak: 3, maxWinStreak: 7, maxLossStreak: 3,
+  tradeCount: 38, dayCount: 30,
+};
+
+const DEMO_METRICS_B: PeriodMetrics = {
+  winRate: 57.8, netPnlPct: 2.6, profitFactor: 1.54, expectancy: 134,
+  maxDrawdown: 8.1, recoveryFactor: 1.4, avgWinLossRatio: 1.44,
+  tradeFrequency: 2.0, longWinRate: 60.3, shortWinRate: 53.1,
+  consistencyScore: 64.2, currentStreak: 1, maxWinStreak: 6, maxLossStreak: 4,
+  tradeCount: 61, dayCount: 60,
+};
+
+const DEMO_METRICS_C: PeriodMetrics = {
+  winRate: 54.1, netPnlPct: 1.8, profitFactor: 1.38, expectancy: 98,
+  maxDrawdown: 9.7, recoveryFactor: 1.1, avgWinLossRatio: 1.31,
+  tradeFrequency: 1.8, longWinRate: 56.2, shortWinRate: 50.9,
+  consistencyScore: 58.6, currentStreak: 1, maxWinStreak: 5, maxLossStreak: 5,
+  tradeCount: 163, dayCount: 90,
+};
+
+const DEMO_SCORE_A = 74;
+const DEMO_SCORE_B = 61;
+const DEMO_SCORE_C = 52;
+
+const DEMO_TREND_MONTHS = ['Oct 24', 'Nov 24', 'Dec 24', 'Jan 25', 'Feb 25', 'Mar 25'];
+const DEMO_TREND_BY_METRIC: Record<string, { month: string; value: number | null }[]> = {
+  winRate:          DEMO_TREND_MONTHS.map((m, i) => ({ month: m, value: [51, 55, 58, 60, 62, 63][i] ?? null })),
+  netPnlPct:        DEMO_TREND_MONTHS.map((m, i) => ({ month: m, value: [0.8, 1.2, 1.9, 2.4, 3.1, 4.1][i] ?? null })),
+  profitFactor:     DEMO_TREND_MONTHS.map((m, i) => ({ month: m, value: [1.2, 1.3, 1.5, 1.6, 1.7, 1.9][i] ?? null })),
+  expectancy:       DEMO_TREND_MONTHS.map((m, i) => ({ month: m, value: [70, 90, 110, 130, 155, 182][i] ?? null })),
+  maxDrawdown:      DEMO_TREND_MONTHS.map((m, i) => ({ month: m, value: [11, 10, 9, 8, 7, 6][i] ?? null })),
+  recoveryFactor:   DEMO_TREND_MONTHS.map((m, i) => ({ month: m, value: [0.8, 1.0, 1.2, 1.4, 1.7, 1.9][i] ?? null })),
+  avgWinLossRatio:  DEMO_TREND_MONTHS.map((m, i) => ({ month: m, value: [1.1, 1.2, 1.3, 1.4, 1.5, 1.6][i] ?? null })),
+  tradeFrequency:   DEMO_TREND_MONTHS.map((m, i) => ({ month: m, value: [1.5, 1.7, 1.9, 2.0, 2.2, 2.3][i] ?? null })),
+  longWinRate:      DEMO_TREND_MONTHS.map((m, i) => ({ month: m, value: [53, 57, 61, 63, 65, 67][i] ?? null })),
+  shortWinRate:     DEMO_TREND_MONTHS.map((m, i) => ({ month: m, value: [48, 50, 52, 54, 56, 58][i] ?? null })),
+  consistencyScore: DEMO_TREND_MONTHS.map((m, i) => ({ month: m, value: [54, 58, 61, 65, 68, 72][i] ?? null })),
+};
+
+const DEMO_PATTERNS: DetectedPattern[] = [
+  { id: 'demo-1', type: 'strength', title: 'Strong Long Bias', description: '67.1% win rate on long trades — your strategy performs best with the trend.', priority: 1 },
+  { id: 'demo-2', type: 'insight',  title: 'Improving Win Rate', description: 'Win rate has risen from 51% to 63% over the last 6 months — positive momentum.', priority: 2 },
+  { id: 'demo-3', type: 'warning',  title: 'Max Drawdown Above 5%', description: 'Peak-to-trough drawdown reached 6.4% this period. Consider tightening risk controls.', priority: 3 },
+  { id: 'demo-4', type: 'weakness', title: 'Short Win Rate Lagging', description: 'Short trades win only 58.4% of the time vs 67.1% for longs. Review short setups.', priority: 4 },
+];
+
 export default function AiVisionClient({
   userId,
   strategyId,
@@ -152,6 +207,10 @@ export default function AiVisionClient({
   accountId,
   accountBalance,
 }: AiVisionClientProps) {
+  // ── Subscription / PRO gate ───────────────────────────────────────────────
+  const { isPro } = useSubscription({ userId });
+  const isLocked = !isPro;
+
   // ── Filter state ─────────────────────────────────────────────────────────
   const [selectedMarket, setSelectedMarket] = useState('all');
   const [selectedExecution, setSelectedExecution] = useState<'all' | 'executed' | 'nonExecuted'>('executed');
@@ -267,6 +326,18 @@ export default function AiVisionClient({
     metricsB.tradeCount === 0 &&
     metricsC.tradeCount === 0;
 
+  // ── When locked, substitute demo values so blurred content looks populated ─
+  const displayMetricsA = isLocked ? DEMO_METRICS_A : metricsA;
+  const displayMetricsB = isLocked ? DEMO_METRICS_B : metricsB;
+  const displayMetricsC = isLocked ? DEMO_METRICS_C : metricsC;
+  const displayScoreA   = isLocked ? DEMO_SCORE_A   : scoreA;
+  const displayScoreB   = isLocked ? DEMO_SCORE_B   : scoreB;
+  const displayScoreC   = isLocked ? DEMO_SCORE_C   : scoreC;
+  const displayTrend    = isLocked ? DEMO_TREND_BY_METRIC : trendByMetric;
+  const displayPatterns = isLocked ? DEMO_PATTERNS : detectedPatterns;
+  const displayEmpty    = isLocked ? false : allEmpty;
+  const displayLoading  = isLocked ? false : isInitialLoading;
+
   return (
     <div className="relative min-h-screen">
       <AiVisionLoadingOverlay isVisible={isRefetching} />
@@ -340,113 +411,133 @@ export default function AiVisionClient({
           </div>
         </div>
 
-        {/* ── AI Detected Patterns ─────────────────────────────────────────── */}
-        {isInitialLoading ? (
-          <AiVisionPatternsSkeleton />
-        ) : !allEmpty ? (
-          <AiVisionPatterns patterns={detectedPatterns} />
-        ) : null}
+        {/* ── PRO-gated data sections ──────────────────────────────────────── */}
+        <TooltipProvider>
+          <Tooltip delayDuration={120}>
+            <TooltipTrigger asChild>
+              <div className="relative">
+                {/* PRO badge */}
+                {isLocked && (
+                  <span className="absolute right-0 top-0 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                    <Crown className="w-3 h-3" /> PRO
+                  </span>
+                )}
 
-        {/* ── Score cards ─────────────────────────────────────────────────── */}
-        <section aria-label="AI Vision Scores">
-          <SectionHeading
-            title="Composite Health Score"
-            description="Each period is compared to the next longer window (0–100)"
-            containerClassName="mt-10"
-          />
+                {/* Blur glass overlay */}
+                {isLocked && (
+                  <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px] rounded-2xl" />
+                )}
 
-          {isInitialLoading ? (
-            <AiVisionScoreCardsSkeleton />
-          ) : allEmpty ? (
-            <>
-              <div className="grid grid-cols-3 gap-6">
-                <AiVisionScoreCard
-                  label={labelForKey(keyA)}
-                  score={scoreA}
-                  delta={null}
-                  hasNoTrades
-                />
-                <AiVisionScoreCard
-                  label={labelForKey(keyB)}
-                  score={scoreB}
-                  delta={null}
-                  hasNoTrades
-                />
-                <AiVisionScoreCard
-                  label={labelForKey(keyC)}
-                  score={scoreC}
-                  delta={null}
-                  isBaseline
-                  hasNoTrades
-                />
-              </div>
-              <div className="flex items-center justify-center py-16 text-slate-400 dark:text-slate-500 text-sm">
-                No trades found for this period. Start trading to see AI Vision insights.
-              </div>
-            </>
-          ) : (
-            <div className="grid grid-cols-3 gap-6">
-              <AiVisionScoreCard
-                label={labelForKey(keyA)}
-                score={scoreA}
-                delta={metricsA.tradeCount > 0 && metricsB.tradeCount > 0 ? scoreA - scoreB : null}
-                vsLabel={`vs ${keyB}`}
-                hasNoTrades={metricsA.tradeCount === 0}
-              />
-              <AiVisionScoreCard
-                label={labelForKey(keyB)}
-                score={scoreB}
-                delta={metricsB.tradeCount > 0 && metricsC.tradeCount > 0 ? scoreB - scoreC : null}
-                vsLabel={`vs ${keyC}`}
-                hasNoTrades={metricsB.tradeCount === 0}
-              />
-              <AiVisionScoreCard
-                label={labelForKey(keyC)}
-                score={scoreC}
-                delta={null}
-                isBaseline
-                hasNoTrades={metricsC.tradeCount === 0}
-              />
-            </div>
-          )}
-        </section>
+                {/* Content — blurred when locked */}
+                <div className={cn('flex flex-col gap-6', isLocked && 'blur-[3px] opacity-70 pointer-events-none select-none')}>
 
-        {/* ── Metric Rows ─────────────────────────────────────────────────── */}
-        {!allEmpty && (
-          <section aria-label="Metric rows">
-            <SectionHeading
-              title="Performance Metrics"
-              description="Deep dive into each metric that contributes to the health score."
-              containerClassName="mt-14"
-            />
-            {isInitialLoading ? (
-              <AiVisionMetricRowsSkeleton />
-            ) : (
-              <div className="flex flex-col gap-6 mt-3">
-                {METRIC_GAUGE_CONFIGS.map((cfg) => (
-                  <AiVisionMetricRow
-                    key={cfg.key}
-                    title={cfg.label}
-                    infoText={cfg.infoText}
-                    periods={[
-                      { label: labelForKey(keyA), value: metricsA[cfg.key] as number, hasNoTrades: metricsA.tradeCount === 0 },
-                      { label: labelForKey(keyB), value: metricsB[cfg.key] as number, hasNoTrades: metricsB.tradeCount === 0 },
-                      { label: labelForKey(keyC), value: metricsC[cfg.key] as number, hasNoTrades: metricsC.tradeCount === 0 },
-                    ]}
-                    trendData={trendByMetric[cfg.key] ?? []}
-                    formatValue={cfg.format}
-                    invertBetter={cfg.invertBetter}
-                    gaugeMax={cfg.gaugeMax}
-                    showGauge
-                    targetText={cfg.targetText}
-                    scaleLeft={cfg.scaleLeft}
-                    scaleRight={cfg.scaleRight}
-                  />
-                ))}
+                  {/* ── AI Detected Patterns ───────────────────────────────── */}
+                  {displayLoading ? (
+                    <AiVisionPatternsSkeleton />
+                  ) : !displayEmpty ? (
+                    <AiVisionPatterns patterns={displayPatterns} />
+                  ) : null}
+
+                  {/* ── Score cards ────────────────────────────────────────── */}
+                  <section aria-label="AI Vision Scores">
+                    <SectionHeading
+                      title="Composite Health Score"
+                      description="Each period is compared to the next longer window (0–100)"
+                      containerClassName="mt-10"
+                    />
+
+                    {displayLoading ? (
+                      <AiVisionScoreCardsSkeleton />
+                    ) : displayEmpty ? (
+                      <>
+                        <div className="grid grid-cols-3 gap-6">
+                          <AiVisionScoreCard label={labelForKey(keyA)} score={displayScoreA} delta={null} hasNoTrades />
+                          <AiVisionScoreCard label={labelForKey(keyB)} score={displayScoreB} delta={null} hasNoTrades />
+                          <AiVisionScoreCard label={labelForKey(keyC)} score={displayScoreC} delta={null} isBaseline hasNoTrades />
+                        </div>
+                        <div className="flex items-center justify-center py-16 text-slate-400 dark:text-slate-500 text-sm">
+                          No trades found for this period. Start trading to see AI Vision insights.
+                        </div>
+                      </>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-6">
+                        <AiVisionScoreCard
+                          label={labelForKey(keyA)}
+                          score={displayScoreA}
+                          delta={displayMetricsA.tradeCount > 0 && displayMetricsB.tradeCount > 0 ? displayScoreA - displayScoreB : null}
+                          vsLabel={`vs ${keyB}`}
+                          hasNoTrades={displayMetricsA.tradeCount === 0}
+                        />
+                        <AiVisionScoreCard
+                          label={labelForKey(keyB)}
+                          score={displayScoreB}
+                          delta={displayMetricsB.tradeCount > 0 && displayMetricsC.tradeCount > 0 ? displayScoreB - displayScoreC : null}
+                          vsLabel={`vs ${keyC}`}
+                          hasNoTrades={displayMetricsB.tradeCount === 0}
+                        />
+                        <AiVisionScoreCard
+                          label={labelForKey(keyC)}
+                          score={displayScoreC}
+                          delta={null}
+                          isBaseline
+                          hasNoTrades={displayMetricsC.tradeCount === 0}
+                        />
+                      </div>
+                    )}
+                  </section>
+
+                  {/* ── Metric Rows ─────────────────────────────────────────── */}
+                  {!displayEmpty && (
+                    <section aria-label="Metric rows">
+                      <SectionHeading
+                        title="Performance Metrics"
+                        description="Deep dive into each metric that contributes to the health score."
+                        containerClassName="mt-14"
+                      />
+                      {displayLoading ? (
+                        <AiVisionMetricRowsSkeleton />
+                      ) : (
+                        <div className="flex flex-col gap-6 mt-3">
+                          {METRIC_GAUGE_CONFIGS.map((cfg) => (
+                            <AiVisionMetricRow
+                              key={cfg.key}
+                              title={cfg.label}
+                              infoText={cfg.infoText}
+                              periods={[
+                                { label: labelForKey(keyA), value: displayMetricsA[cfg.key] as number, hasNoTrades: displayMetricsA.tradeCount === 0 },
+                                { label: labelForKey(keyB), value: displayMetricsB[cfg.key] as number, hasNoTrades: displayMetricsB.tradeCount === 0 },
+                                { label: labelForKey(keyC), value: displayMetricsC[cfg.key] as number, hasNoTrades: displayMetricsC.tradeCount === 0 },
+                              ]}
+                              trendData={displayTrend[cfg.key] ?? []}
+                              formatValue={cfg.format}
+                              invertBetter={cfg.invertBetter}
+                              gaugeMax={cfg.gaugeMax}
+                              showGauge
+                              targetText={cfg.targetText}
+                              scaleLeft={cfg.scaleLeft}
+                              scaleRight={cfg.scaleRight}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  )}
+
+                </div>
               </div>
+            </TooltipTrigger>
+            {isLocked && (
+              <TooltipContent
+                side="top"
+                align="center"
+                sideOffset={8}
+                className="max-w-sm text-xs rounded-2xl p-3 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm shadow-md shadow-slate-200/50 dark:shadow-none text-slate-900 dark:text-slate-50"
+              >
+                The data shown under the blur is fictive and for demo purposes only. Upgrade to PRO to unlock AI Vision insights.
+              </TooltipContent>
             )}
-          </section>
-        )}
+          </Tooltip>
+        </TooltipProvider>
 
       </div>
     </div>
