@@ -24,7 +24,6 @@ async function DailyJournalDataFetcher({
   } = await loadInsideStrategySubpageData({
     userId: user.id,
     strategySlug,
-    dateRangePreset: 'year',
   });
 
   if (!strategy || strategy.user_id !== user.id) redirect('/stats');
