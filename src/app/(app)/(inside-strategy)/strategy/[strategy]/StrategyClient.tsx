@@ -153,6 +153,15 @@ export type StrategyClientInitialProps = {
 const defaultInitialRange = createInitialDateRange();
 const defaultSelectedYear = new Date().getFullYear();
 
+/** Safely extracts account_balance from the loosely-typed account object. */
+function getAccountBalance(account: unknown): number | undefined {
+  if (account !== null && typeof account === 'object' && 'account_balance' in account) {
+    const val = (account as { account_balance?: unknown }).account_balance;
+    return typeof val === 'number' ? val : undefined;
+  }
+  return undefined;
+}
+
 const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 function applyExecutionFilter(trades: Trade[], selectedExecution: ExecutionFilter): Trade[] {
@@ -695,7 +704,7 @@ export default function StrategyClient(
   useAllTimePrefetch({
     isLoadingStats,
     resolvedAccountId: resolvedAccount?.id,
-    resolvedAccountBalance: (resolvedAccount as { account_balance?: number } | null)?.account_balance,
+    resolvedAccountBalance: getAccountBalance(resolvedAccount),
     userId: userData?.user?.id,
     mode: selection.mode,
     strategyId,
@@ -716,6 +725,7 @@ export default function StrategyClient(
   // streaming analysis listener
   useEffect(() => {
     const handleAnalysisUpdate = (event: CustomEvent) => {
+      if (typeof event.detail !== 'string') return;
       setAnalysisResults(event.detail);
     };
 
@@ -828,13 +838,13 @@ export default function StrategyClient(
 
   const updatedBalance = useMemo(
     () => calculateUpdatedBalance(
-      (resolvedAccount as { account_balance?: number } | null)?.account_balance,
+      getAccountBalance(resolvedAccount),
       totalYearProfit
     ),
     [resolvedAccount, totalYearProfit]
   );
 
-  const rawAccountBalance = (activeAccount as { account_balance?: number } | null)?.account_balance;
+  const rawAccountBalance = getAccountBalance(activeAccount);
   const pnlPercentFromOverview = useMemo(
     () => calculatePnlPercentFromOverview(totalYearProfit, rawAccountBalance),
     [totalYearProfit, rawAccountBalance]
@@ -1067,9 +1077,7 @@ export default function StrategyClient(
         markets={markets}
         selectedExecution={selectedExecution}
         onSelectedExecutionChange={(execution) =>
-          startFilterTransition(() =>
-            setSelectedExecution(execution === 'all' ? 'executed' : execution)
-          )
+          startFilterTransition(() => setSelectedExecution(execution))
         }
         displayStartDate={earliestTradeDate}
       />
@@ -1084,13 +1092,13 @@ export default function StrategyClient(
         currencySymbol={currencySymbol}
         updatedBalance={updatedBalance}
         totalYearProfit={totalYearProfit}
-        activeAccountBalance={(activeAccount as { account_balance?: number } | null)?.account_balance}
+        activeAccountBalance={getAccountBalance(activeAccount)}
         monthlyStatsToUse={monthlyStatsToUse}
         accountOverviewLoadingState={accountOverviewLoadingState}
         isLoadingStats={isLoadingStats}
         statsTotalTrades={stats?.totalTrades}
         tradesToUse={tradesToUse}
-        resolvedAccountBalance={(resolvedAccount as { account_balance?: number } | null)?.account_balance}
+        resolvedAccountBalance={getAccountBalance(resolvedAccount)}
         dateRange={dateRange}
         selectedMarket={selectedMarket}
         selectedExecution={selectedExecution}

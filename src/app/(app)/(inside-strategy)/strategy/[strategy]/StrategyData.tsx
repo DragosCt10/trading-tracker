@@ -4,7 +4,7 @@ import { getDashboardApiResponse } from '@/lib/server/dashboardApiResponse';
 import { resolveActiveAccountFromCookies } from '@/lib/server/accounts';
 import { format, startOfYear, endOfYear } from 'date-fns';
 import { getStrategyBySlug } from '@/lib/server/strategies';
-import { raceWithTimeout } from '@/utils/raceWithTimeout';
+import { raceWithTimeoutAndAbort } from '@/utils/raceWithTimeout';
 import StrategyClient from './StrategyClient';
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { User } from '@supabase/supabase-js';
@@ -20,10 +20,12 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
   };
 
   // Fetch strategy metadata and resolve active account/mode from cookies in parallel.
-  const { mode, activeAccount } = await resolveActiveAccountFromCookies(user.id);
-  const strategy = strategySlug
-    ? await getStrategyBySlug(user.id, strategySlug, activeAccount?.id)
-    : null;
+  // getStrategyBySlug filters by user_id + slug which is unique — accountId is an
+  // optional extra filter not needed here.
+  const [{ mode, activeAccount }, strategy] = await Promise.all([
+    resolveActiveAccountFromCookies(user.id),
+    strategySlug ? getStrategyBySlug(user.id, strategySlug) : Promise.resolve(null),
+  ]);
 
   const strategyId = strategy?.id ?? null;
   const initialExtraCards = (strategy?.extra_cards ?? []) as ExtraCardKey[];
@@ -54,24 +56,26 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
   // (~500 ms) — far better than blocking the Suspense boundary for 3–7 s.
   let initialDashboardStats: Awaited<ReturnType<typeof getDashboardApiResponse>> | null = null;
   try {
-    initialDashboardStats = await raceWithTimeout(
-      getDashboardApiResponse({
-        userId: user.id,
-        accountId: activeAccount.id,
-        mode,
-        startDate: initialDateRange.startDate,
-        endDate: initialDateRange.endDate,
-        strategyId,
-        accountBalance: activeAccount.account_balance ?? 0,
-        execution: 'executed',
-        market: 'all',
-        includeSeries: false,
-        includeCompactTrades: initialExtraCards.some((k) =>
-          (['launch_hour', 'avg_displacement', 'displacement_size', 'fvg_size', 'potential_rr'] as ExtraCardKey[]).includes(k)
-        ),
-      }),
+    // Always false: compact_trades can be 3-4 MB and are only needed after initial paint.
+    // The client's useDashboardData fetches them separately when extra cards are enabled.
+    initialDashboardStats = await raceWithTimeoutAndAbort(
+      () =>
+        getDashboardApiResponse({
+          userId: user.id,
+          accountId: activeAccount.id,
+          mode,
+          startDate: initialDateRange.startDate,
+          endDate: initialDateRange.endDate,
+          strategyId,
+          accountBalance: activeAccount.account_balance ?? 0,
+          execution: 'executed',
+          market: 'all',
+          includeSeries: false,
+          includeCompactTrades: false,
+        }),
       1000,
-      null
+      null,
+      'getDashboardApiResponse'
     );
   } catch (error) {
     console.error('Error fetching initial dashboard stats:', (error as any)?.message ?? error);

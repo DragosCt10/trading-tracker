@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useState, memo } from 'react';
 import type { Trade } from '@/types/trade';
 import type { DateRangeState } from '@/utils/dateRangeHelpers';
 import type { StrategySectionKey as FullWidthSectionKey } from '@/hooks/useStrategySectionVisibility';
@@ -50,7 +50,7 @@ type StrategyOverviewAndCalendarSectionsProps = {
   savedTags?: SavedTag[];
 };
 
-export function StrategyOverviewAndCalendarSections({
+function StrategyOverviewAndCalendarSectionsBase({
   viewMode,
   selectedYear,
   onSelectedYearChange,
@@ -158,3 +158,5 @@ export function StrategyOverviewAndCalendarSections({
     </>
   );
 }
+
+export const StrategyOverviewAndCalendarSections = memo(StrategyOverviewAndCalendarSectionsBase);

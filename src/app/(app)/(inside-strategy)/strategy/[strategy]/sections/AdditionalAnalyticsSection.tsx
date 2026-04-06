@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, type ReactNode, memo } from 'react';
 import type { Trade } from '@/types/trade';
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { StrategySectionKey as FullWidthSectionKey } from '@/hooks/useStrategySectionVisibility';
@@ -45,7 +45,7 @@ type StrategyAdditionalAnalyticsSectionsProps = {
   selectedHalfWidthCards: { key: ExtraCardKey; element: ReactNode }[];
 };
 
-export function StrategyAdditionalAnalyticsSections({
+function StrategyAdditionalAnalyticsSectionsBase({
   isPro,
   showProContent,
   renderSectionCollapseButton,
@@ -214,3 +214,5 @@ export function StrategyAdditionalAnalyticsSections({
     </>
   );
 }
+
+export const StrategyAdditionalAnalyticsSections = memo(StrategyAdditionalAnalyticsSectionsBase);

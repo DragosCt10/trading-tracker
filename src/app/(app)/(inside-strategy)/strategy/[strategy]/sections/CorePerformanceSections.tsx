@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { type ReactNode, memo } from 'react';
 import type { Trade } from '@/types/trade';
 import type { StrategySectionKey as FullWidthSectionKey } from '@/hooks/useStrategySectionVisibility';
 import { TradingOverviewStats } from '@/components/dashboard/analytics/TradingOverviewStats';
@@ -24,7 +24,7 @@ type StrategyCoreStatisticsSectionProps = {
   tradingOverviewProps: TradingOverviewStatsProps;
 };
 
-export function StrategyCoreStatisticsSection({
+function StrategyCoreStatisticsSectionBase({
   renderSectionCollapseButton,
   isSectionExpanded,
   tradingOverviewProps,
@@ -46,6 +46,8 @@ export function StrategyCoreStatisticsSection({
   );
 }
 
+export const StrategyCoreStatisticsSection = memo(StrategyCoreStatisticsSectionBase);
+
 type StrategyPerformanceSectionsProps = {
   renderSectionCollapseButton: (key: FullWidthSectionKey) => ReactNode;
   isSectionExpanded: (key: FullWidthSectionKey) => boolean;
@@ -64,7 +66,7 @@ type StrategyPerformanceSectionsProps = {
   drawdownCount: number;
 };
 
-export function StrategyPerformanceSections({
+function StrategyPerformanceSectionsBase({
   renderSectionCollapseButton,
   isSectionExpanded,
   showProContent,
@@ -149,3 +151,5 @@ export function StrategyPerformanceSections({
     </>
   );
 }
+
+export const StrategyPerformanceSections = memo(StrategyPerformanceSectionsBase);
