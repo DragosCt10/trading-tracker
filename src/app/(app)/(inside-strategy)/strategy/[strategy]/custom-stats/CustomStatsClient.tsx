@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Crown, Eye, Pencil, Plus, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
@@ -329,7 +329,8 @@ export default function CustomStatsClient({
     : initialCurrencySymbol;
   const accountBalance = activeAccount?.account_balance ?? initialAccountBalance;
 
-  const [mounted] = useState(() => typeof window !== 'undefined');
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   // Preview data for non-Pro users
   const previewStats: CustomStatConfig[] = useMemo(() => [
