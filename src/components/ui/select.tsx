@@ -6,7 +6,13 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const Select = SelectPrimitive.Root
+// Wrap Root to ensure the hidden native <select> always has a name attribute.
+// Without a name, Radix renders a nameless <select> during initial hydration,
+// which browsers flag as "A form field element should have an id or name attribute".
+function Select({ name, ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
+  const autoName = React.useId()
+  return <SelectPrimitive.Root name={name ?? autoName} {...props} />
+}
 
 const SelectGroup = SelectPrimitive.Group
 

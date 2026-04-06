@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
+import Link from 'next/link';
 import { Star, Loader2, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -145,13 +146,13 @@ export default function ReviewSection({ socialProfile }: { socialProfile: { disp
             &ldquo;{existing.text}&rdquo;
           </blockquote>
 
-          <a
+          <Link
             href="/#testimonials"
             className="inline-flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
           >
             See it on the landing page
             <ExternalLink className="h-3 w-3" />
-          </a>
+          </Link>
         </div>
       </div>
     );

@@ -188,6 +188,8 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
             <CardContent className="pt-0">
               <form onSubmit={handleSearch} className="flex gap-2">
             <Input
+              id="user-search-email"
+              name="user-search-email"
               type="email"
               placeholder="user@example.com"
               value={email}
@@ -345,6 +347,8 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
             <CardContent className="pt-0">
               <form onSubmit={handleAddAdmin} className="flex gap-2">
                 <Input
+                  id="admin-email"
+                  name="admin-email"
                   type="email"
                   placeholder="Add admin by email"
                   value={newAdminEmail}
