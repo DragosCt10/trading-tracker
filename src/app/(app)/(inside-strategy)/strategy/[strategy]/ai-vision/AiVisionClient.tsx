@@ -23,6 +23,7 @@ import { SectionHeading } from '../sections/SectionHeading';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useDarkMode } from '@/hooks/useDarkMode';
 import { cn } from '@/lib/utils';
 
 interface AiVisionClientProps {
@@ -210,6 +211,7 @@ export default function AiVisionClient({
   // ── Subscription / PRO gate ───────────────────────────────────────────────
   const { isPro } = useSubscription({ userId });
   const isLocked = !isPro;
+  const { isDark } = useDarkMode();
 
   // ── Filter state ─────────────────────────────────────────────────────────
   const [selectedMarket, setSelectedMarket] = useState('all');
@@ -531,9 +533,10 @@ export default function AiVisionClient({
                 side="top"
                 align="center"
                 sideOffset={8}
-                className="max-w-sm text-xs rounded-2xl p-3 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm shadow-md shadow-slate-200/50 dark:shadow-none text-slate-900 dark:text-slate-50"
+                className="max-w-sm text-xs rounded-2xl p-3 relative overflow-hidden border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50"
               >
-                The data shown under the blur is fictive and for demo purposes only. Upgrade to PRO to unlock AI Vision insights.
+                {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+                <div className="relative">The data shown under the blur is fictive and for demo purposes only. Upgrade to PRO to unlock AI Vision insights.</div>
               </TooltipContent>
             )}
           </Tooltip>

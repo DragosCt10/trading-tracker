@@ -268,7 +268,7 @@ export function TradeCardsView({
 
   return (
     <TooltipProvider>
-      <div className="mt-6 flex flex-col gap-6">
+      <div className="flex flex-col">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             {marketFilter && (
