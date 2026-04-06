@@ -38,6 +38,8 @@ export default function SearchBar() {
             <input
               ref={inputRef}
               type="text"
+              name="search"
+              id="search"
               value={query}
               onChange={(e) => {
                 const nextQuery = e.target.value;
