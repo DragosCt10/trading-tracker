@@ -45,14 +45,20 @@ describe('getMilestoneForCount', () => {
     expect(getMilestoneForCount(999)?.id).toBe('master_trader');
   });
 
-  it('returns alpha_trader at 1000 and beyond', () => {
-    expect(getMilestoneForCount(1000)?.id).toBe('alpha_trader');
+  it('returns elite_trader at 1000', () => {
+    expect(getMilestoneForCount(1000)?.id).toBe('elite_trader');
+    expect(getMilestoneForCount(4999)?.id).toBe('elite_trader');
+  });
+
+  it('returns alpha_trader at 5000 and beyond', () => {
     expect(getMilestoneForCount(5000)?.id).toBe('alpha_trader');
+    expect(getMilestoneForCount(9999)?.id).toBe('alpha_trader');
   });
 
   it('returns the milestone with the correct discount', () => {
     expect(getMilestoneForCount(100)?.discountPct).toBe(5);
     expect(getMilestoneForCount(1000)?.discountPct).toBe(25);
+    expect(getMilestoneForCount(5000)?.discountPct).toBe(50);
   });
 });
 
@@ -68,11 +74,12 @@ describe('getNextMilestone', () => {
     expect(getNextMilestone(100)?.id).toBe('skilled_trader');
     expect(getNextMilestone(200)?.id).toBe('expert_trader');
     expect(getNextMilestone(500)?.id).toBe('master_trader');
-    expect(getNextMilestone(750)?.id).toBe('alpha_trader');
+    expect(getNextMilestone(750)?.id).toBe('elite_trader');
+    expect(getNextMilestone(1000)?.id).toBe('alpha_trader');
   });
 
   it('returns null at alpha_trader (no next milestone)', () => {
-    expect(getNextMilestone(1000)).toBeNull();
+    expect(getNextMilestone(5000)).toBeNull();
     expect(getNextMilestone(9999)).toBeNull();
   });
 });
@@ -100,9 +107,13 @@ describe('getCrossedMilestones', () => {
     expect(crossed.map((m) => m.id)).toEqual(['rookie_trader', 'skilled_trader', 'expert_trader']);
   });
 
-  it('returns all 5 milestones at 1000+', () => {
+  it('returns 5 milestones at 1000', () => {
     expect(getCrossedMilestones(1000)).toHaveLength(5);
-    expect(getCrossedMilestones(5000)).toHaveLength(5);
+  });
+
+  it('returns all 6 milestones at 5000+', () => {
+    expect(getCrossedMilestones(5000)).toHaveLength(6);
+    expect(getCrossedMilestones(9999)).toHaveLength(6);
   });
 
   it('preserves ascending order', () => {
@@ -121,6 +132,7 @@ describe('getMilestoneById', () => {
     expect(getMilestoneById('skilled_trader')?.badgeName).toBe('Skilled Trader');
     expect(getMilestoneById('expert_trader')?.badgeName).toBe('Expert Trader');
     expect(getMilestoneById('master_trader')?.badgeName).toBe('Master Trader');
+    expect(getMilestoneById('elite_trader')?.badgeName).toBe('Elite Trader');
     expect(getMilestoneById('alpha_trader')?.badgeName).toBe('Alpha Trader');
   });
 
@@ -151,8 +163,8 @@ describe('getBadgeInlineStyle', () => {
 // ── TRADE_MILESTONES data integrity ──────────────────────────────────────────
 
 describe('TRADE_MILESTONES data integrity', () => {
-  it('has exactly 5 milestones', () => {
-    expect(TRADE_MILESTONES).toHaveLength(5);
+  it('has exactly 6 milestones', () => {
+    expect(TRADE_MILESTONES).toHaveLength(6);
   });
 
   it('minTrades values are in strictly ascending order', () => {
