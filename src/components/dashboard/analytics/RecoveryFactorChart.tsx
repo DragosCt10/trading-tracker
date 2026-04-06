@@ -92,9 +92,6 @@ export const RecoveryFactorChart = React.memo(function RecoveryFactorChart({ rec
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Exceptional — Profits significantly outpace drawdowns. Highly resilient strategy.</div>
         </div>
       </div>
-      <div className="text-xs text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-200/40 dark:border-slate-700/30">
-        Formula: Total P&amp;L% ÷ Max Drawdown%
-      </div>
     </div>
   );
 
