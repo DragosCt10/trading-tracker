@@ -105,26 +105,6 @@ export const queryKeys = {
     selectedExecution, market,
   ] as const,
 
-  /**
-   * Compact trades cache key — mirrors dashboardStats but used to store/read
-   * the compact_trades array separately for the Web Worker.
-   */
-  compactTrades: (
-    mode: TradingMode,
-    accountId: string | undefined,
-    userId: string | undefined,
-    strategyId: string | null | undefined,
-    selectedYear: number,
-    viewMode: string,
-    startDate: string,
-    endDate: string,
-    selectedExecution: string
-  ) => [
-    'compactTrades', mode, accountId, userId, strategyId,
-    selectedYear, viewMode, startDate, endDate,
-    selectedExecution,
-  ] as const,
-
   /** AI Vision page — period queries keyed by period + account context. Market/execution filtered client-side. */
   aiVision: (
     periodKey: string,
@@ -206,7 +186,6 @@ export const TRADE_QUERY_PREFIXES = new Set([
   'nonExecutedTrades',
   'dashboardStats',
   'calendarTrades',
-  'compactTrades',
   'strategies-overview',
   'all-strategy-trades',
   'all-strategy-stats',

@@ -55,8 +55,8 @@ export function useFilteredStats({
   // execution triggers it.
   //
   // Returns null when no filter is active (the RPC-aggregated hookStats are already
-  // correct) or when tradesToUse is empty (compact_trades not loaded → SQL-filtered
-  // RPC stats are authoritative).
+  // correct) or when tradesToUse is empty (trades not loaded → SQL-filtered RPC
+  // stats are authoritative).
   const filteredStats = useMemo(() => {
     const shouldCompute =
       viewMode === 'yearly'

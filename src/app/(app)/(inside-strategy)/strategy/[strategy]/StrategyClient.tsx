@@ -293,7 +293,6 @@ type UseAllTimePrefetchParams = {
   selectedYear: number;
   selectedExecution: ExecutionFilter;
   selectedMarket: string;
-  includeCompactTrades: boolean;
   queryClient: QueryClient;
 };
 
@@ -309,7 +308,6 @@ function useAllTimePrefetch({
   selectedYear,
   selectedExecution,
   selectedMarket,
-  includeCompactTrades,
   queryClient,
 }: UseAllTimePrefetchParams) {
   const runAllTimePrefetch = useRef<(() => void) | null>(null);
@@ -347,7 +345,6 @@ function useAllTimePrefetch({
             execution: selectedExecution,
             market: selectedMarket,
             ...(strategyId ? { strategyId } : {}),
-            ...(includeCompactTrades ? { includeCompactTrades: 'true' } : {}),
           });
           const response = await fetch(`/api/dashboard-stats?${params}`);
           if (!response.ok) {
@@ -404,7 +401,6 @@ function useAllTimePrefetch({
         });
     }
   }, [
-    includeCompactTrades,
     isLoadingStats,
     mode,
     queryClient,
@@ -536,14 +532,10 @@ export default function StrategyClient(
   const extraCardsSet = useMemo(() => new Set(extraCards), [extraCards]);
   const hasCard = useCallback((key: ExtraCardKey) => extraCardsSet.has(key), [extraCardsSet]);
 
-  // compact_trades is only needed for extra cards whose components read fields
-  // that are not in series[]: launch_hour, displacement_size, fvg_size, risk_reward_ratio_long.
-  // All other components (EquityCurveCard, ConfidenceStatsCard, NewsNameChartCard, etc.)
-  // now get their data from series[] which includes market, executed, confidence_at_entry,
-  // mind_state_at_entry, news_name. ~60% smaller payload for most strategies.
-  const includeCompactTrades = extraCards.some((k) =>
-    (['launch_hour', 'avg_displacement', 'displacement_size', 'fvg_size', 'potential_rr'] as ExtraCardKey[]).includes(k)
-  );
+  // compact_trades removed: getFilteredTrades (Query 2) already returns all fields
+  // the extra cards need (launch_hour, displacement_size, fvg_size, risk_reward_ratio_long).
+  // Keeping includeCompactTrades=false enables the cache-first optimization in useDashboardData
+  // and avoids the redundant 3-4 MB payload in the dashboard stats response.
 
   // Hydrate React Query cache once on mount. Cannot call setQueryData synchronously
   // during render — it mutates external state, which breaks React Compiler optimization
@@ -632,7 +624,6 @@ export default function StrategyClient(
     strategyId,
     viewMode,
     selectedExecution,
-    includeCompactTrades,
   });
 
   // True once stats data has arrived (undefined = still loading, object = ready).
@@ -711,7 +702,6 @@ export default function StrategyClient(
     selectedYear,
     selectedExecution,
     selectedMarket,
-    includeCompactTrades,
     queryClient,
   });
 

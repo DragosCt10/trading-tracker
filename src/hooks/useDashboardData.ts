@@ -100,7 +100,6 @@ export function useDashboardData({
   strategyId,
   viewMode,
   selectedExecution = 'executed',
-  includeCompactTrades,
 }: {
   session: any;
   dateRange: { startDate: string; endDate: string };
@@ -114,9 +113,6 @@ export function useDashboardData({
   strategyId?: string | null;
   viewMode?: 'yearly' | 'dateRange';
   selectedExecution?: 'all' | 'executed' | 'nonExecuted';
-  /** When true, the API includes compact_trades[] for extra cards that need raw trade fields.
-   *  When false (default), series[] is used — much smaller payload. */
-  includeCompactTrades?: boolean;
 }) {
   const userId = session?.user?.id as string | undefined;
   const accountId = activeAccount?.id as string | undefined;
@@ -151,11 +147,10 @@ export function useDashboardData({
 
       // Cache-first: if the all-time Trade[] is already cached and within the compute limit,
       // derive stats client-side (same formulas as SQL) — no network call needed.
-      // Skip when includeCompactTrades is requested (compact_trades has extra fields not in Trade[]).
       // Skip when the all-time cache is invalidated (trade mutation happened) — must refetch fresh data.
       // Skip when this is the all-time query itself: the allTimeKey would hold stale data from
       // Query 2's self-referential loop — use the server instead for the full range.
-      if (!includeCompactTrades) {
+      {
         const { startDate: allStart, endDate: allEnd } = createAllTimeRange();
         const allTimeKey = queryKeys.trades.filtered(mode, accountId, userId, 'dateRange', allStart, allEnd, strategyId ?? null);
         const allTimeState = queryClient.getQueryState(allTimeKey);
@@ -176,7 +171,6 @@ export function useDashboardData({
         execution: selectedExecution,
         market: selectedMarket,
         ...(strategyId ? { strategyId } : {}),
-        ...(includeCompactTrades ? { includeCompactTrades: 'true' } : {}),
       });
       const res = await fetch(`/api/dashboard-stats?${params}`);
       if (!res.ok) throw new Error(`Dashboard stats fetch failed: ${res.status}`);
@@ -304,20 +298,12 @@ export function useDashboardData({
   // ── Non-executed series ───────────────────────────────────────────────────
   // Computed synchronously so it clears immediately when account/mode changes
   // (apiData becomes null), preventing stale data from a previous account.
+  // Non-executed trades derived from Query 2's Trade[].
+  // Computed synchronously so it clears immediately when account/mode changes.
   const nonExecSeries = useMemo(() => {
     if (!apiData) return [];
-    return apiData.compact_trades?.length
-      ? apiData.compact_trades.filter((t) => !t.executed)
-      : allTimeTrades.filter((t) => t.executed !== true);
+    return allTimeTrades.filter((t) => t.executed !== true);
   }, [apiData, allTimeTrades]);
-
-  // ── Trade arrays ──────────────────────────────────────────────────────────
-  // compact_trades: only present when extra cards are enabled (has extra fields like
-  //   displacement_size, fvg_size etc.). Use when available.
-  // allTimeTrades: always fetched by Query 2 for the effective date range.
-  //   series[] is always '[]' now — stats are in series_stats (computed in SQL).
-  const tradeArray = apiData?.compact_trades?.length ? apiData.compact_trades : allTimeTrades;
-  const tradesLoading = apiData?.compact_trades?.length ? false : allTimeTradesLoading;
 
   // ── Stats: always from API ────────────────────────────────────────────────
   // useMemo stabilises the object reference — components that receive stats/macroStats
@@ -380,10 +366,9 @@ export function useDashboardData({
     breakEvenStats: breakEvenStatsFromApi,
     trendStats: trendStatsFromApi,
 
-    // Trade arrays — compact_trades when extra cards enabled, otherwise Query 2 (getFilteredTrades).
-    // series[] is always '[]' now; stats come from series_stats computed in SQL.
-    allTrades: tradeArray as unknown as Trade[],
-    filteredTrades: tradeArray as unknown as Trade[],
+    // Trade arrays — always from Query 2 (getFilteredTrades).
+    allTrades: allTimeTrades as Trade[],
+    filteredTrades: allTimeTrades as Trade[],
     nonExecutedTrades: nonExecSeries as unknown as Trade[],
 
     // Calendar trades
@@ -392,9 +377,9 @@ export function useDashboardData({
     // Loading states
     isLoadingStats: statsLoading,
     isLoadingCalendar: calendarLoading,
-    isLoadingTrades: tradesLoading,
-    allTradesLoading: tradesLoading,
-    filteredTradesLoading: tradesLoading,
+    isLoadingTrades: allTimeTradesLoading,
+    allTradesLoading: allTimeTradesLoading,
+    filteredTradesLoading: allTimeTradesLoading,
     nonExecutedTradesLoading: false,
     nonExecutedTotalTradesLoading: statsLoading,
   };

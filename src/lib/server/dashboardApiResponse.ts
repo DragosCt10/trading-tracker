@@ -22,7 +22,7 @@ export interface GetDashboardApiResponseParams {
   /** 'executed' | 'non_executed' | 'all' */
   execution?: string;
   market?: string;
-  /** When true, RPC includes compact_trades[] (needed for extra cards: launch_hour, displacement_size, fvg_size, potential_rr) */
+  /** When true, RPC returns compact_trades[] (used by public share pages). Dashboard never sets this. */
   includeCompactTrades?: boolean;
   /** When false, RPC skips series[] (saves 3-4 MB on all-time queries). Client fetches trades via getFilteredTrades(). */
   includeSeries?: boolean;

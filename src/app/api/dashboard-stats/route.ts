@@ -27,8 +27,6 @@ export async function GET(req: NextRequest) {
   const execution = executionParam === 'nonExecuted' ? 'non_executed' : executionParam;
   const market = searchParams.get('market') ?? 'all';
   const includeCompactTrades = searchParams.get('includeCompactTrades') === 'true';
-  // series[] no longer needed for stat computation (series_stats in RPC handles it).
-  // Only include when caller explicitly opts in via includeSeries=true.
   const includeSeries = searchParams.get('includeSeries') === 'true';
 
   if (!accountId || !mode || !startDate || !endDate) {

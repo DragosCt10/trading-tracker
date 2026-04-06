@@ -139,7 +139,7 @@ export interface RpcLocalHLStats {
   notLiquidated: RpcLocalHLBucket;
 }
 
-// ── Reentry / break-even / trend stats (computed in DB, no compact_trades needed) ─
+// ── Reentry / break-even / trend stats (computed in DB) ───────────────────────
 
 export interface RpcReentryStat extends RpcBaseStats {
   grp: string;        // 'Reentry' | 'No Reentry'
@@ -167,7 +167,7 @@ export interface RpcSeriesRow {
   calculated_profit: number;
   risk_per_trade: number;       // already COALESCE'd to 0.5
   risk_reward_ratio: number;    // already COALESCE'd to 2.0
-  // Phase 2: added to replace compact_trades for always-on components
+  // Phase 2: added for always-on components
   market: string;
   executed: boolean;
   confidence_at_entry: number | null;
@@ -175,7 +175,7 @@ export interface RpcSeriesRow {
   news_name: string | null;
 }
 
-// ── Compact trade for Layer 3 Web Worker ────────────────────────────────────
+// ── Compact trade (used by public share pages which lack getFilteredTrades) ──
 
 export interface CompactTrade {
   id: string;
@@ -203,7 +203,6 @@ export interface CompactTrade {
   evaluation: string;
   reentry: boolean;
   trend: string;
-  // Extra-card fields
   displacement_size: number | null;
   fvg_size: number | null;
   launch_hour: boolean;
@@ -246,11 +245,12 @@ export interface DashboardRpcResult {
   interval_stats: RpcIntervalStat[];
   sl_size_stats: RpcSLSizeStat[];
   series: RpcSeriesRow[];
+  /** Only populated when p_include_compact_trades=true (public share pages). */
   compact_trades: CompactTrade[];
   reentry_stats: RpcReentryStat[];
   break_even_stats: RpcBreakEvenStats;
   trend_stats: RpcTrendStat[];
-  /** 'YYYY-MM' strings for calendar month navigation — computed in DB, no compact_trades needed */
+  /** 'YYYY-MM' strings for calendar month navigation — computed in DB */
   trade_months: string[];
   /** Earliest trade date in the queried range (YYYY-MM-DD) — computed in DB */
   earliest_trade_date: string | null;

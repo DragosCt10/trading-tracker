@@ -13,8 +13,7 @@ export interface GetDashboardAggregatesParams {
   /** 'executed' | 'non_executed' | 'all' — defaults to 'executed' */
   execution?: string;
   accountBalance: number;
-  /** When true, RPC returns compact_trades[] for Layer 3 worker cache.
-   *  Only needed in the main (executed) call — skip for non_executed call. */
+  /** When true, RPC returns compact_trades[] (used by public share pages). */
   includeCompactTrades?: boolean;
   /** Market filter — 'all' (default) or a specific market name. Applied in DB. */
   market?: string;
@@ -26,7 +25,7 @@ export interface GetDashboardAggregatesParams {
 
 /**
  * Layer 1 wrapper: calls the get_dashboard_aggregates Supabase RPC.
- * Returns pre-aggregated stats + compact_trades[] in a single DB round-trip.
+ * Returns pre-aggregated stats in a single DB round-trip.
  * No raw trade fetching — the DB does all the work.
  */
 export async function getDashboardAggregates(
