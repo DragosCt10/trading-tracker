@@ -50,7 +50,7 @@ const CustomBarTooltip = ({ active, payload, currencySymbol }: any) => {
   const item = payload[0];
   const isWin = item.payload.key === 'win';
   return (
-    <div className="rounded-xl px-3 py-2 text-sm bg-slate-50/90 dark:bg-slate-900/80 border border-slate-200/60 dark:border-slate-700/50 shadow-md backdrop-blur-sm">
+    <div className="relative overflow-hidden rounded-2xl px-3 py-2 text-sm border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40">
       <span className={cn('font-semibold', isWin ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
         {item.payload.name}
       </span>
