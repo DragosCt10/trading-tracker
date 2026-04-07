@@ -1,7 +1,5 @@
 import type { NextConfig } from 'next';
 
-const isDev = process.env.NODE_ENV === 'development';
-
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   reactCompiler: true,
@@ -33,9 +31,10 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               // Webpack uses eval() for source maps in development.
+              // GTM compiles and executes tags dynamically at runtime, which requires eval() internally.
               // vercel.live: Vercel preview deployment toolbar/feedback widget.
               // GTM: googletagmanager.com loads the GTM container script.
-              `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://vercel.live https://www.googletagmanager.com https://www.google-analytics.com`,
+              `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://www.googletagmanager.com https://www.google-analytics.com`,
               "style-src 'self' 'unsafe-inline'",
               // GTM may inject tracking pixels via img tags.
               "img-src 'self' data: https: https://www.googletagmanager.com",
