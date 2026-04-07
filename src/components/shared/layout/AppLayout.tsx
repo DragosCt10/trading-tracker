@@ -169,7 +169,7 @@ export default function AppLayout({
           </div>
         )}
         <div className="flex-1">{children}</div>
-        <Footer />
+        <Footer constrained />
       </div>
     </>
   );
