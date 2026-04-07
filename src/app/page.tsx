@@ -39,6 +39,7 @@ export default async function Home() {
     <div className="landing-page-override w-full">
       <LandingNavbar isLoggedIn={!!session?.user} />
 
+      <main id="main-content">
       <LandingHero />
 
       <LandingStatsBoard />
@@ -62,6 +63,7 @@ export default async function Home() {
       <LandingTestimonialsClient />
 
       <LandingCTA />
+      </main>
 
       <Footer />
     </div>
