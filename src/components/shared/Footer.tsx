@@ -80,7 +80,7 @@ function FooterSection({
   );
 }
 
-export function Footer() {
+export function Footer({ constrained = false }: { constrained?: boolean }) {
   return (
     <footer
       role="contentinfo"
@@ -89,7 +89,12 @@ export function Footer() {
         "border-t border-slate-200 dark:border-border/40"
       )}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
+      <div
+        className={cn(
+          "container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl",
+          constrained && "sm:px-0 max-w-7xl"
+        )}
+      >
         <div className="py-10 sm:py-12">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8 lg:gap-12">
             {/* Brand - left */}
@@ -103,7 +108,7 @@ export function Footer() {
                 AlphaStats
               </Link>
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Built for traders, by traders. Track performance and journal your trades.
+                Built for traders, by traders. Stop guessing, start improving.
               </p>
             </div>
 
