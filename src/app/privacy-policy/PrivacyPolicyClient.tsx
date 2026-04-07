@@ -96,12 +96,36 @@ const SECTIONS = [
       <>
         <p className="mb-3">We use cookies and similar technologies to:</p>
         <ul className="list-disc pl-6 space-y-1.5 text-muted-foreground">
-          <li>Keep you logged in</li>
+          <li>Keep you logged in and maintain your session</li>
+          <li>Remember your preferences (e.g. theme, active account)</li>
           <li>Understand how users interact with the platform</li>
           <li>Improve performance and functionality</li>
+          <li>Measure the effectiveness of our advertising (only with your consent)</li>
         </ul>
+        <p className="mt-4 mb-3">We categorise cookies as follows:</p>
+        <ul className="list-disc pl-6 space-y-1.5 text-muted-foreground">
+          <li>
+            <span className="font-medium text-foreground">Strictly necessary</span> — required for
+            the platform to function (authentication, session management). These cannot be disabled.
+          </li>
+          <li>
+            <span className="font-medium text-foreground">Analytics</span> — help us understand
+            usage patterns via Google Analytics / Google Tag Manager. Only set with your consent.
+          </li>
+          <li>
+            <span className="font-medium text-foreground">Advertising</span> — used to measure ad
+            performance. Only set with your consent.
+          </li>
+        </ul>
+        <p className="mt-4">
+          When you first visit the platform, you will be shown a cookie banner where you can
+          accept or reject non-essential cookies. You can withdraw or change your consent at any
+          time by clearing your browser&apos;s local storage for this site or adjusting your
+          browser settings.
+        </p>
         <p className="mt-3">
-          You can control cookies through your browser settings.
+          We use Google Tag Manager with Consent Mode v2, which ensures analytics and advertising
+          tags only fire in accordance with your consent choice.
         </p>
       </>
     ),
