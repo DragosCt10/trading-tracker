@@ -65,18 +65,20 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
-        {/* Consent Mode v2 - must be first */}
-        <Script id="consent-default" strategy="beforeInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('consent', 'default', {
-              'ad_storage': 'denied',
-              'analytics_storage': 'denied',
-              'wait_for_update': 500
-            });
-          `}
-        </Script>
+        {/* Consent Mode v2 + GTM — production only */}
+        {process.env.NODE_ENV === 'production' && (
+          <Script id="consent-default" strategy="beforeInteractive">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('consent', 'default', {
+                'ad_storage': 'denied',
+                'analytics_storage': 'denied',
+                'wait_for_update': 500
+              });
+            `}
+          </Script>
+        )}
         {/* Apply theme before first paint to avoid flash of default theme on refresh */}
         <script
           suppressHydrationWarning
@@ -111,7 +113,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <GoogleTagManager gtmId="GTM-NXXDR5MM" />
+      {process.env.NODE_ENV === 'production' && <GoogleTagManager gtmId="GTM-NXXDR5MM" />}
       <body className={`${inter.className} app-gradient min-h-screen relative`}>
         {/* Theme-aware gradient orbs (use --orb-1 / --orb-2 from color theme) — static, no animation */}
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden>
