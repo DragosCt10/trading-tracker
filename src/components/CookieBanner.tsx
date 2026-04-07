@@ -12,6 +12,9 @@ function updateGtagConsent(granted: boolean) {
     ad_storage: granted ? 'granted' : 'denied',
     analytics_storage: granted ? 'granted' : 'denied',
   });
+
+  // Some GTM tags listen for this custom event to trigger on consent update, so we need to dispatch it manually.
+  window.dataLayer?.push({ event: 'consent_update' });
 }
 
 export function CookieBanner() {
