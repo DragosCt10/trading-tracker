@@ -9,6 +9,7 @@ import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import { GoogleTagManager } from '@next/third-parties/google';
 import Script from 'next/script';
+import { CookieBanner } from '@/components/CookieBanner';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -131,6 +132,7 @@ export default function RootLayout({
             </QueryProvider>
           </ThemeSync>
         </ThemeProvider>
+        {process.env.NODE_ENV === 'production' && <CookieBanner />}
       </body>
     </html>
   );
