@@ -12,7 +12,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'AlphaStats',
-  description: 'Built for traders, by traders. Track performance and journal your trades.',
+  description: 'Built for traders, by traders. Analyze every trade. Improve every day.',
   icons: {
     icon: [
       { url: '/icon-light.png', type: 'image/png', media: '(prefers-color-scheme: light)' },
