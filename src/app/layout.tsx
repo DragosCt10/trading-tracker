@@ -75,7 +75,7 @@ export default function RootLayout({
               gtag('consent', 'default', {
                 'ad_storage': 'denied',
                 'analytics_storage': 'denied',
-                'wait_for_update': 500
+                'wait_for_update': 3000
               });
             `}
           </Script>
