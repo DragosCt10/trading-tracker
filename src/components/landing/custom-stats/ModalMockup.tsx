@@ -85,6 +85,7 @@ export function ModalMockup() {
             <Input
               value="Long DAX Morning"
               readOnly
+              aria-label="Name"
               className={INPUT_CLASS}
             />
           </FieldRow>
@@ -127,6 +128,7 @@ export function ModalMockup() {
             <Input
               value="DAX (GER40)"
               readOnly
+              aria-label="Market"
               className={INPUT_CLASS}
             />
           </FieldRow>
@@ -238,6 +240,7 @@ export function ModalMockup() {
               value=""
               readOnly
               placeholder="Any setup"
+              aria-label="Pattern / Setup"
               className={INPUT_CLASS}
             />
           </FieldRow>
@@ -248,6 +251,7 @@ export function ModalMockup() {
               value=""
               readOnly
               placeholder="Any condition"
+              aria-label="Liquidity / Conditions"
               className={INPUT_CLASS}
             />
           </FieldRow>
@@ -255,7 +259,7 @@ export function ModalMockup() {
           {/* MSS */}
           <FieldRow label="MSS">
             <Select value="__any__" onValueChange={noop}>
-              <SelectTrigger className={INPUT_CLASS}>
+              <SelectTrigger className={INPUT_CLASS} aria-label="MSS">
                 <SelectValue placeholder="Any MSS" />
               </SelectTrigger>
               <SelectContent>
@@ -270,7 +274,7 @@ export function ModalMockup() {
           {/* Trend */}
           <FieldRow label="Trend">
             <Select value="__any__" onValueChange={noop}>
-              <SelectTrigger className={INPUT_CLASS}>
+              <SelectTrigger className={INPUT_CLASS} aria-label="Trend">
                 <SelectValue placeholder="Any trend" />
               </SelectTrigger>
               <SelectContent>
