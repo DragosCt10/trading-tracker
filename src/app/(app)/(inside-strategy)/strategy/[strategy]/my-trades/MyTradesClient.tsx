@@ -24,7 +24,8 @@ import { ExportTradesModal } from '@/components/ExportTradesModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, TrendingDown, Columns2, LayoutGrid, PanelLeft, Info } from 'lucide-react';
+import { Columns2, LayoutGrid, PanelLeft, Info } from 'lucide-react';
+import { PnLBadge } from '@/components/shared/PnLBadge';
 import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
 import { buildEquityPointsFromTrades } from '@/utils/equityPoints';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
@@ -37,6 +38,7 @@ import { calculateAverageDrawdown } from '@/utils/analyticsCalculations';
 import { applyTradeClientFilters } from '@/utils/applyTradeClientFilters';
 import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';
 import { cn, formatPercent, roundToCents } from '@/lib/utils';
+import { CARD_BASE_CLASSES } from '@/constants/styles';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { MonteCarloCard } from '@/components/trades/MonteCarloCard';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -509,7 +511,7 @@ export default function MyTradesClient({
       )}
 
       {!activeAccount && (
-        <Card className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm mt-6 py-10 px-6 flex items-center justify-center text-center">
+        <Card className={cn(CARD_BASE_CLASSES, 'mt-6 py-10 px-6 flex items-center justify-center text-center')}>
           <div className="space-y-2">
             <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
               No account selected
@@ -535,23 +537,7 @@ export default function MyTradesClient({
                   {roundToCents(displayCumulativePnl).toFixed(2)}
                 </p>
               </div>
-              <div className="flex items-center gap-1.5">
-                {displayCumulativePnl >= 0 ? (
-                  <TrendingUp className="w-4 h-4 text-emerald-500" />
-                ) : (
-                  <TrendingDown className="w-4 h-4 text-rose-500" />
-                )}
-                <div
-                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
-                    displayCumulativePnl >= 0
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                      : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
-                  }`}
-                >
-                  {displayCumulativePnl >= 0 ? '+' : ''}
-                  {pnlPercent.toFixed(2)}%
-                </div>
-              </div>
+              <PnLBadge value={pnlPercent} size="sm" />
             </div>
             <div className="flex-1 min-h-[80px]">
               {!mounted ? (

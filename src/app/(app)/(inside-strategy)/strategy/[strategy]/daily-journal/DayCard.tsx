@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatPercent } from '@/lib/utils';
+import { CARD_BASE_CLASSES } from '@/constants/styles';
 import { formatTradeTimeForDisplay } from '@/utils/formatTradeTime';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
 import { ScreensCarouselCell } from '@/components/trades/ScreensCarouselCell';
@@ -55,7 +56,7 @@ export function DayCard({
   const hasTrades = group.totalTrades > 0;
 
   const cardContent = (
-    <Card className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
+    <Card className={cn(CARD_BASE_CLASSES, 'overflow-hidden')}>
       {!isPro && (
         <>
           <span className="absolute right-4 top-4 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">

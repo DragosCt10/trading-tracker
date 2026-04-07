@@ -4,6 +4,8 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { buildPresetRange } from '@/utils/dateRangeHelpers';
+import { cn } from '@/lib/utils';
+import { CARD_BASE_CLASSES } from '@/constants/styles';
 
 export function CustomStatsCardsSkeleton() {
   return (
@@ -11,9 +13,9 @@ export function CustomStatsCardsSkeleton() {
       {[1, 2, 3].map((i) => (
         <Card
           key={i}
-          className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden"
+          className={cn(CARD_BASE_CLASSES, 'overflow-hidden')}
         >
-          <div className="h-24 w-full px-3 pt-3">
+          <div className="h-30 w-full px-3 pt-3">
             <Skeleton className="h-full w-full rounded-xl" />
           </div>
           <div className="px-4 pt-3 pb-4">
@@ -21,18 +23,18 @@ export function CustomStatsCardsSkeleton() {
               <Skeleton className="h-4 w-28" />
               <Skeleton className="h-5 w-16 rounded-full" />
             </div>
-            <div className="flex items-end justify-between gap-4 mt-2">
+            <div className="flex items-end justify-between gap-4 mt-4">
               <div className="flex items-center gap-4">
-                <div>
+                <div className="space-y-1">
                   <Skeleton className="h-3 w-12 mb-1" />
                   <Skeleton className="h-4 w-10" />
                 </div>
-                <div>
+                <div className="space-y-1">
                   <Skeleton className="h-3 w-10 mb-1" />
                   <Skeleton className="h-4 w-6" />
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-right space-y-1">
                 <Skeleton className="h-3 w-12 mb-1" />
                 <Skeleton className="h-4 w-16" />
               </div>

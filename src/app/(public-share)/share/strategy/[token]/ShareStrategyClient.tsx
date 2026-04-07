@@ -80,6 +80,7 @@ import {
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
+import { PnLBadge } from '@/components/shared/PnLBadge';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { buildEquityPointsFromTrades } from '@/utils/equityPoints';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
@@ -266,23 +267,7 @@ function SharedMyTradesView({
                   {netCumulativePnl.toFixed(2)}
                 </p>
               </div>
-              <div className="flex items-center gap-1.5">
-                {netCumulativePnl >= 0 ? (
-                  <TrendingUp className="w-4 h-4 text-emerald-500" />
-                ) : (
-                  <TrendingDown className="w-4 h-4 text-rose-500" />
-                )}
-                <div
-                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
-                    netCumulativePnl >= 0
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                      : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
-                  }`}
-                >
-                  {netCumulativePnl >= 0 ? '+' : ''}
-                  {pnlPercent.toFixed(2)}%
-                </div>
-              </div>
+              <PnLBadge value={pnlPercent} size="sm" />
             </div>
             <div className="flex-1 min-h-[80px]">
               {!hasEquityData ? (

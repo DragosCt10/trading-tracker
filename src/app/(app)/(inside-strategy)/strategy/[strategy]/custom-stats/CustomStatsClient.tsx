@@ -1,17 +1,29 @@
 'use client';
 
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { Crown, Eye, Pencil, Plus, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { Crown, Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn, formatPercent, roundToCents } from '@/lib/utils';
 import { useBECalc } from '@/contexts/BECalcContext';
 import type { Trade } from '@/types/trade';
 import type { Database } from '@/types/supabase';
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { CustomStatConfig } from '@/types/customStats';
+import { CARD_BASE_CLASSES } from '@/constants/styles';
 import { TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { calculateWinRates } from '@/utils/calculateWinRates';
 import { queryKeys } from '@/lib/queryKeys';
@@ -22,14 +34,15 @@ import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
 import { buildEquityPointsFromTrades } from '@/utils/equityPoints';
 import { useSubscription } from '@/hooks/useSubscription';
-import { applyCustomStatFilter, buildFilterPills } from '@/utils/applyCustomStatFilter';
+import { applyCustomStatFilter } from '@/utils/applyCustomStatFilter';
 import { buildPreviewTrade } from '@/utils/previewTrades';
 import { updateStrategyCustomStats } from '@/lib/server/strategies';
 import { CustomStatModal } from '@/components/CustomStatModal';
 import { CustomStatDetailView } from '@/components/CustomStatDetailView';
 import { CustomStatsCardsSkeleton } from './CustomStatsSkeleton';
+import { FilterPillList } from '@/components/shared/FilterPillList';
+import { PnLBadge } from '@/components/shared/PnLBadge';
 import type { SavedTag } from '@/types/saved-tag';
-import { resolveTagColorStyle } from '@/constants/tagColors';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -74,42 +87,29 @@ const CustomStatCardItem = memo(function CustomStatCardItem({
   );
   const { winRate, winRateWithBE } = useMemo(() => calculateWinRates(cardTrades), [cardTrades]);
   const effectiveWinRate = beCalcEnabled ? winRateWithBE : winRate;
-  // Non-tag pills (plain style)
-  const filterPills = useMemo(() => buildFilterPills({ ...config.filters, tags: undefined }), [config.filters]);
-  // Tag pills rendered separately with saved colors
-  const tagPills = useMemo(
-    () => (config.filters.tags ?? []).map((name) => ({
-      name,
-      label: name.length > 20 ? name.slice(0, 19) + '…' : name,
-      style: resolveTagColorStyle(savedTags.find((t) => t.name === name)?.color),
-    })),
-    [config.filters.tags, savedTags]
-  );
-  const allPillCount = filterPills.length + tagPills.length;
-  const visiblePills = filterPills.slice(0, 3);
-  const visibleTagPills = tagPills.slice(0, Math.max(0, 3 - visiblePills.length));
-  const extraPillCount = allPillCount - visiblePills.length - visibleTagPills.length;
   const chartData = useMemo(() => buildEquityPointsFromTrades(cardTrades), [cardTrades]);
   const totalPnL = useMemo(
     () => cardTrades.reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0),
     [cardTrades]
   );
   const pnlPercent = (totalPnL / (accountBalance || 1)) * 100;
+  const hasTrades = cardTrades.length > 0;
+  const canNavigate = isPro && hasTrades;
 
   const cardContent = (
     <Card
-      role="button"
-      tabIndex={isPro ? 0 : -1}
-      onClick={() => isPro && onDetail(config.id)}
+      role={canNavigate ? 'button' : undefined}
+      tabIndex={canNavigate ? 0 : -1}
+      onClick={() => canNavigate && onDetail(config.id)}
       onKeyDown={(e) => {
-        if (isPro && (e.key === 'Enter' || e.key === ' ')) {
+        if (canNavigate && (e.key === 'Enter' || e.key === ' ')) {
           e.preventDefault();
           onDetail(config.id);
         }
       }}
       className={cn(
-        'rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden relative transition-all duration-200',
-        isPro && 'hover:border-slate-400/60 dark:hover:border-slate-600/60 hover:shadow-lg cursor-pointer'
+        CARD_BASE_CLASSES, 'overflow-hidden relative transition-all duration-200',
+        canNavigate && 'hover:border-slate-400/60 dark:hover:border-slate-600/60 hover:shadow-lg cursor-pointer'
       )}
     >
       {!isPro && (
@@ -123,7 +123,7 @@ const CustomStatCardItem = memo(function CustomStatCardItem({
 
       <div className={cn(!isPro && 'blur-[3px] opacity-70 pointer-events-none select-none')}>
         {/* Equity chart */}
-        <div className="h-24 w-full px-3 pt-3">
+        <div className="h-30 w-full px-3 pt-3">
           <EquityCurveChart
             data={chartData}
             currencySymbol={currencySymbol}
@@ -141,38 +141,25 @@ const CustomStatCardItem = memo(function CustomStatCardItem({
               {config.name}
             </p>
             <div className="flex items-start shrink-0">
-              <div className="inline-flex items-center gap-1.5">
-                {totalPnL >= 0 ? (
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                ) : (
-                  <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
-                )}
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-bold ${
-                  totalPnL >= 0
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                    : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
-                }`}>
-                  {totalPnL >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
-                </span>
-              </div>
+              <PnLBadge value={pnlPercent} size="xs" />
             </div>
           </div>
 
           {/* Stats row */}
-          <div className="flex items-end justify-between gap-4 mt-2">
+          <div className="flex items-end justify-between gap-4 mt-4">
             <div className="flex items-center gap-4">
-              <div>
+              <div className="space-y-1">
                 <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Win Rate</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                   {formatPercent(effectiveWinRate)}%
                 </p>
               </div>
-              <div>
+              <div className="space-y-1">
                 <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Trades</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{cardTrades.length}</p>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-right space-y-1">
               <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Net P&amp;L</p>
               <p className="text-sm font-semibold text-slate-900 dark:text-white">
                 {totalPnL >= 0 ? '+' : ''}{currencySymbol}{roundToCents(totalPnL).toFixed(2)}
@@ -181,33 +168,9 @@ const CustomStatCardItem = memo(function CustomStatCardItem({
           </div>
 
           {/* Filter pills */}
-          {(allPillCount > 0) && (
-            <div className="flex flex-wrap items-center gap-1 mt-3">
-              {visiblePills.map((pill) => (
-                <span
-                  key={pill}
-                  className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-200/70 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300"
-                >
-                  {pill}
-                </span>
-              ))}
-              {visibleTagPills.map((tp) => (
-                <span
-                  key={tp.name}
-                  title={tp.name}
-                  className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full text-white"
-                  style={{ background: tp.style.gradient }}
-                >
-                  {tp.label}
-                </span>
-              ))}
-              {extraPillCount > 0 && (
-                <span className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-200/70 dark:bg-slate-700/60 text-slate-500 dark:text-slate-400">
-                  +{extraPillCount} more
-                </span>
-              )}
-            </div>
-          )}
+          <div className="mt-3">
+            <FilterPillList filters={config.filters} savedTags={savedTags} maxVisible={3} />
+          </div>
 
           {/* Bottom action row */}
           {isPro && (
@@ -239,11 +202,17 @@ const CustomStatCardItem = memo(function CustomStatCardItem({
               </div>
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); onDetail(config.id); }}
-                className="inline-flex items-center gap-1 text-xs font-medium text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 underline underline-offset-2 transition-colors cursor-pointer"
+                disabled={!hasTrades}
+                onClick={(e) => { e.stopPropagation(); if (hasTrades) onDetail(config.id); }}
+                className={cn(
+                  'inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2 transition-colors',
+                  hasTrades
+                    ? 'text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer'
+                    : 'text-slate-400 dark:text-slate-600 cursor-not-allowed no-underline'
+                )}
               >
                 <Eye className="h-3 w-3" />
-                View Details
+                {hasTrades ? 'View Details' : 'No trades'}
               </button>
             </div>
           )}
@@ -365,11 +334,28 @@ export default function CustomStatsClient({
     ],
   }), []);
 
+  // URL-based detail view navigation
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const detailStatId = searchParams.get('detail');
+
+  const setDetailStatId = useCallback((id: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (id) {
+      params.set('detail', id);
+    } else {
+      params.delete('detail');
+    }
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [searchParams, router, pathname]);
+
   // Custom stats state
   const [savedStats, setSavedStats] = useState<CustomStatConfig[]>(savedCustomStats);
-  const [detailStatId, setDetailStatId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<CustomStatConfig | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const {
     dateRange,
@@ -395,6 +381,7 @@ export default function CustomStatsClient({
     async (nextStats: CustomStatConfig[]) => {
       const previousStats = savedStats;
       setSavedStats(nextStats);
+      setSaveError(null);
       try {
         const result = await updateStrategyCustomStats(strategyId, userId, nextStats);
         if (result.error) {
@@ -404,6 +391,7 @@ export default function CustomStatsClient({
       } catch (error) {
         console.error('Failed to persist custom stats:', error);
         setSavedStats(previousStats);
+        setSaveError('Failed to save custom stat. Please try again.');
       }
     },
     [savedStats, strategyId, userId, queryClient]
@@ -423,13 +411,12 @@ export default function CustomStatsClient({
     [savedStats, persistStats]
   );
 
-  const handleDelete = useCallback(
-    (id: string) => {
-      const nextStats = savedStats.filter((s) => s.id !== id);
-      persistStats(nextStats);
-    },
-    [savedStats, persistStats]
-  );
+  const handleDeleteConfirm = useCallback(() => {
+    if (!deleteTargetId) return;
+    const nextStats = savedStats.filter((s) => s.id !== deleteTargetId);
+    persistStats(nextStats);
+    setDeleteTargetId(null);
+  }, [deleteTargetId, savedStats, persistStats]);
 
   const handleEdit = useCallback((config: CustomStatConfig) => {
     setEditingConfig(config);
@@ -453,7 +440,9 @@ export default function CustomStatsClient({
 
   const displayedStats = isPro ? savedStats : previewStats;
 
-  if (detailStatId !== null && detailConfig) {
+  const deleteTargetConfig = savedStats.find((s) => s.id === deleteTargetId);
+
+  if (detailStatId && detailConfig) {
     return (
       <TooltipProvider>
         <CustomStatDetailView
@@ -515,7 +504,7 @@ export default function CustomStatsClient({
 
         <div className="space-y-6 mt-6">
           {!activeAccount && (
-            <Card className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm py-10 px-6 flex items-center justify-center text-center">
+            <Card className={cn(CARD_BASE_CLASSES, 'py-10 px-6 flex items-center justify-center text-center')}>
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                   No account selected
@@ -545,7 +534,7 @@ export default function CustomStatsClient({
                 mounted={mounted}
                 savedTags={savedTags}
                 onEdit={handleEdit}
-                onDelete={handleDelete}
+                onDelete={setDeleteTargetId}
                 onDetail={setDetailStatId}
               />
             ))}
@@ -572,6 +561,19 @@ export default function CustomStatsClient({
           )}
         </div>
 
+        {saveError && (
+          <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
+            {saveError}{' '}
+            <button
+              type="button"
+              onClick={() => setSaveError(null)}
+              className="cursor-pointer underline underline-offset-2"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         <CustomStatModal
           isOpen={isModalOpen}
           onClose={() => { setIsModalOpen(false); setEditingConfig(null); }}
@@ -583,6 +585,40 @@ export default function CustomStatsClient({
           tagOptions={savedTags.map((t) => t.name)}
         />
 
+        <AlertDialog open={deleteTargetId !== null} onOpenChange={(open) => { if (!open) setDeleteTargetId(null); }}>
+          <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient !rounded-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                <span className="text-red-500 dark:text-red-400 font-semibold text-lg">Confirm Delete</span>
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                <span className="text-slate-600 dark:text-slate-400">
+                  Are you sure you want to delete &ldquo;{deleteTargetConfig?.name}&rdquo;? This action cannot be undone.
+                </span>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex gap-3">
+              <AlertDialogCancel asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteTargetId(null)}
+                  className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
+                >
+                  Cancel
+                </Button>
+              </AlertDialogCancel>
+              <AlertDialogAction asChild>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteConfirm}
+                  className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 flex items-center gap-2"
+                >
+                  Yes, Delete
+                </Button>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
       </div>
     </TooltipProvider>

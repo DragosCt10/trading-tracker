@@ -11,11 +11,11 @@ import 'react-date-range/dist/theme/default.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://alphastats.io'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://alpha-stats.com'),
   title: 'AlphaStats',
   description: 'Built for traders, by traders. Stop guessing, start improving.',
   keywords: ['trading journal', 'trade tracker', 'trading analytics', 'trading statistics', 'forex journal', 'stock journal', 'crypto journal', 'trading performance'],
-  authors: [{ name: 'AlphaStats', url: 'https://alphastats.io' }],
+  authors: [{ name: 'AlphaStats', url: 'https://alpha-stats.com' }],
   creator: 'AlphaStats',
   icons: {
     icon: [
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'AlphaStats',
     description: 'Built for traders, by traders. Stop guessing, start improving.',
-    url: 'https://alphastats.io',
+    url: 'https://alpha-stats.com',
     siteName: 'AlphaStats',
     images: [{ url: '/thumbnail.jpg', width: 1200, height: 630 }],
     type: 'website',

@@ -15,10 +15,12 @@ import { useStrategyAllTimeTrades } from '@/hooks/useStrategyAllTimeTrades';
 import { useTradeFilters } from '@/hooks/useTradeFilters';
 import { applyTradeClientFilters } from '@/utils/applyTradeClientFilters';
 import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
+import { cn } from '@/lib/utils';
 import { DailyJournalSkeleton } from './DailyJournalSkeleton';
 import { DayCard } from './DayCard';
 import type { DayGroup } from './DayCard';
 import { useSubscription } from '@/hooks/useSubscription';
+import { CARD_BASE_CLASSES } from '@/constants/styles';
 import { buildPreviewTrade } from '@/utils/previewTrades';
 import { SavedTag } from '@/types/saved-tag';
 
@@ -294,7 +296,7 @@ export default function DailyJournalClient({
 
       <div className="space-y-4 mt-4">
         {!activeAccount && (
-          <Card className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm py-10 px-6 flex items-center justify-center text-center">
+          <Card className={cn(CARD_BASE_CLASSES, 'py-10 px-6 flex items-center justify-center text-center')}>
             <div className="space-y-2">
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                 No account selected
@@ -306,7 +308,7 @@ export default function DailyJournalClient({
           </Card>
         )}
         {activeAccount && isPro && !tradesLoading && visibleDayGroups.length === 0 && (
-          <Card className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm py-10 px-6 flex items-center justify-center text-center">
+          <Card className={cn(CARD_BASE_CLASSES, 'py-10 px-6 flex items-center justify-center text-center')}>
             <div className="space-y-2">
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                 No trades match the current filters

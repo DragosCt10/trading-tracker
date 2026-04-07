@@ -4,8 +4,6 @@ import { useState, useMemo, useCallback } from 'react';
 import {
   ArrowLeft,
   LayoutGrid,
-  TrendingDown,
-  TrendingUp,
   Columns2,
   PanelLeft,
 } from 'lucide-react';
@@ -32,11 +30,12 @@ import { ExpectancyCard } from '@/components/dashboard/analytics/ExpectancyCard'
 import { RecoveryFactorChart } from '@/components/dashboard/analytics/RecoveryFactorChart';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { cn, formatPercent, roundToCents } from '@/lib/utils';
+import { CARD_BASE_CLASSES } from '@/constants/styles';
 import type { Trade } from '@/types/trade';
 import type { CustomStatConfig } from '@/types/customStats';
-import { buildFilterPills } from '@/utils/applyCustomStatFilter';
+import { FilterPillList } from '@/components/shared/FilterPillList';
+import { PnLBadge } from '@/components/shared/PnLBadge';
 import type { SavedTag } from '@/types/saved-tag';
-import { resolveTagColorStyle } from '@/constants/tagColors';
 
 type CardViewMode = 'grid-4' | 'grid-2' | 'split' | 'table';
 
@@ -62,14 +61,9 @@ export function CustomStatDetailView({
   const [sortField, setSortField] = useState<'trade_date' | 'market' | 'outcome'>('trade_date');
   const [cardViewMode, setCardViewMode] = useState<CardViewMode>('grid-4');
 
-  const filterPills = useMemo(() => buildFilterPills({ ...config.filters, tags: undefined }), [config.filters]);
-  const tagPills = useMemo(
-    () => (config.filters.tags ?? []).map((name) => ({
-      name,
-      label: name.length > 20 ? name.slice(0, 19) + '…' : name,
-      style: resolveTagColorStyle(savedTags.find((t) => t.name === name)?.color),
-    })),
-    [config.filters.tags, savedTags]
+  const hasFilters = useMemo(
+    () => Object.values(config.filters).some((v) => v !== undefined && v !== null && v !== ''),
+    [config.filters]
   );
 
   const netCumulativePnl = useMemo(
@@ -164,26 +158,9 @@ export function CustomStatDetailView({
                 {config.name}
               </h1>
             </div>
-            {(filterPills.length > 0 || tagPills.length > 0) ? (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {filterPills.map((pill) => (
-                  <span
-                    key={pill}
-                    className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-200/70 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300"
-                  >
-                    {pill}
-                  </span>
-                ))}
-                {tagPills.map((tp) => (
-                  <span
-                    key={tp.name}
-                    title={tp.name}
-                    className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full text-white"
-                    style={{ background: tp.style.gradient }}
-                  >
-                    {tp.label}
-                  </span>
-                ))}
+            {hasFilters ? (
+              <div className="mt-2">
+                <FilterPillList filters={config.filters} savedTags={savedTags} />
               </div>
             ) : (
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">No filters — matches all trades</p>
@@ -208,7 +185,7 @@ export function CustomStatDetailView({
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
 
         {/* Net P&L */}
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+        <Card className={cn(CARD_BASE_CLASSES, 'relative overflow-hidden')}>
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
@@ -219,20 +196,7 @@ export function CustomStatDetailView({
                   {currencySymbol}{roundToCents(netCumulativePnl).toFixed(2)}
                 </p>
               </div>
-              <div className="flex items-center gap-1.5">
-                {netCumulativePnl >= 0 ? (
-                  <TrendingUp className="w-4 h-4 text-emerald-500" />
-                ) : (
-                  <TrendingDown className="w-4 h-4 text-rose-500" />
-                )}
-                <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
-                  netCumulativePnl >= 0
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                    : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
-                }`}>
-                  {netCumulativePnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
-                </div>
-              </div>
+              <PnLBadge value={pnlPercent} size="sm" />
             </div>
             <div className="flex-1 min-h-[80px]">
               {!mounted ? (
@@ -258,7 +222,7 @@ export function CustomStatDetailView({
         </Card>
 
         {/* Total Trades */}
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+        <Card className={cn(CARD_BASE_CLASSES, 'relative overflow-hidden')}>
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
@@ -284,7 +248,7 @@ export function CustomStatDetailView({
         </Card>
 
         {/* Win Rate */}
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+        <Card className={cn(CARD_BASE_CLASSES, 'relative overflow-hidden')}>
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
@@ -314,7 +278,7 @@ export function CustomStatDetailView({
         </Card>
 
         {/* Avg Drawdown */}
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+        <Card className={cn(CARD_BASE_CLASSES, 'relative overflow-hidden')}>
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">

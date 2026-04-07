@@ -11,7 +11,7 @@ export function CardMockup() {
     <div className="max-w-sm mx-auto">
       <Card className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
         {/* Equity chart -- exact same as CustomStatCardItem */}
-        <div className="h-24 w-full px-3 pt-3">
+        <div className="h-30 w-full px-3 pt-3">
           <EquityCurveChart
             data={MOCK_EQUITY}
             currencySymbol="$"
@@ -39,18 +39,18 @@ export function CardMockup() {
           </div>
 
           {/* Stats row */}
-          <div className="flex items-end justify-between gap-4 mt-2">
+          <div className="flex items-end justify-between gap-4 mt-4">
             <div className="flex items-center gap-4">
-              <div>
+              <div className="space-y-1">
                 <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Win Rate</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">62%</p>
               </div>
-              <div>
+              <div className="space-y-1">
                 <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Trades</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">14</p>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-right space-y-1">
               <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Net P&amp;L</p>
               <p className="text-sm font-semibold text-slate-900 dark:text-white">+$3,200.00</p>
             </div>

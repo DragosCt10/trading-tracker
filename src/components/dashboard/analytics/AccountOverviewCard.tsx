@@ -4,6 +4,7 @@
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip as ReTooltip, Bar as ReBar, Cell, LabelList } from 'recharts';
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Wallet, Info } from 'lucide-react';
+import { PnLBadge } from '@/components/shared/PnLBadge';
 import {
   Tooltip,
   TooltipContent,
@@ -169,23 +170,7 @@ export function AccountOverviewCard({
                   </div>
                 </>
               ) : (
-                <>
-                  {totalYearProfit >= 0 ? (
-                    <TrendingUp className="w-4 h-4 text-emerald-500" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 text-rose-500" />
-                  )}
-                  <div
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${
-                      totalYearProfit >= 0 
-                        ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' 
-                        : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
-                    }`}
-                  >
-                    {totalYearProfit >= 0 ? '+' : ''}
-                    {calculatePnlPercentFromOverview(totalYearProfit, accountBalance).toFixed(2)}% YTD
-                  </div>
-                </>
+                <PnLBadge value={calculatePnlPercentFromOverview(totalYearProfit, accountBalance)} size="md" suffix=" YTD" />
               )}
             </div>
           </div>
