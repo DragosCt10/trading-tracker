@@ -6,7 +6,7 @@ import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 function CallToAction1() {
   return (
-    <div className="max-w-5xl py-16 md:w-full mx-2 md:mx-auto flex flex-col items-center justify-center text-center rounded-2xl p-10 text-white relative overflow-hidden bg-transparent"
+    <div className="max-w-6xl py-16 md:w-full mx-2 md:mx-auto flex flex-col items-center justify-center text-center rounded-2xl p-10 text-white relative overflow-hidden bg-transparent"
     >
       {/* Animated border — rotating conic gradient via @property --border-angle */}
       <div
