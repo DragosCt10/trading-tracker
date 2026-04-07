@@ -97,6 +97,12 @@ export function LandingNavbar({ isLoggedIn: isLoggedInProp }: LandingNavbarProps
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-slate-900 focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
       <nav className="relative">
         {/* ── Scrolled bg + blur — faded as one unit so both disappear together ── */}
         <div
@@ -206,7 +212,7 @@ export function LandingNavbar({ isLoggedIn: isLoggedInProp }: LandingNavbarProps
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                  aria-label="Open menu"
+                  aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
                 >
                   {mobileMenuOpen ? (
                     <X className="h-4 w-4" />
