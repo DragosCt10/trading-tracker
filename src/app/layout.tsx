@@ -11,14 +11,33 @@ import 'react-date-range/dist/theme/default.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://alphastats.io'),
   title: 'AlphaStats',
-  description: 'Built for traders, by traders. Analyze every trade. Improve every day.',
+  description: 'Built for traders, by traders. Stop guessing, start improving.',
+  keywords: ['trading journal', 'trade tracker', 'trading analytics', 'trading statistics', 'forex journal', 'stock journal', 'crypto journal', 'trading performance'],
+  authors: [{ name: 'AlphaStats', url: 'https://alphastats.io' }],
+  creator: 'AlphaStats',
   icons: {
     icon: [
       { url: '/icon-light.png', type: 'image/png', media: '(prefers-color-scheme: light)' },
       { url: '/icon-dark.png', type: 'image/png', media: '(prefers-color-scheme: dark)' },
     ],
     apple: '/apple-icon.png',
+  },
+  manifest: '/site.webmanifest',
+  openGraph: {
+    title: 'AlphaStats',
+    description: 'Built for traders, by traders. Stop guessing, start improving.',
+    url: 'https://alphastats.io',
+    siteName: 'AlphaStats',
+    images: [{ url: '/thumbnail.jpg', width: 1200, height: 630 }],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AlphaStats',
+    description: 'Built for traders, by traders. Stop guessing, start improving.',
+    images: ['/thumbnail.jpg'],
   },
 };
 
