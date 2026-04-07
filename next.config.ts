@@ -44,6 +44,8 @@ const nextConfig: NextConfig = {
               // GTM + GA4: data collection endpoints.
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live https://www.googletagmanager.com https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com",
               "font-src 'self'",
+              // GTM uses iframes (e.g. noscript fallback, tag sandboxing).
+              "frame-src https://www.googletagmanager.com",
               "frame-ancestors 'none'",
             ].join('; '),
           },
