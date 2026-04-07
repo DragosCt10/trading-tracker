@@ -8,22 +8,28 @@ const CONSENT_KEY = 'cookie-consent';
 
 function updateGtagConsent(granted: boolean) {
   if (typeof window === 'undefined' || !('gtag' in window)) return;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).gtag('consent', 'update', {
+  (window as unknown as { gtag: (...args: unknown[]) => void }).gtag('consent', 'update', {
     ad_storage: granted ? 'granted' : 'denied',
     analytics_storage: granted ? 'granted' : 'denied',
   });
 }
 
 export function CookieBanner() {
-  const [visible, setVisible] = useState(false);
+  // Lazy initializer: runs on the client only; safe to read localStorage here.
+  // typeof window guard makes SSR safe (Next.js renders client components on the server too).
+  const [visible, setVisible] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return !localStorage.getItem(CONSENT_KEY);
+    } catch {
+      return false;
+    }
+  });
 
+  // Re-fire gtag consent update if the user already accepted in a previous session.
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(CONSENT_KEY);
-      if (!stored) {
-        setVisible(true);
-      } else if (stored === 'accepted') {
+      if (localStorage.getItem(CONSENT_KEY) === 'accepted') {
         updateGtagConsent(true);
       }
     } catch {}

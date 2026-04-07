@@ -9,6 +9,7 @@ import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import { GoogleTagManager } from '@next/third-parties/google';
 import Script from 'next/script';
+import { headers } from 'next/headers';
 import { CookieBanner } from '@/components/CookieBanner';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -63,25 +64,30 @@ export default function RootLayout({
     );
   }
 
+  // Read the per-request nonce injected by middleware (src/proxy.ts).
+  // Used to allowlist our inline scripts in the nonce-based Content-Security-Policy.
+  const nonce = (await headers()).get('x-nonce') ?? '';
+
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
         {/* Consent Mode v2 + GTM — production only */}
         {process.env.NODE_ENV === 'production' && (
-          <Script id="consent-default" strategy="beforeInteractive">
+          <Script id="consent-default" strategy="beforeInteractive" nonce={nonce}>
             {`
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               gtag('consent', 'default', {
                 'ad_storage': 'denied',
                 'analytics_storage': 'denied',
-                'wait_for_update': 3000
+                'wait_for_update': 500
               });
             `}
           </Script>
         )}
         {/* Apply theme before first paint to avoid flash of default theme on refresh */}
         <script
+          nonce={nonce}
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `
@@ -114,7 +120,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      {process.env.NODE_ENV === 'production' && <GoogleTagManager gtmId="GTM-NXXDR5MM" />}
+      {process.env.NODE_ENV === 'production' && <GoogleTagManager gtmId="GTM-NXXDR5MM" nonce={nonce} />}
       <body className={`${inter.className} app-gradient min-h-screen relative`}>
         {/* Theme-aware gradient orbs (use --orb-1 / --orb-2 from color theme) — static, no animation */}
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden>

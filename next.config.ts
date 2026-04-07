@@ -23,30 +23,10 @@ const nextConfig: NextConfig = {
         source: '/(.*)',
         headers: [
           {
+            // HSTS stays here as a static header (does not need to be dynamic).
+            // The full CSP is generated per-request in src/proxy.ts with a nonce.
             key: 'Strict-Transport-Security',
             value: 'max-age=63072000; includeSubDomains; preload',
-          },
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              // Webpack uses eval() for source maps in development.
-              // GTM compiles and executes tags dynamically at runtime, which requires eval() internally.
-              // vercel.live: Vercel preview deployment toolbar/feedback widget.
-              // GTM: googletagmanager.com loads the GTM container script.
-              `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://www.googletagmanager.com https://www.google-analytics.com`,
-              "style-src 'self' 'unsafe-inline'",
-              // GTM may inject tracking pixels via img tags.
-              "img-src 'self' data: https: https://www.googletagmanager.com",
-              // Supabase Realtime uses wss:// websockets; allow both HTTP + WS schemes.
-              // vercel.live: Vercel toolbar sends feedback data back.
-              // GTM + GA4: data collection endpoints.
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live https://www.googletagmanager.com https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com",
-              "font-src 'self'",
-              // GTM uses iframes (e.g. noscript fallback, tag sandboxing).
-              "frame-src https://www.googletagmanager.com",
-              "frame-ancestors 'none'",
-            ].join('; '),
           },
         ],
       },
