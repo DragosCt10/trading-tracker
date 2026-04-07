@@ -1,0 +1,21 @@
+{
+  "name": "AlphaStats",
+  "short_name": "AlphaStats",
+  "description": "Built for traders, by traders. Stop guessing, start improving.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0a12",
+  "theme_color": "#0d0a12",
+  "icons": [
+    {
+      "src": "/icon-light.png",
+      "type": "image/png",
+      "sizes": "any"
+    },
+    {
+      "src": "/apple-icon.png",
+      "type": "image/png",
+      "sizes": "180x180"
+    }
+  ]
+}
