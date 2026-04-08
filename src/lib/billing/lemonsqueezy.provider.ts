@@ -117,6 +117,15 @@ export class LemonSqueezyProvider implements IPaymentProvider {
     return { url };
   }
 
+  async getApplyDiscountUrl({ subscriptionId }: { subscriptionId: string }): Promise<{ url: string }> {
+    const sub = await getSubscription(subscriptionId);
+    const url = sub.data?.data?.attributes?.urls?.customer_portal_update_subscription;
+    if (!url) {
+      throw new Error('[billing/lemonsqueezy] No customer_portal_update_subscription URL found for subscription');
+    }
+    return { url };
+  }
+
   async getCustomerEmail(customerId: string): Promise<string | null> {
     try {
       const sub = await getSubscription(customerId);

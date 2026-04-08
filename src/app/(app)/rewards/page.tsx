@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCachedUserSession } from '@/lib/server/session';
 import { getTotalExecutedTradeCount } from '@/lib/server/tradeStats';
 import { getFeatureFlags } from '@/lib/server/settings';
-import { resolveSubscription, createPortalUrl } from '@/lib/server/subscription';
+import { resolveSubscription, createApplyDiscountUrl } from '@/lib/server/subscription';
 import { syncProLoyaltyNotification } from '@/lib/server/feedNotifications';
 import RewardsClient from './RewardsClient';
 
@@ -32,7 +32,7 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
     if (subscription) {
       isPro = subscription.tier === 'pro' || subscription.tier === 'elite';
       proSinceDate = subscription.createdAt;
-      if (isPro) portalUrl = await createPortalUrl().catch(() => null);
+      if (isPro) portalUrl = await createApplyDiscountUrl().catch(() => null);
     }
     // Fire 3-month PRO loyalty notification (non-blocking, runs after main data)
     if (isPro) void syncProLoyaltyNotification(user.id, proSinceDate);

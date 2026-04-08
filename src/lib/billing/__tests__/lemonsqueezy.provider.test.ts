@@ -43,6 +43,7 @@ import {
   createCheckout,
   cancelSubscription,
   createDiscount,
+  getSubscription,
 } from '@lemonsqueezy/lemonsqueezy.js';
 
 function makeWebhookPayload(eventName: string, attrs: Record<string, unknown> = {}, customData: Record<string, unknown> = {}) {
@@ -184,6 +185,36 @@ describe('LemonSqueezyProvider', () => {
       await provider.cancelSubscription('sub_123');
 
       expect(cancelSubscription).toHaveBeenCalledWith('sub_123');
+    });
+  });
+
+  describe('getApplyDiscountUrl', () => {
+    it('returns customer_portal_update_subscription URL', async () => {
+      vi.mocked(getSubscription).mockResolvedValue({
+        data: {
+          data: {
+            attributes: {
+              urls: {
+                customer_portal_update_subscription: 'https://app.lemonsqueezy.com/my-orders/sub_123/update',
+              },
+            },
+          },
+        },
+      } as any);
+
+      const result = await provider.getApplyDiscountUrl({ subscriptionId: 'sub_123' });
+      expect(result.url).toBe('https://app.lemonsqueezy.com/my-orders/sub_123/update');
+      expect(getSubscription).toHaveBeenCalledWith('sub_123');
+    });
+
+    it('throws when URL is missing', async () => {
+      vi.mocked(getSubscription).mockResolvedValue({
+        data: { data: { attributes: { urls: {} } } },
+      } as any);
+
+      await expect(provider.getApplyDiscountUrl({ subscriptionId: 'sub_123' })).rejects.toThrow(
+        'No customer_portal_update_subscription URL found'
+      );
     });
   });
 

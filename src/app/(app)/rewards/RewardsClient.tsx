@@ -226,7 +226,7 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, portal
                   {portalUrl ? (
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       <a href={portalUrl} className="underline underline-offset-2 hover:text-slate-700 dark:hover:text-slate-300">
-                        Apply in billing portal →
+                        Apply to current subscription →
                       </a>
                     </p>
                   ) : (
@@ -325,7 +325,7 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, portal
                             You&apos;re already PRO.{' '}
                             {portalUrl ? (
                               <a href={portalUrl} className="underline underline-offset-2 hover:text-slate-700 dark:hover:text-slate-300">
-                                Apply in billing portal →
+                                Apply to current subscription →
                               </a>
                             ) : (
                               <a href="/settings?tab=billing" className="underline underline-offset-2 hover:text-slate-700 dark:hover:text-slate-300">

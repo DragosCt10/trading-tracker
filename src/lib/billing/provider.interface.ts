@@ -67,6 +67,7 @@ export interface IPaymentProvider {
   createCheckoutSession(params: CheckoutParams): Promise<{ checkoutUrl: string }>;
   createCustomerPortalSession(params: { customerId: string; returnUrl: string }): Promise<{ portalUrl: string }>;
   getUpdatePaymentMethodUrl(params: { subscriptionId: string }): Promise<{ url: string }>;
+  getApplyDiscountUrl(params: { subscriptionId: string }): Promise<{ url: string }>;
   getCustomerEmail(customerId: string): Promise<string | null>;
   getLatestOrderInvoice(params: {
     customerId: string;
