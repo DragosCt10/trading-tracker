@@ -98,11 +98,11 @@ export function BillingCurrentPlanCard({
         <div className="mt-4 pt-4 border-t border-slate-200/60 dark:border-slate-800/60">
           <div className="flex flex-wrap items-center gap-2">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={onPortal}
               disabled={isPortalPending || isCancelPending || isInvoicePending}
-              className="gap-2 h-10 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              className="cursor-pointer gap-2 h-10 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-100/70 dark:text-slate-200 dark:hover:text-slate-50 dark:hover:bg-slate-800/60 themed-focus transition-all duration-200"
             >
               {isPortalPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -113,11 +113,11 @@ export function BillingCurrentPlanCard({
             </Button>
 
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={onInvoice}
               disabled={isInvoicePending || isCancelPending || isPortalPending}
-              className="gap-2 h-10 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              className="cursor-pointer gap-2 h-10 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-100/70 dark:text-slate-200 dark:hover:text-slate-50 dark:hover:bg-slate-800/60 themed-focus transition-all duration-200"
             >
               {isInvoicePending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
