@@ -191,30 +191,36 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
           <div className="ml-auto hidden items-center gap-2 lg:flex">
             {/* Tier badge */}
             {mounted && (
-              <span
-                className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 select-none"
-                style={isPro ? { border: `1px solid ${proBorderColor}` } : { border: '1px solid var(--tc-border)' }}
-              >
-                {isPro
-                  ? <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
-                  : <Sparkles className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
-                }
+              isPro ? (
                 <span
-                  className="text-[10px] font-bold uppercase tracking-widest"
-                  style={
-                    isPro
-                      ? proTextStyle
-                      : {
-                          backgroundImage: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          backgroundClip: 'text',
-                        }
-                  }
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 select-none"
+                  style={{ border: `1px solid ${proBorderColor}` }}
                 >
-                  {tierDef.badge.label}
+                  <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
+                  <span className="text-[10px] font-bold uppercase tracking-widest" style={proTextStyle}>
+                    {tierDef.badge.label}
+                  </span>
                 </span>
-              </span>
+              ) : (
+                <Link
+                  href="/settings?tab=billing"
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 cursor-pointer hover:opacity-80 transition-opacity"
+                  style={{ border: '1px solid var(--tc-border)' }}
+                >
+                  <Sparkles className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
+                  <span
+                    className="text-[10px] font-bold uppercase tracking-widest"
+                    style={{
+                      backgroundImage: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                    }}
+                  >
+                    {tierDef.badge.label}
+                  </span>
+                </Link>
+              )
             )}
 
             <Separator orientation="vertical" className="mx-1.5 h-6" />
@@ -419,30 +425,36 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                 {/* Mobile tier badge */}
                 {mounted && (
                   <div className="w-full flex items-center justify-center py-0.5">
-                    <span
-                      className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 select-none"
-                      style={isPro ? { border: `1px solid ${proBorderColor}` } : { border: '1px solid var(--tc-border)' }}
-                    >
-                      {isPro
-                        ? <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
-                        : <Sparkles className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
-                      }
+                    {isPro ? (
                       <span
-                        className="text-[10px] font-bold uppercase tracking-widest"
-                        style={
-                          isPro
-                            ? proTextStyle
-                            : {
-                                backgroundImage: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                backgroundClip: 'text',
-                              }
-                        }
+                        className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 select-none"
+                        style={{ border: `1px solid ${proBorderColor}` }}
                       >
-                        {tierDef.badge.label}
+                        <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest" style={proTextStyle}>
+                          {tierDef.badge.label}
+                        </span>
                       </span>
-                    </span>
+                    ) : (
+                      <Link
+                        href="/settings?tab=billing"
+                        className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 cursor-pointer hover:opacity-80 transition-opacity"
+                        style={{ border: '1px solid var(--tc-border)' }}
+                      >
+                        <Sparkles className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
+                        <span
+                          className="text-[10px] font-bold uppercase tracking-widest"
+                          style={{
+                            backgroundImage: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                          }}
+                        >
+                          {tierDef.badge.label}
+                        </span>
+                      </Link>
+                    )}
                   </div>
                 )}
 
