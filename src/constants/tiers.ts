@@ -10,7 +10,7 @@ import type { TierDefinition, TierId } from '@/types/subscription';
 export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
   starter: {
     id: 'starter',
-    label: 'Starter',
+    label: 'Upgrade to PRO',
     pricing: {
       monthly: null, // Free
       annual: null,  // Free
@@ -42,7 +42,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       socialFeedEditPosts: false,
       socialFeedChannels: false,
     },
-    badge: { label: 'Starter', colorClass: 'text-zinc-400 border-zinc-700' },
+    badge: { label: 'Upgrade to PRO', colorClass: 'text-zinc-400 border-zinc-700' },
   },
 
   pro: {

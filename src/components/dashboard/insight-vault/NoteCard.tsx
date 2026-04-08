@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, ChevronDown, Eye, Pin } from 'lucide-react';
@@ -8,53 +7,45 @@ import { Note } from '@/types/note';
 import { format } from 'date-fns';
 import { Trade } from '@/types/trade';
 import { cn } from '@/lib/utils';
+import { getPreview } from '@/utils/markdownPreview';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import TradeDetailsModal from '@/components/TradeDetailsModal';
 
 interface NoteCardProps {
   note: Note;
   onClick: () => void;
-  userId: string;
+  onTradeClick?: (trade: Trade) => void;
 }
 
-export function NoteCard({ note, onClick }: NoteCardProps) {
-  const [tradeForModal, setTradeForModal] = useState<Trade | null>(null);
-
+export function NoteCard({ note, onClick, onTradeClick }: NoteCardProps) {
   const linkedTrades = note.linkedTradesFull ?? [];
 
   const handleTradeClick = (e: React.MouseEvent, trade: Trade) => {
     e.stopPropagation();
     e.preventDefault();
-    setTradeForModal(trade);
+    onTradeClick?.(trade);
   };
 
-  // Strip markdown and get preview
-  const getPreview = (content: string): string => {
-    // Remove markdown syntax
-    const plainText = content
-      .replace(/#{1,6}\s+/g, '') // Headers
-      .replace(/\*\*([^*]+)\*\*/g, '$1') // Bold
-      .replace(/\*([^*]+)\*/g, '$1') // Italic
-      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Links
-      .replace(/`([^`]+)`/g, '$1') // Inline code
-      .replace(/```[\s\S]*?```/g, '') // Code blocks
-      .trim();
-
-    return plainText;
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
   };
 
   const preview = getPreview(note.content);
   const formattedDate = format(new Date(note.created_at), 'MMM d, yyyy');
 
   return (
-    <>
     <Card
-      className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm cursor-pointer hover:shadow-md transition-all duration-200"
+      role="button"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm cursor-pointer hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--tc-primary)] focus:ring-offset-2"
       onClick={onClick}
     >
       <CardContent className="p-6 flex flex-col h-full">
@@ -194,11 +185,5 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
         </button>
       </CardContent>
     </Card>
-      <TradeDetailsModal
-        trade={tradeForModal}
-        isOpen={!!tradeForModal}
-        onClose={() => setTradeForModal(null)}
-      />
-    </>
   );
 }

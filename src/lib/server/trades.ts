@@ -550,6 +550,8 @@ export type TradeForNoteLinking = {
 
 const TRADES_FOR_NOTE_LINKING_PAGE_SIZE = 50;
 
+const VALID_TRADE_MODES = new Set<string>(['live', 'backtesting', 'demo']);
+
 export type GetTradesForNoteLinkingResult = {
   trades: TradeForNoteLinking[];
   nextOffset: number | undefined;
@@ -575,6 +577,8 @@ export async function getTradesForNoteLinking(
       return { trades: [], nextOffset: undefined };
     }
   }
+
+  if (!VALID_TRADE_MODES.has(mode)) throw new Error(`Invalid trade mode: ${mode}`);
 
   const supabase = await createClient();
   const pageSize = Math.min(options?.limit ?? TRADES_FOR_NOTE_LINKING_PAGE_SIZE, 100);
@@ -649,6 +653,7 @@ export async function getFullTradesByRefs(
   type Ref = { id: string; mode: 'live' | 'backtesting' | 'demo' };
   const results: Trade[] = [];
   for (const [mode, refList] of Array.from(byMode.entries())) {
+    if (!VALID_TRADE_MODES.has(mode)) continue;
     const ids = refList.map((r: Ref) => r.id);
     const tableName = `${mode}_trades`;
     const { data } = await supabase

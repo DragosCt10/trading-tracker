@@ -76,6 +76,13 @@ export const queryKeys = {
   notes: (userId?: string, strategyId?: string) =>
     ['notes', userId, strategyId] as const,
 
+  tradesForNoteLinking: (
+    userId?: string,
+    mode?: string,
+    accountId?: string | null,
+    strategyIds?: string[]
+  ) => ['tradesForNoteLinking', userId, mode, accountId, strategyIds] as const,
+
   strategyShares: (
     strategyId: string,
     userId: string,

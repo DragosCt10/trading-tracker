@@ -1,18 +1,21 @@
 'use client';
 
-import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Note } from '@/types/note';
+import type { Trade } from '@/types/trade';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, Lightbulb, Loader2 } from 'lucide-react';
 import NoteDetailsModal from '@/components/dashboard/insight-vault/NoteDetailsModal';
 import NewNoteModal from '@/components/dashboard/insight-vault/NewNoteModal';
+import TradeDetailsModal from '@/components/TradeDetailsModal';
 import { NoteCard } from '@/components/dashboard/insight-vault/NoteCard';
+import { NoteCardSkeleton } from '@/components/dashboard/insight-vault/NoteCardSkeleton';
 import { getNotes } from '@/lib/server/notes';
 import { getTradesForNoteLinking, type GetTradesForNoteLinkingResult } from '@/lib/server/trades';
+import { queryKeys } from '@/lib/queryKeys';
+import { DEFAULT_STRATEGY_FILTER } from '@/constants/insightVault';
 import { useStrategies } from '@/hooks/useStrategies';
 import {
   Select,
@@ -39,32 +42,34 @@ export default function NotesClient({
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isNewNoteModalOpen, setIsNewNoteModalOpen] = useState(false);
-  const [selectedStrategy, setSelectedStrategy] = useState<string>('all');
+  const [selectedStrategy, setSelectedStrategy] = useState<string>(DEFAULT_STRATEGY_FILTER);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_LOAD);
-  const [mounted, setMounted] = useState(false);
+  const [tradeForModal, setTradeForModal] = useState<Trade | null>(null);
   const observerTarget = useRef<HTMLDivElement>(null);
+  const hasPrefetched = useRef(false);
 
   const { strategies } = useStrategies({ userId, accountId });
 
-  // Prevent hydration mismatch
+  // Debounce search input by 200ms
   useEffect(() => {
-    const timer = setTimeout(() => setMounted(true), 0);
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 200);
     return () => clearTimeout(timer);
-  }, []);
+  }, [searchQuery]);
 
-  // Prefetch first page of trades-for-linking so "Link trades" picker opens instantly (same key as modals when no strategy filter)
-  useEffect(() => {
+  // Prefetch trades-for-linking on first modal open
+  const prefetchTradesForLinking = useCallback(() => {
+    if (hasPrefetched.current) return;
     const accountId = selection.activeAccount?.id ?? null;
     if (!userId || !accountId || !selection.mode) return;
+    hasPrefetched.current = true;
     const mode = selection.mode as 'live' | 'backtesting' | 'demo';
-    const strategyIds: string[] | undefined = undefined;
     queryClient.prefetchInfiniteQuery({
-      queryKey: ['tradesForNoteLinking', userId, mode, accountId, []],
+      queryKey: queryKeys.tradesForNoteLinking(userId, mode, accountId, []),
       queryFn: ({ pageParam }) =>
         getTradesForNoteLinking(userId, mode, {
           accountId,
-          strategyIds,
           offset: pageParam as number,
         }),
       initialPageParam: 0,
@@ -73,13 +78,18 @@ export default function NotesClient({
     });
   }, [userId, selection.mode, selection.activeAccount?.id, queryClient]);
 
+  // Trigger prefetch when any modal opens
+  useEffect(() => {
+    if (isNewNoteModalOpen || isModalOpen) prefetchTradesForLinking();
+  }, [isNewNoteModalOpen, isModalOpen, prefetchTradesForLinking]);
+
   // Fetch notes with React Query
   const {
     data: notes,
     isLoading: notesLoading,
     isFetching: notesFetching,
   } = useQuery<Note[]>({
-    queryKey: ['notes', userId, selectedStrategy],
+    queryKey: queryKeys.notes(userId, selectedStrategy),
     queryFn: async () => {
       if (!userId) return [];
       return getNotes(userId, {
@@ -94,22 +104,24 @@ export default function NotesClient({
 
   const notesList = useMemo(() => notes ?? [], [notes]);
 
-  // Filter by search query (client-side)
+  // Filter by search query (client-side, debounced)
   const filteredNotes = useMemo(() => {
-    if (!searchQuery.trim()) return notesList;
-    const query = searchQuery.toLowerCase();
+    if (!debouncedSearch.trim()) return notesList;
+    const query = debouncedSearch.toLowerCase();
     return notesList.filter(
       (note) =>
         note.title.toLowerCase().includes(query) ||
         note.content.toLowerCase().includes(query)
     );
-  }, [notesList, searchQuery]);
+  }, [notesList, debouncedSearch]);
 
   // Reset displayed count when filters change
-  useEffect(() => {
-    const timer = setTimeout(() => setDisplayedCount(ITEMS_PER_LOAD), 0);
-    return () => clearTimeout(timer);
-  }, [selectedStrategy, searchQuery]);
+  const filterKey = `${selectedStrategy}:${debouncedSearch}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (prevFilterKey !== filterKey) {
+    setPrevFilterKey(filterKey);
+    setDisplayedCount(ITEMS_PER_LOAD);
+  }
 
   // Get displayed notes (for infinite scroll)
   const displayedNotes = useMemo(() => {
@@ -123,17 +135,15 @@ export default function NotesClient({
   const notesLoadingRef = useRef(notesLoading);
   const notesFetchingRef = useRef(notesFetching);
   const filteredLengthRef = useRef(filteredNotes.length);
-  useLayoutEffect(() => {
+  useEffect(() => {
     hasMoreRef.current = hasMore;
     notesLoadingRef.current = notesLoading;
     notesFetchingRef.current = notesFetching;
     filteredLengthRef.current = filteredNotes.length;
   });
 
-  // Intersection Observer for infinite scroll — set up once after mount, never recreated
+  // Intersection Observer for infinite scroll
   useEffect(() => {
-    if (!mounted) return;
-
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMoreRef.current && !notesLoadingRef.current && !notesFetchingRef.current) {
@@ -146,7 +156,7 @@ export default function NotesClient({
     const currentTarget = observerTarget.current;
     if (currentTarget) observer.observe(currentTarget);
     return () => observer.disconnect();
-  }, [mounted]);
+  }, []);
 
   const openModal = (note: Note) => {
     setSelectedNote(note);
@@ -210,6 +220,7 @@ export default function NotesClient({
         <div className="flex-1">
           <Input
             placeholder="Search insights..."
+            aria-label="Search insights"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="max-w-md h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
@@ -217,7 +228,7 @@ export default function NotesClient({
         </div>
         <div className="w-full sm:w-48">
           <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
-            <SelectTrigger className="themed-focus h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 transition-all duration-300">
+            <SelectTrigger aria-label="Filter by strategy" className="themed-focus h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 transition-all duration-300">
               <SelectValue placeholder="Filter by strategy" />
             </SelectTrigger>
             <SelectContent>
@@ -235,57 +246,15 @@ export default function NotesClient({
 
       {/* Notes Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {!mounted || notesLoading ? (
-          // Skeleton loader - matches NoteCard structure exactly
+        {notesLoading ? (
           <>
             {Array.from({ length: 6 }).map((_, index) => (
-              <Card
-                key={`skeleton-${index}`}
-                className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm"
-              >
-                <CardContent className="p-6 flex flex-col h-full">
-                  {/* Title section - matches NoteCard title + pin structure */}
-                  <div className="flex items-start justify-between mb-4">
-                    <Skeleton className="h-6 w-full flex-1 pr-2" />
-                    {/* Optional pin icon skeleton - randomly show some */}
-                    {index % 3 === 0 && (
-                      <Skeleton className="h-4 w-4 flex-shrink-0 rounded" />
-                    )}
-                  </div>
-                  
-                  {/* Preview text section - matches NoteCard preview (line-clamp-3) */}
-                  <div className="mb-4 flex-1 space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                  </div>
-                  
-                  {/* Strategy and date section - matches NoteCard structure */}
-                  <div className="space-y-2 mb-4">
-                    {/* Strategy label + badges */}
-                    <div className="flex items-start gap-2 flex-wrap">
-                      <Skeleton className="h-3 w-16 mt-0.5" />
-                      <div className="flex flex-wrap gap-1.5">
-                        <Skeleton className="h-5 w-20 rounded-full" />
-                        <Skeleton className="h-5 w-16 rounded-full" />
-                      </div>
-                    </div>
-                    {/* Date */}
-                    <Skeleton className="h-3 w-24" />
-                  </div>
-                  
-                  {/* View Details button - matches NoteCard button with arrow */}
-                  <div className="inline-flex items-center mt-auto gap-1">
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-4 w-4 rounded" />
-                  </div>
-                </CardContent>
-              </Card>
+              <NoteCardSkeleton key={`skeleton-${index}`} index={index} />
             ))}
           </>
         ) : displayedNotes.length === 0 ? (
           <div className="col-span-full text-center py-12">
-            <Lightbulb className="h-12 w-12 mx-auto mb-3 opacity-50" style={{ color: 'var(--tc-primary)' }} />
+            <Lightbulb className="h-12 w-12 mx-auto mb-3 opacity-50" style={{ color: 'var(--tc-primary)' }} aria-hidden="true" />
             <p className="text-slate-500 dark:text-slate-400">
               {searchQuery ? 'No insights found matching your search.' : 'Your vault is empty. Create your first insight!'}
             </p>
@@ -297,16 +266,16 @@ export default function NotesClient({
                 key={note.id}
                 note={note}
                 onClick={() => openModal(note)}
-                userId={userId}
+                onTradeClick={(trade) => setTradeForModal(trade)}
               />
             ))}
             
             {/* Infinite scroll trigger */}
             {hasMore && (
-              <div ref={observerTarget} className="col-span-full flex justify-center py-4">
+              <div ref={observerTarget} className="col-span-full flex justify-center py-4" aria-live="polite">
                 {notesFetching ? (
                   <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                     <span className="text-sm">Loading more notes...</span>
                   </div>
                 ) : (
@@ -334,6 +303,13 @@ export default function NotesClient({
         isOpen={isNewNoteModalOpen}
         onClose={() => setIsNewNoteModalOpen(false)}
         onNoteCreated={handleNoteCreated}
+      />
+
+      {/* Shared Trade Details Modal (lifted from NoteCard) */}
+      <TradeDetailsModal
+        trade={tradeForModal}
+        isOpen={!!tradeForModal}
+        onClose={() => setTradeForModal(null)}
       />
     </div>
   );

@@ -1,23 +1,23 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { Note } from '@/types/note';
-import type { TradingMode } from '@/types/trade';
+import type { TradeRef } from '@/types/note';
 import { deleteNote, updateNote } from '@/lib/server/notes';
-import { useInfiniteQuery } from '@tanstack/react-query';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
-import { getTradesForNoteLinking } from '@/lib/server/trades';
-import { AccountModePopover, type AccountModeSelection } from '@/components/shared/AccountModePopover';
-import { AlertCircle, Pencil, Trash2, Pin, X, FileText, Link2, Loader2 } from 'lucide-react';
+import { type AccountModeSelection } from '@/components/shared/AccountModePopover';
+import { AlertCircle, Pencil, Trash2, Pin, X, FileText } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/dynamicComponents';
+import MarkdownEditor from '@/components/dashboard/insight-vault/MarkdownEditor';
+import StrategySelector from '@/components/dashboard/insight-vault/StrategySelector';
+import TradeLinkingPicker from '@/components/dashboard/insight-vault/TradeLinkingPicker';
 
 // shadcn UI components
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
   AlertDialog,
@@ -70,7 +70,7 @@ export default function NoteDetailsModal({
     accountId: null,
     account: null,
   });
-  const tradeListScrollSentinelRef = useRef<HTMLDivElement>(null);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
   // Use list note as source of truth (no getNoteById on open — list already has note + linkedTradesFull)
   const displayNote = note;
@@ -89,14 +89,6 @@ export default function NoteDetailsModal({
           strategy_name: undefined as string | undefined,
         })) ?? []),
   [displayNote.trades, displayNote.linkedTradesFull]);
-  const selectedStrategyCount = useMemo(() => {
-    const uniqueStrategyIds = new Set<string>();
-    (editedNote.strategy_ids ?? []).forEach((id) => {
-      if (id) uniqueStrategyIds.add(id);
-    });
-    if (editedNote.strategy_id) uniqueStrategyIds.add(editedNote.strategy_id);
-    return uniqueStrategyIds.size;
-  }, [editedNote.strategy_ids, editedNote.strategy_id]);
 
   // Update editedNote when note prop changes (e.g. list refetched)
   useEffect(() => {
@@ -109,63 +101,51 @@ export default function NoteDetailsModal({
     }
   }, [displayNote, editedNote.id, isEditing]);
 
-  const {
-    data: tradesForLinkingData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ['tradesForNoteLinking', userId, tradePickerSelection.mode, tradePickerSelection.accountId, editedNote.strategy_ids],
-    queryFn: ({ pageParam }) =>
-      getTradesForNoteLinking(userId!, tradePickerSelection.mode, {
-        accountId: tradePickerSelection.accountId,
-        strategyIds: (editedNote.strategy_ids?.length ?? 0) > 0 ? editedNote.strategy_ids : undefined,
-        offset: pageParam as number,
-      }),
-    initialPageParam: 0,
-    getNextPageParam: (lastPage) => lastPage.nextOffset,
-    enabled: !!userId && isOpen && isEditing && !!tradePickerSelection.accountId,
-    staleTime: 60 * 1000,
-  });
+  const handleStrategyIdsChange = useCallback((ids: string[]) => {
+    setEditedNote((prev) => ({ ...prev, strategy_ids: ids }));
+  }, []);
 
-  const tradesForLinking = useMemo(
-    () => tradesForLinkingData?.pages.flatMap((p) => p.trades) ?? [],
-    [tradesForLinkingData]
-  );
+  const handleLegacyStrategyIdChange = useCallback((id: string | null) => {
+    setEditedNote((prev) => ({ ...prev, strategy_id: id }));
+  }, []);
 
-  // Refs so the observer callback always reads fresh values without recreating the observer
-  const isFetchingNextPageRef = useRef(isFetchingNextPage);
-  const fetchNextPageRef = useRef(fetchNextPage);
-  isFetchingNextPageRef.current = isFetchingNextPage;
-  fetchNextPageRef.current = fetchNextPage;
+  const handleTradeRefsChange = useCallback((refs: TradeRef[]) => {
+    setEditedNote((prev) => ({ ...prev, trade_refs: refs }));
+  }, []);
 
-  // Infinite scroll: only recreate when accountId or hasNextPage changes (sentinel enters/leaves DOM)
-  useEffect(() => {
-    if (!tradePickerSelection.accountId || !hasNextPage) return;
-    const el = tradeListScrollSentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !isFetchingNextPageRef.current) fetchNextPageRef.current();
-      },
-      { root: el.closest('.overflow-y-auto'), rootMargin: '100px', threshold: 0 }
+  // Track dirty state when editing — compare editedNote against displayNote
+  const isDirty = useMemo(() => {
+    if (!isEditing) return false;
+    const origIds = displayNote.strategy_ids || (displayNote.strategy_id ? [displayNote.strategy_id] : []);
+    const origRefs = displayNote.trade_refs ?? [];
+    return (
+      editedNote.title !== displayNote.title ||
+      editedNote.content !== displayNote.content ||
+      editedNote.is_pinned !== displayNote.is_pinned ||
+      JSON.stringify(editedNote.strategy_ids ?? []) !== JSON.stringify(origIds) ||
+      JSON.stringify(editedNote.trade_refs ?? []) !== JSON.stringify(origRefs)
     );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [tradePickerSelection.accountId, hasNextPage]);
+  }, [isEditing, editedNote, displayNote]);
 
-  const isTradeSelected = (id: string, mode: TradingMode) =>
-    (editedNote.trade_refs ?? []).some((r) => r.id === id && r.mode === mode);
-  const toggleTradeRef = (id: string, mode: 'live' | 'backtesting' | 'demo') => {
-    setEditedNote((prev) => {
-      const refs = prev.trade_refs ?? [];
-      const exists = refs.some((r) => r.id === id && r.mode === mode);
-      const trade_refs = exists
-        ? refs.filter((r) => !(r.id === id && r.mode === mode))
-        : [...refs, { id, mode }];
-      return { ...prev, trade_refs };
+  const handleClose = useCallback(() => {
+    if (isDirty) {
+      setShowDiscardDialog(true);
+    } else {
+      onClose();
+    }
+  }, [isDirty, onClose]);
+
+  const handleConfirmDiscard = useCallback(() => {
+    setShowDiscardDialog(false);
+    setIsEditing(false);
+    setEditedNote({
+      ...displayNote,
+      strategy_ids: displayNote.strategy_ids || (displayNote.strategy_id ? [displayNote.strategy_id] : []),
+      trade_refs: displayNote.trade_refs ?? [],
     });
-  };
+    setError(null);
+    onClose();
+  }, [displayNote, onClose, setError]);
 
   const handleSave = async () => {
     if (!userId) {
@@ -225,7 +205,7 @@ export default function NoteDetailsModal({
 
   return (
     <>
-      <AlertDialog open={isOpen} onOpenChange={onClose}>
+      <AlertDialog open={isOpen} onOpenChange={handleClose}>
         <AlertDialogContent className="max-w-4xl max-h-[90vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl p-0 flex flex-col overflow-hidden">
           {/* Gradient orbs background */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
@@ -344,7 +324,7 @@ export default function NoteDetailsModal({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={onClose}
+                    onClick={handleClose}
                     className="h-8 w-8 p-0 cursor-pointer"
                   >
                     <X className="h-4 w-4" />
@@ -390,170 +370,34 @@ export default function NoteDetailsModal({
                 </div>
 
                 {/* Strategies (optional - multiple selection) */}
-                <div className="space-y-1.5">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Strategies (Optional)
-                  </Label>
-                  <div className="border border-slate-200/60 dark:border-slate-600 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm max-h-48 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:dark:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
-                    {strategies.length === 0 ? (
-                      <p className="text-sm text-slate-500 dark:text-slate-400">No strategies available</p>
-                    ) : (
-                      <div className="space-y-2 pr-1">
-                        {strategies.map((strategy) => {
-                          const isSelected = editedNote.strategy_ids?.includes(strategy.id) || editedNote.strategy_id === strategy.id;
-                          return (
-                            <div key={strategy.id} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`edit-strategy-${strategy.id}`}
-                                checked={isSelected}
-                                onCheckedChange={(checked) => {
-                                  const currentIds = editedNote.strategy_ids || (editedNote.strategy_id ? [editedNote.strategy_id] : []);
-                                  if (checked) {
-                                    setEditedNote({
-                                      ...editedNote,
-                                      strategy_ids: [...currentIds, strategy.id],
-                                      strategy_id: currentIds.length === 0 ? strategy.id : editedNote.strategy_id,
-                                    });
-                                  } else {
-                                    const newIds = currentIds.filter((id) => id !== strategy.id);
-                                    setEditedNote({
-                                      ...editedNote,
-                                      strategy_ids: newIds,
-                                      strategy_id: newIds.length === 0 ? null : (newIds.length === 1 ? newIds[0] : editedNote.strategy_id),
-                                    });
-                                  }
-                                }}
-                                className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 themed-checkbox data-[state=checked]:!text-white transition-colors duration-150"
-                              />
-                              <Label
-                                htmlFor={`edit-strategy-${strategy.id}`}
-                                className="text-sm font-normal cursor-pointer text-slate-700 dark:text-slate-300"
-                              >
-                                {strategy.name}
-                              </Label>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                  {selectedStrategyCount > 0 && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {selectedStrategyCount} strateg{selectedStrategyCount === 1 ? 'y' : 'ies'} selected
-                    </p>
-                  )}
-                </div>
+                <StrategySelector
+                  selectedIds={editedNote.strategy_ids ?? []}
+                  onChange={handleStrategyIdsChange}
+                  strategies={strategies}
+                  legacyStrategyId={editedNote.strategy_id}
+                  onLegacyStrategyIdChange={handleLegacyStrategyIdChange}
+                  idPrefix="edit-strategy"
+                />
 
                 {/* Link to trades (optional) */}
-                <div className="space-y-1.5">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    <span className="flex items-center gap-2">
-                      <Link2 className="h-4 w-4" style={{ color: 'var(--tc-primary)' }} />
-                      Link to trades (optional)
-                    </span>
-                  </Label>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Account:</span>
-                    <AccountModePopover
-                      userId={userId}
-                      value={tradePickerSelection}
-                      onChange={setTradePickerSelection}
-                      placeholder="Select account"
-                      triggerClassName="min-w-[160px]"
-                    />
-                  </div>
-                  <div className="border border-slate-200/60 dark:border-slate-600 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm max-h-48 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:dark:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
-                    {!tradePickerSelection.accountId ? (
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Select an account above to see its trades.
-                      </p>
-                    ) : tradesForLinking.length === 0 ? (
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        {(editedNote.strategy_ids?.length ?? 0) === 0
-                          ? 'No trades in this account yet.'
-                          : 'No trades for selected strategies in this account.'}
-                      </p>
-                    ) : (
-                      <div className="space-y-2 pr-1">
-                        {tradesForLinking.map((t) => (
-                          <div key={`${t.mode}-${t.id}`} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`edit-trade-${t.mode}-${t.id}`}
-                              checked={isTradeSelected(t.id, t.mode)}
-                              onCheckedChange={() => toggleTradeRef(t.id, t.mode)}
-                              className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 themed-checkbox data-[state=checked]:!text-white transition-colors duration-150"
-                            />
-                            <Label
-                              htmlFor={`edit-trade-${t.mode}-${t.id}`}
-                              className="text-sm font-normal cursor-pointer text-slate-700 dark:text-slate-300 flex-1 truncate"
-                            >
-                              {t.trade_date} · {t.market} · {t.direction} · {t.trade_outcome}
-                            </Label>
-                          </div>
-                        ))}
-                        <div ref={tradeListScrollSentinelRef} className="min-h-4 flex items-center justify-center py-2">
-                          {isFetchingNextPage && (
-                            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  {((editedNote.trade_refs?.length ?? 0) > 0) && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {editedNote.trade_refs!.length} trade{editedNote.trade_refs!.length === 1 ? '' : 's'} linked
-                    </p>
-                  )}
-                </div>
+                <TradeLinkingPicker
+                  selectedRefs={editedNote.trade_refs ?? []}
+                  onChange={handleTradeRefsChange}
+                  userId={userId}
+                  strategyIds={editedNote.strategy_ids ?? []}
+                  enabled={isOpen && isEditing}
+                  tradePickerSelection={tradePickerSelection}
+                  onTradePickerSelectionChange={setTradePickerSelection}
+                  idPrefix="edit-trade"
+                />
 
                 {/* Content Editor */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      Content *
-                    </Label>
-                    {/* Switch Toggle */}
-                    <div className="relative inline-flex items-center bg-slate-100/60 dark:bg-slate-800/40 rounded-xl p-1 border border-slate-200/80 dark:border-slate-700/80">
-                      <button
-                        type="button"
-                        onClick={() => setIsPreview(false)}
-                        className={`relative px-4 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer ${
-                          !isPreview
-                            ? 'bg-white dark:bg-slate-700 shadow-sm text-[var(--tc-text)] dark:text-[var(--tc-text-dark)]'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                        }`}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsPreview(true)}
-                        className={`relative px-4 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer ${
-                          isPreview
-                            ? 'bg-white dark:bg-slate-700 shadow-sm text-[var(--tc-text)] dark:text-[var(--tc-text-dark)]'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                        }`}
-                      >
-                        Preview
-                      </button>
-                    </div>
-                  </div>
-                  <div className="border border-slate-200/60 dark:border-slate-600 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm">
-                    {isPreview ? (
-                      <div className="min-h-[400px] p-4 prose prose-slate dark:prose-invert max-w-none break-words [overflow-wrap:anywhere] [&_a]:underline [&_a]:[color:var(--tc-text)] dark:[&_a]:[color:var(--tc-text-dark)] [&_a]:decoration-[var(--tc-primary)]/50 hover:[&_a]:decoration-[var(--tc-primary)] [&_*]:break-words [&_*]:[overflow-wrap:anywhere]">
-                        <MarkdownRenderer content={editedNote.content} />
-                      </div>
-                    ) : (
-                      <Textarea
-                        value={editedNote.content}
-                        onChange={(e) =>
-                          setEditedNote({ ...editedNote, content: e.target.value })
-                        }
-                        className="min-h-[400px] p-4 bg-transparent border-0 outline-none resize-none text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-600 font-mono text-sm break-words [overflow-wrap:anywhere]"
-                      />
-                    )}
-                  </div>
-                </div>
+                <MarkdownEditor
+                  content={editedNote.content}
+                  onChange={(content) => setEditedNote({ ...editedNote, content })}
+                  isPreview={isPreview}
+                  onTogglePreview={() => setIsPreview((prev) => !prev)}
+                />
 
                 {/* Pin */}
                 <div className="flex items-center space-x-2">
@@ -575,14 +419,18 @@ export default function NoteDetailsModal({
                   <AlertDialogCancel
                     type="button"
                     onClick={() => {
-                      setIsSaving(false);
-                      setIsEditing(false);
-                      setEditedNote({
-                        ...displayNote,
-                        strategy_ids: displayNote.strategy_ids || (displayNote.strategy_id ? [displayNote.strategy_id] : []),
-                        trade_refs: displayNote.trade_refs ?? [],
-                      });
-                      setError(null);
+                      if (isDirty) {
+                        setShowDiscardDialog(true);
+                      } else {
+                        setIsSaving(false);
+                        setIsEditing(false);
+                        setEditedNote({
+                          ...displayNote,
+                          strategy_ids: displayNote.strategy_ids || (displayNote.strategy_id ? [displayNote.strategy_id] : []),
+                          trade_refs: displayNote.trade_refs ?? [],
+                        });
+                        setError(null);
+                      }
                     }}
                     disabled={isSaving}
                     className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200"
@@ -706,6 +554,38 @@ export default function NoteDetailsModal({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Unsaved changes confirmation dialog */}
+      <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient !rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              <span className="text-slate-900 dark:text-slate-50 font-semibold text-lg">Discard unsaved changes?</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="text-slate-600 dark:text-slate-400">You have unsaved changes to this insight. Are you sure you want to discard them?</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3">
+            <AlertDialogCancel asChild>
+              <Button
+                variant="outline"
+                className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
+              >
+                Keep editing
+              </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmDiscard}
+                className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0"
+              >
+                Discard
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
