@@ -286,8 +286,8 @@ export function BillingSettingsPanel({
             </AlertDialogTitle>
             <AlertDialogDescription>
               <span className="text-slate-600 dark:text-slate-400">
-                Are you sure you want to cancel immediately? Access to PRO features will be revoked
-                right away and this action cannot be undone.
+                Are you sure you want to cancel? Your PRO access will continue until the end of your
+                current billing period, then your account will revert to the Starter plan.
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -309,7 +309,7 @@ export function BillingSettingsPanel({
                 className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 flex items-center gap-2"
               >
                 {isCancelPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {isCancelPending ? 'Cancelling...' : 'Yes, cancel now'}
+                {isCancelPending ? 'Cancelling...' : 'Yes, cancel subscription'}
               </Button>
             </AlertDialogAction>
           </AlertDialogFooter>

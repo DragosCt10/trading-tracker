@@ -370,7 +370,7 @@ export interface Database {
           tier: 'starter' | 'pro' | 'elite';
           status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'admin_granted' | 'refunded';
           billing_period: 'monthly' | 'annual' | null;
-          provider: 'polar' | 'stripe' | 'paddle' | 'admin';
+          provider: 'polar' | 'stripe' | 'paddle' | 'lemonsqueezy' | 'admin';
           provider_subscription_id: string | null;
           provider_customer_id: string | null;
           current_period_start: string | null;
@@ -384,7 +384,7 @@ export interface Database {
           tier?: 'starter' | 'pro' | 'elite';
           status?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'admin_granted' | 'refunded';
           billing_period?: 'monthly' | 'annual' | null;
-          provider?: 'polar' | 'stripe' | 'paddle' | 'admin';
+          provider?: 'polar' | 'stripe' | 'paddle' | 'lemonsqueezy' | 'admin';
           provider_subscription_id?: string | null;
           provider_customer_id?: string | null;
           current_period_start?: string | null;
@@ -394,7 +394,7 @@ export interface Database {
         Update: Partial<{
           id: string; user_id: string; tier: 'starter' | 'pro' | 'elite';
           status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'admin_granted' | 'refunded';
-          billing_period: 'monthly' | 'annual' | null; provider: 'polar' | 'stripe' | 'paddle' | 'admin';
+          billing_period: 'monthly' | 'annual' | null; provider: 'polar' | 'stripe' | 'paddle' | 'lemonsqueezy' | 'admin';
           provider_subscription_id: string | null; provider_customer_id: string | null;
           current_period_start: string | null; current_period_end: string | null;
           cancel_at_period_end: boolean; created_at: string; updated_at: string;

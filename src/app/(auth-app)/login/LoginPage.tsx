@@ -186,7 +186,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Checkout success banner (anonymous purchase via Polar) */}
+          {/* Checkout success banner (anonymous purchase via Lemon Squeezy) */}
           {checkoutSuccess && magicLinkStatus === 'idle' && (
             <div className="mb-8 rounded-2xl border border-[var(--tc-primary)]/20 bg-[var(--tc-primary)]/5 backdrop-blur-sm p-5 text-center animate-in fade-in duration-500">
               <div className="flex justify-center mb-3">

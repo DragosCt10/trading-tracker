@@ -63,13 +63,9 @@ export function BillingCurrentPlanCard({
             <div className="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-800/60">
               <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
                 {currentPrice}
-                {taxLine ? (
+                {taxLine && (
                   <span className="ml-2 text-xs font-medium text-slate-500 dark:text-slate-400">
                     {taxLine}
-                  </span>
-                ) : hasPriceData ? null : (
-                  <span className="ml-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                    VAT included
                   </span>
                 )}
               </p>

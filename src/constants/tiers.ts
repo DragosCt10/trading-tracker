@@ -7,8 +7,6 @@
 
 import type { TierDefinition, TierId } from '@/types/subscription';
 
-const isSandbox = process.env.POLAR_SANDBOX === 'true';
-
 export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
   starter: {
     id: 'starter',
@@ -53,15 +51,11 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
     pricing: {
       monthly: {
         usd: 11.99,
-        polarProductId: isSandbox
-          ? process.env.POLAR_SANDBOX_PRO_PRODUCT_ID_MONTHLY ?? ''
-          : process.env.POLAR_PRO_PRODUCT_ID_MONTHLY ?? '',
+        productId: process.env.LEMONSQUEEZY_PRO_VARIANT_ID_MONTHLY ?? '',
       },
       annual: {
         usd: 114.99,
-        polarProductId: isSandbox
-          ? process.env.POLAR_SANDBOX_PRO_PRODUCT_ID_ANNUAL ?? ''
-          : process.env.POLAR_PRO_PRODUCT_ID_ANNUAL ?? '',
+        productId: process.env.LEMONSQUEEZY_PRO_VARIANT_ID_ANNUAL ?? '',
         savingsPct: 20,
       },
     },

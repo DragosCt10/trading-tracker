@@ -1,24 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { after } from 'next/server';
 import { createClient as createAnonClient } from '@supabase/supabase-js';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getPaymentProvider } from '@/lib/billing';
 import { ensureDefaultAccountForUserId } from '@/lib/server/accounts';
-
-export const runtime = 'nodejs';
+import type { WebhookAction } from './provider.interface';
 
 function getAppUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 }
 
-// O(1) lookup via direct auth.users query instead of paginating all users.
-async function findUserIdByEmail(email: string): Promise<string | null> {
+// ── User resolution ──────────────────────────────────────────────────────────
+
+/** O(1) lookup via direct auth.users query instead of paginating all users. */
+export async function findUserIdByEmail(email: string): Promise<string | null> {
   const supabase = createServiceRoleClient();
   const normalizedEmail = email.trim().toLowerCase();
   if (!normalizedEmail) return null;
 
-  // Use rpc to query auth.users directly — requires a DB function `get_user_id_by_email`.
-  // Falls back to paginated admin API if RPC not available.
   try {
     const { data, error } = await (supabase as ReturnType<typeof createServiceRoleClient> & { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> }).rpc('get_user_id_by_email', { p_email: normalizedEmail });
     if (!error && data) return data as string;
@@ -26,7 +23,6 @@ async function findUserIdByEmail(email: string): Promise<string | null> {
     // RPC not available, fall back to admin API
   }
 
-  // Fallback: use Supabase admin filter (still O(n) but last resort)
   const perPage = 1000;
   let page = 1;
   while (true) {
@@ -43,7 +39,11 @@ async function findUserIdByEmail(email: string): Promise<string | null> {
   }
 }
 
-async function ensureUserForPolarEmail(email: string): Promise<string | null> {
+/**
+ * Ensure a Supabase user exists for a checkout email.
+ * Creates the user + default account + sends magic link if new.
+ */
+export async function ensureUserForCheckoutEmail(email: string, providerSource: string): Promise<string | null> {
   const normalizedEmail = email.trim().toLowerCase();
   if (!normalizedEmail) return null;
 
@@ -54,12 +54,11 @@ async function ensureUserForPolarEmail(email: string): Promise<string | null> {
   const { data, error } = await supabase.auth.admin.createUser({
     email: normalizedEmail,
     email_confirm: true,
-    user_metadata: { source: 'polar_checkout' },
+    user_metadata: { source: `${providerSource}_checkout` },
   });
 
   if (error) {
     console.error(`[billing/webhook] createUser failed email=${normalizedEmail}`, error);
-    // Handle possible race where user was created concurrently.
     return findUserIdByEmail(normalizedEmail);
   }
 
@@ -68,8 +67,6 @@ async function ensureUserForPolarEmail(email: string): Promise<string | null> {
 
   await ensureDefaultAccountForUserId(newUserId);
 
-  // Send a magic link so the user can log in immediately — no password setup required.
-  // Must use anon key client; service role bypasses Supabase's email sending for OTP.
   const anonClient = createAnonClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -82,17 +79,17 @@ async function ensureUserForPolarEmail(email: string): Promise<string | null> {
     console.error(`[billing/webhook] signInWithOtp failed email=${normalizedEmail}`, otpError);
   }
 
-  console.log(`[billing/webhook] created_user_from_polar userId=${newUserId}`);
+  console.log(`[billing/webhook] created_user_from_checkout userId=${newUserId}`);
   return newUserId;
 }
 
-// Simple in-memory idempotency guard — prevents double-processing Polar retries.
+// ── Idempotency ──────────────────────────────────────────────────────────────
+
 const processedWebhookIds = new Map<string, number>();
 const IDEMPOTENCY_TTL_MS = 5 * 60 * 1000;
 
-function isAlreadyProcessed(webhookId: string): boolean {
+export function isAlreadyProcessed(webhookId: string): boolean {
   const now = Date.now();
-  // Clean stale entries
   for (const [id, ts] of Array.from(processedWebhookIds.entries())) {
     if (now - ts > IDEMPOTENCY_TTL_MS) processedWebhookIds.delete(id);
   }
@@ -101,7 +98,14 @@ function isAlreadyProcessed(webhookId: string): boolean {
   return false;
 }
 
-async function processWebhookAction(action: Awaited<ReturnType<ReturnType<typeof getPaymentProvider>['parseWebhookEvent']>>) {
+// ── Webhook action processor ─────────────────────────────────────────────────
+
+type ProviderName = 'polar' | 'stripe' | 'paddle' | 'lemonsqueezy';
+
+export async function processWebhookAction(
+  action: WebhookAction,
+  providerName: ProviderName
+): Promise<void> {
   const supabase = createServiceRoleClient();
 
   switch (action.type) {
@@ -123,7 +127,7 @@ async function processWebhookAction(action: Awaited<ReturnType<ReturnType<typeof
           console.log(`[billing/webhook] action=subscription.updated resolving_customer customerId=${action.data.providerCustomerId}`);
         }
 
-        const emailMatchedUserId = email ? await ensureUserForPolarEmail(email) : null;
+        const emailMatchedUserId = email ? await ensureUserForCheckoutEmail(email, providerName) : null;
         if (email && !emailMatchedUserId) {
           console.log(
             `[billing/webhook] action=subscription.updated ignored reason=failed_to_create_or_match_user customerId=${action.data.providerCustomerId}`
@@ -142,7 +146,6 @@ async function processWebhookAction(action: Awaited<ReturnType<ReturnType<typeof
 
       console.log(`[billing/webhook] action=subscription.updated resolved_userId=${resolvedUserId}`);
 
-      // Guard: never overwrite admin-granted subscriptions with webhook data
       const { data: existing } = await supabase
         .from('subscriptions')
         .select('provider')
@@ -160,7 +163,7 @@ async function processWebhookAction(action: Awaited<ReturnType<ReturnType<typeof
           tier: action.data.tierId,
           status: action.data.status,
           billing_period: action.data.billingPeriod,
-          provider: 'polar',
+          provider: providerName,
           provider_subscription_id: action.data.providerSubscriptionId,
           provider_customer_id: action.data.providerCustomerId,
           current_period_start: action.data.periodStart.toISOString(),
@@ -172,7 +175,6 @@ async function processWebhookAction(action: Awaited<ReturnType<ReturnType<typeof
       );
       if (error) console.error('[billing/webhook] upsert error:', error.message);
 
-      // Sync tier to social_profiles so the feed PRO badge stays accurate
       const isActive = ['active', 'trialing', 'admin_granted', 'past_due'].includes(action.data.status);
       const syncedTier = isActive ? action.data.tierId : 'starter';
       await (supabase as ReturnType<typeof createServiceRoleClient> & { from: (table: string) => any })
@@ -248,8 +250,6 @@ async function processWebhookAction(action: Awaited<ReturnType<ReturnType<typeof
       const supabaseOrder = createServiceRoleClient();
 
       if (action.subscription) {
-        // Upsert the full subscription row — handles the race where order.created arrives
-        // before subscription.updated and there is no row to UPDATE yet.
         const sub = action.subscription;
 
         let resolvedUserId = action.userId;
@@ -279,7 +279,7 @@ async function processWebhookAction(action: Awaited<ReturnType<ReturnType<typeof
             tier: sub.tierId,
             status: sub.status,
             billing_period: sub.billingPeriod,
-            provider: 'polar',
+            provider: providerName,
             provider_subscription_id: sub.providerSubscriptionId,
             provider_customer_id: sub.providerCustomerId,
             current_period_start: sub.periodStart.toISOString(),
@@ -294,7 +294,6 @@ async function processWebhookAction(action: Awaited<ReturnType<ReturnType<typeof
         );
         if (error) console.error('[billing/webhook] order.created upsert error:', error.message);
       } else {
-        // No embedded subscription — fall back to a plain UPDATE on existing row.
         const pricePayload = {
           price_amount: action.amountCents,
           tax_amount: action.taxCents,
@@ -313,65 +312,4 @@ async function processWebhookAction(action: Awaited<ReturnType<ReturnType<typeof
     case 'ignore':
       break;
   }
-}
-
-export async function POST(req: NextRequest): Promise<NextResponse> {
-  const rawBody = await req.text();
-  const secret = process.env.POLAR_SANDBOX === 'true'
-    ? process.env.POLAR_SANDBOX_WEBHOOK_SECRET ?? ''
-    : process.env.POLAR_WEBHOOK_SECRET ?? '';
-
-  if (!secret) {
-    console.error('[billing/webhook] POLAR_WEBHOOK_SECRET is not set');
-    return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
-  }
-
-  const webhookId = req.headers.get('webhook-id');
-  const webhookTimestamp = req.headers.get('webhook-timestamp');
-  const webhookSignature = req.headers.get('webhook-signature');
-
-  if (!webhookId || !webhookTimestamp || !webhookSignature) {
-    return NextResponse.json({ error: 'Missing webhook headers' }, { status: 400 });
-  }
-
-  const webhookHeaders: Record<string, string> = {
-    'webhook-id': webhookId,
-    'webhook-timestamp': webhookTimestamp,
-    'webhook-signature': webhookSignature,
-  };
-
-  let provider;
-  try {
-    provider = getPaymentProvider();
-  } catch (error) {
-    console.error('[billing/webhook] provider init failed', error);
-    return NextResponse.json({ error: 'Billing provider unavailable' }, { status: 503 });
-  }
-
-  let action;
-  try {
-    action = await provider.parseWebhookEvent({ rawBody, headers: webhookHeaders, secret });
-  } catch (err) {
-    const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
-    console.error(`[billing/webhook] Invalid HMAC signature — ip=${ip} timestamp=${new Date().toISOString()}`);
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
-  }
-
-  // Deduplicate — Polar retries on timeout; idempotency guard prevents double-processing.
-  if (webhookId && isAlreadyProcessed(webhookId)) {
-    console.log(`[billing/webhook] duplicate webhook-id=${webhookId} — skipping`);
-    return NextResponse.json({ received: true });
-  }
-
-  // Respond to Polar immediately, then process in the background.
-  // This prevents Polar from marking the webhook as failed due to slow processing.
-  after(async () => {
-    try {
-      await processWebhookAction(action);
-    } catch (err) {
-      console.error('[billing/webhook] background processing error', err);
-    }
-  });
-
-  return NextResponse.json({ received: true });
 }

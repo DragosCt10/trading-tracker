@@ -14,7 +14,7 @@ type RedeemResult =
 
 /**
  * Server action: redeem a trade milestone discount.
- * Creates a Polar coupon code the user can apply at checkout themselves.
+ * Creates a Lemon Squeezy coupon code the user can apply at checkout themselves.
  * Idempotent guard: if a code was already generated it's returned from feature_flags.
  */
 export async function redeemMilestoneDiscount(
@@ -35,13 +35,13 @@ export async function redeemMilestoneDiscount(
   if (!entry) return { error: 'Milestone not yet earned', code: 'NOT_EARNED' };
   if (entry.used) return { error: 'Discount already used', code: 'ALREADY_USED' };
 
-  // Idempotent: if code was already generated return it without hitting Polar again
+  // Idempotent: if code was already generated return it without hitting Lemon Squeezy again
   if (entry.couponCode) return { couponCode: entry.couponCode };
 
   // Generate a unique, human-readable coupon code: e.g. ROOKIE-A1B2C3D4
   const prefix = milestone.id.split('_')[0].toUpperCase(); // ROOKIE / SKILLED / EXPERT / MASTER / ALPHA
   const suffix = randomBytes(6).toString('hex').toUpperCase();
-  const generatedCode = `${prefix}${suffix}`; // no hyphens — Polar requires alphanumeric only
+  const generatedCode = `${prefix}${suffix}`;
 
   try {
     const provider = getPaymentProvider();

@@ -103,7 +103,7 @@ function resolveFromRow(row: SubscriptionRow): ResolvedSubscription {
 // ── Admin grant / revoke ──────────────────────────────────────────────────────
 
 /**
- * Grant a subscription tier to a user (admin only — no Polar payment required).
+ * Grant a subscription tier to a user (admin only — no payment required).
  * Uses service role to bypass RLS.
  */
 export async function grantSubscription(userId: string, tier: TierId): Promise<void> {
@@ -148,8 +148,8 @@ export async function revokeSubscription(userId: string): Promise<void> {
 // ── Checkout / Portal ─────────────────────────────────────────────────────────
 
 /**
- * Server action: verify payment directly via Polar API and activate subscription.
- * Called post-checkout to bypass webhook latency — upserts subscription if found in Polar
+ * Server action: verify payment directly via Lemon Squeezy API and activate subscription.
+ * Called post-checkout to bypass webhook latency — upserts subscription if found in LS
  * before the webhook arrives. Safe to call repeatedly (idempotent upsert).
  */
 export async function verifyAndActivateSubscription(userId: string): Promise<ResolvedSubscription> {
@@ -174,7 +174,7 @@ export async function verifyAndActivateSubscription(userId: string): Promise<Res
       tier: providerSub.tierId,
       status: providerSub.status,
       billing_period: providerSub.billingPeriod,
-      provider: 'polar',
+      provider: 'lemonsqueezy',
       provider_subscription_id: providerSub.providerSubscriptionId,
       provider_customer_id: providerSub.providerCustomerId,
       current_period_start: providerSub.periodStart.toISOString(),
@@ -205,7 +205,7 @@ export async function verifyAndActivateSubscription(userId: string): Promise<Res
 }
 
 /**
- * Server action: create a Polar checkout URL.
+ * Server action: create a Lemon Squeezy checkout URL.
  * Returns the URL; client then does router.push(url).
  */
 export async function createCheckoutUrl(
@@ -215,10 +215,10 @@ export async function createCheckoutUrl(
   if (!session.user) throw new Error('Not authenticated');
   const productId =
     billingPeriod === 'monthly'
-      ? (TIER_DEFINITIONS.pro.pricing.monthly?.polarProductId ?? '')
-      : (TIER_DEFINITIONS.pro.pricing.annual?.polarProductId ?? '');
+      ? (TIER_DEFINITIONS.pro.pricing.monthly?.productId ?? '')
+      : (TIER_DEFINITIONS.pro.pricing.annual?.productId ?? '');
   if (!productId) {
-    throw new Error(`[billing] Missing Polar product ID for ${billingPeriod} checkout.`);
+    throw new Error(`[billing] Missing Lemon Squeezy variant ID for ${billingPeriod} checkout.`);
   }
 
   const provider = getPaymentProvider();
@@ -234,7 +234,7 @@ export async function createCheckoutUrl(
 }
 
 /**
- * Server action: create a Polar checkout URL for anonymous (unauthenticated) users.
+ * Server action: create a Lemon Squeezy checkout URL for anonymous (unauthenticated) users.
  * No session required — user is resolved from email by the webhook after purchase.
  */
 export async function createPublicCheckoutUrl(
@@ -242,10 +242,10 @@ export async function createPublicCheckoutUrl(
 ): Promise<string> {
   const productId =
     billingPeriod === 'monthly'
-      ? (TIER_DEFINITIONS.pro.pricing.monthly?.polarProductId ?? '')
-      : (TIER_DEFINITIONS.pro.pricing.annual?.polarProductId ?? '');
+      ? (TIER_DEFINITIONS.pro.pricing.monthly?.productId ?? '')
+      : (TIER_DEFINITIONS.pro.pricing.annual?.productId ?? '');
   if (!productId) {
-    throw new Error(`[billing] Missing Polar product ID for ${billingPeriod} checkout.`);
+    throw new Error(`[billing] Missing Lemon Squeezy variant ID for ${billingPeriod} checkout.`);
   }
 
   const provider = getPaymentProvider();
@@ -260,24 +260,31 @@ export async function createPublicCheckoutUrl(
 }
 
 /**
- * Server action: create a Polar customer portal URL.
- * Admin-granted users have no Polar customer ID — return null so the UI can show a message.
+ * Server action: create a Lemon Squeezy customer portal URL.
+ * Admin-granted users have no subscription ID — return null so the UI can show a message.
  */
 export async function createPortalUrl(): Promise<string | null> {
   const session = await getCachedUserSession();
   if (!session.user) throw new Error('Not authenticated');
 
-  const subscription = await getCachedSubscription(session.user.id);
+  const supabase = await createClient();
+  const { data: row } = await supabase
+    .from('subscriptions')
+    .select('provider, provider_subscription_id')
+    .eq('user_id', session.user.id)
+    .in('status', ['active', 'trialing', 'past_due'])
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  // Admin-granted users have no Polar customer ID
-  if (!subscription.providerCustomerId || subscription.provider !== 'polar') {
+  if (!row?.provider_subscription_id || row.provider !== 'lemonsqueezy') {
     return null;
   }
 
   const provider = getPaymentProvider();
   const appUrl = getAppUrl();
   const { portalUrl } = await provider.createCustomerPortalSession({
-    customerId: subscription.providerCustomerId,
+    customerId: row.provider_subscription_id,
     returnUrl: `${appUrl}/settings?tab=billing`,
   });
 
@@ -285,8 +292,8 @@ export async function createPortalUrl(): Promise<string | null> {
 }
 
 /**
- * Server action: revoke current user's active Polar subscription immediately.
- * This maps to Polar "Revoke Subscription" (instant cancellation).
+ * Server action: cancel current user's Lemon Squeezy subscription.
+ * Enters grace period — access continues until end of billing period.
  */
 export async function cancelCurrentSubscription(): Promise<{
   ok: boolean;
@@ -300,7 +307,7 @@ export async function cancelCurrentSubscription(): Promise<{
   const supabase = await createClient();
   const { data: rows, error } = await supabase
     .from('subscriptions')
-    .select('provider, provider_subscription_id, updated_at')
+    .select('provider, provider_subscription_id, current_period_end, updated_at')
     .eq('user_id', session.user.id)
     .in('status', ['active', 'trialing', 'past_due'])
     .order('updated_at', { ascending: false });
@@ -310,7 +317,7 @@ export async function cancelCurrentSubscription(): Promise<{
   }
 
   const cancelTarget = (rows ?? []).find(
-    (row) => row.provider === 'polar' && Boolean(row.provider_subscription_id)
+    (row) => row.provider === 'lemonsqueezy' && Boolean(row.provider_subscription_id)
   );
 
   if (!cancelTarget?.provider_subscription_id) {
@@ -320,17 +327,17 @@ export async function cancelCurrentSubscription(): Promise<{
   const provider = getPaymentProvider();
   await provider.cancelSubscription(cancelTarget.provider_subscription_id);
 
-  // Use service role to bypass RLS — subscriptions table has no UPDATE policy for users.
+  // Grace period: mark as canceling at period end, keep status active.
+  // The subscription_expired webhook will flip status to 'canceled' when the period ends.
   const serviceClient = createServiceRoleClient();
   const { error: updateError } = await serviceClient
     .from('subscriptions')
     .update({
-      status: 'canceled' as const,
-      cancel_at_period_end: false,
+      cancel_at_period_end: true,
       updated_at: new Date().toISOString(),
     })
     .eq('user_id', session.user.id)
-    .eq('provider', 'polar')
+    .eq('provider', 'lemonsqueezy')
     .eq('provider_subscription_id', cancelTarget.provider_subscription_id);
   if (updateError) {
     console.error('[billing/subscription] optimistic cancel update failed:', updateError.message);
@@ -351,13 +358,22 @@ export async function getLatestInvoiceUrl(): Promise<{
   const session = await getCachedUserSession();
   if (!session.user) throw new Error('Not authenticated');
 
-  const subscription = await getCachedSubscription(session.user.id);
-  if (!subscription.providerCustomerId || subscription.provider !== 'polar') {
+  const supabase = await createClient();
+  const { data: row } = await supabase
+    .from('subscriptions')
+    .select('provider, provider_subscription_id')
+    .eq('user_id', session.user.id)
+    .in('status', ['active', 'trialing', 'past_due', 'admin_granted'])
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!row?.provider_subscription_id || row.provider !== 'lemonsqueezy') {
     return { status: 'missing_order' };
   }
 
   const provider = getPaymentProvider();
-  return provider.getLatestOrderInvoice({ customerId: subscription.providerCustomerId });
+  return provider.getLatestOrderInvoice({ customerId: row.provider_subscription_id });
 }
 
 // ── Server-side feature helpers ───────────────────────────────────────────────

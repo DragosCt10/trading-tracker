@@ -51,7 +51,7 @@ export interface TierFeatureFlags {
 
 export interface TierPricingOption {
   usd: number;
-  polarProductId: string;
+  productId: string;
 }
 
 export interface TierDefinition {
@@ -72,7 +72,7 @@ export interface SubscriptionRow {
   tier: TierId;
   status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'admin_granted' | 'refunded';
   billing_period: BillingPeriod | null;
-  provider: 'polar' | 'stripe' | 'paddle' | 'admin';
+  provider: 'polar' | 'stripe' | 'paddle' | 'lemonsqueezy' | 'admin';
   provider_subscription_id: string | null;
   provider_customer_id: string | null;
   current_period_start: string | null;
