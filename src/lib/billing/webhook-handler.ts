@@ -3,6 +3,7 @@ import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getPaymentProvider } from '@/lib/billing';
 import { ensureDefaultAccountForUserId } from '@/lib/server/accounts';
 import type { WebhookAction } from './provider.interface';
+import type { FeatureFlags } from '@/types/featureFlags';
 
 function getAppUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
@@ -126,15 +127,6 @@ export function isAlreadyProcessed(webhookId: string): boolean {
 
 // ── Discount variant revert ──────────────────────────────────────────────────
 
-interface PendingVariantRevert {
-  subscriptionId: string;
-  normalVariantId: string;
-  discountedVariantId: string;
-  discountPct: number;
-  discountId: string;
-  appliedAt: string;
-}
-
 /**
  * After a discounted subscription payment succeeds, switch the subscription back
  * to the normal variant and mark the discount as used.
@@ -142,39 +134,48 @@ interface PendingVariantRevert {
 async function revertDiscountedVariantIfNeeded(userId: string, providerSubscriptionId: string): Promise<void> {
   const { getFeatureFlags, updateFeatureFlags } = await import('@/lib/server/settings');
   const flags = await getFeatureFlags(userId);
-  const pending = flags.pending_variant_revert as PendingVariantRevert | undefined;
+  const pending = flags.pending_variant_revert;
 
   if (!pending || pending.subscriptionId !== providerSubscriptionId) return;
 
-  // Clear the revert flag FIRST to prevent loops if the revert webhook fires again
-  const updatedFlags: Record<string, unknown> = { ...flags, pending_variant_revert: null };
-
-  // Mark the original discount as used
-  const { discountId } = pending;
-  if (discountId === 'retention') {
-    const existing = updatedFlags.pro_retention_discount as Record<string, unknown> | undefined;
-    if (existing) updatedFlags.pro_retention_discount = { ...existing, used: true };
-  } else if (discountId === 'activity') {
-    const existing = updatedFlags.activity_rank_up_discount as Record<string, unknown> | undefined;
-    if (existing) updatedFlags.activity_rank_up_discount = { ...existing, used: true };
-  } else {
-    const discounts = Array.isArray(updatedFlags.available_discounts)
-      ? (updatedFlags.available_discounts as Record<string, unknown>[])
-      : [];
-    updatedFlags.available_discounts = discounts.map((d) =>
-      d.milestoneId === discountId ? { ...d, used: true } : d,
-    );
+  const attempts = pending.revertAttempts ?? 0;
+  if (attempts >= 3) {
+    console.warn(`[billing/webhook] revertDiscountedVariant max_attempts_reached userId=${userId} — page-load safety check will handle`);
+    return;
   }
 
-  await updateFeatureFlags(userId, updatedFlags);
+  // Increment attempts counter BEFORE API call so we track failures
+  const updatedFlagsWithAttempts: FeatureFlags = {
+    ...flags,
+    pending_variant_revert: { ...pending, revertAttempts: attempts + 1 },
+  };
+  await updateFeatureFlags(userId, updatedFlagsWithAttempts);
 
-  // Switch back to normal variant
+  // Now attempt the API call
   try {
     const provider = getPaymentProvider();
     await provider.switchSubscriptionVariant(pending.subscriptionId, pending.normalVariantId);
     console.log(`[billing/webhook] reverted_discount_variant userId=${userId} from=${pending.discountedVariantId} to=${pending.normalVariantId}`);
+
+    // Success: clear the flag and mark discount as used
+    const successFlags: FeatureFlags = { ...flags, pending_variant_revert: null };
+    const { discountId } = pending;
+    if (discountId === 'retention') {
+      const existing = successFlags.pro_retention_discount;
+      if (existing) successFlags.pro_retention_discount = { ...existing, used: true };
+    } else if (discountId === 'activity') {
+      const existing = successFlags.activity_rank_up_discount;
+      if (existing) successFlags.activity_rank_up_discount = { ...existing, used: true };
+    } else {
+      const discounts = successFlags.available_discounts ?? [];
+      successFlags.available_discounts = discounts.map((d) =>
+        d.milestoneId === discountId ? { ...d, used: true } : d,
+      );
+    }
+    await updateFeatureFlags(userId, successFlags);
   } catch (err) {
-    console.error(`[billing/webhook] revertDiscountedVariant failed userId=${userId}`, err);
+    console.error(`[billing/webhook] revertDiscountedVariant failed userId=${userId} attempt=${attempts + 1}`, err);
+    // Incremented attempts already written — webhook will retry on next payment event
   }
 }
 

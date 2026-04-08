@@ -15,27 +15,14 @@ import { redeemMilestoneDiscount, redeemProRetentionDiscount, applyDiscountToSub
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { monthsSince } from '@/utils/helpers/dateHelpers';
+import type { FeatureFlags, DiscountEntry, CouponDiscount } from '@/types/featureFlags';
 
 interface RewardsClientProps {
   totalTrades: number;
-  featureFlags: Record<string, unknown>;
+  featureFlags: FeatureFlags;
   isPro: boolean;
   proSinceDate: string | null;
   showBackToSettings?: boolean;
-}
-
-interface DiscountEntry {
-  milestoneId: string;
-  discountPct: number;
-  used: boolean;
-  couponCode?: string;
-  expiresAt?: string;
-}
-
-interface ProRetentionDiscount {
-  used: boolean;
-  couponCode?: string;
-  expiresAt?: string;
 }
 
 function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
@@ -51,13 +38,39 @@ function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
   );
 }
 
+function CouponCodeDisplay({
+  code,
+  isCopied,
+  onCopy,
+}: {
+  code: string;
+  isCopied: boolean;
+  onCopy: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <code className="inline-flex items-center h-7 text-xs font-mono px-3 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 select-all tracking-wider">
+        {code}
+      </code>
+      <Button
+        size="sm"
+        variant="outline"
+        aria-label={isCopied ? 'Copied to clipboard' : `Copy coupon code ${code}`}
+        className="h-7 text-xs px-3 cursor-pointer rounded-xl gap-1.5 border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
+        onClick={onCopy}
+      >
+        {isCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+        {isCopied ? 'Copied!' : 'Copy'}
+      </Button>
+    </div>
+  );
+}
+
 export default function RewardsClient({ totalTrades, featureFlags, isPro, proSinceDate, showBackToSettings }: RewardsClientProps) {
   const currentMilestone = getMilestoneForCount(totalTrades);
   const nextMilestone = getNextMilestone(totalTrades);
   const [discounts, setDiscounts] = useState<DiscountEntry[]>(
-    Array.isArray(featureFlags.available_discounts)
-      ? (featureFlags.available_discounts as DiscountEntry[])
-      : [],
+    featureFlags.available_discounts ?? [],
   );
   const [claimErrors, setClaimErrors] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -67,14 +80,14 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, proSin
   const [applyLoading, setApplyLoading] = useState<string | null>(null);
   const [applyErrors, setApplyErrors] = useState<Record<string, string>>({});
   // Seed from feature_flags so "Discount applied" persists across page refreshes
-  const pendingRevert = featureFlags.pending_variant_revert as { discountId?: string } | undefined;
+  const pendingRevert = featureFlags.pending_variant_revert;
   const [applySuccess, setApplySuccess] = useState<Set<string>>(
     pendingRevert?.discountId ? new Set([pendingRevert.discountId]) : new Set(),
   );
 
   // PRO retention discount state
-  const initialRetention = featureFlags.pro_retention_discount as ProRetentionDiscount | undefined;
-  const [retentionDiscount, setRetentionDiscount] = useState<ProRetentionDiscount | null>(initialRetention ?? null);
+  const initialRetention = featureFlags.pro_retention_discount;
+  const [retentionDiscount, setRetentionDiscount] = useState<CouponDiscount | null>(initialRetention ?? null);
   const [retentionClaiming, setRetentionClaiming] = useState(false);
   const [retentionError, setRetentionError] = useState<string | null>(null);
   const [retentionCopied, setRetentionCopied] = useState(false);
@@ -110,6 +123,9 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, proSin
     navigator.clipboard.writeText(code).then(() => {
       setRetentionCopied(true);
       setTimeout(() => setRetentionCopied(false), 2000);
+    }).catch(() => {
+      // Clipboard API unavailable (insecure context or permission denied)
+      // No-op: user can manually select the code (select-all on the code element)
     });
   }
 
@@ -134,6 +150,8 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, proSin
     navigator.clipboard.writeText(code).then(() => {
       setCopiedId(milestoneId);
       setTimeout(() => setCopiedId((id) => (id === milestoneId ? null : id)), 2000);
+    }).catch(() => {
+      // Clipboard API unavailable — user can manually select the code
     });
   }
 
@@ -201,8 +219,13 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, proSin
             </div>
             <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
               <div
-                className="h-full rounded-full transition-all duration-500 bg-slate-500 dark:bg-slate-400"
-                style={{ width: `${progressPct}%` }}
+                role="progressbar"
+                aria-valuenow={progressPct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`Progress to ${nextMilestone.badgeName}`}
+                className="h-full rounded-full transition-transform duration-500 origin-left bg-slate-500 dark:bg-slate-400"
+                style={{ transform: `scaleX(${progressPct / 100})` }}
               />
             </div>
           </div>
@@ -230,8 +253,13 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, proSin
               </div>
               <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
                 <div
-                  className="h-full rounded-full transition-all duration-500 bg-amber-500 dark:bg-amber-400"
-                  style={{ width: `${Math.min(100, Math.round((proMonths / 3) * 100))}%` }}
+                  role="progressbar"
+                  aria-valuenow={Math.min(100, Math.round((proMonths / 3) * 100))}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label="PRO loyalty progress"
+                  className="h-full rounded-full transition-transform duration-500 origin-left bg-amber-500 dark:bg-amber-400"
+                  style={{ transform: `scaleX(${Math.min(1, proMonths / 3)})` }}
                 />
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
@@ -244,20 +272,11 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, proSin
             <div className="space-y-2">
               {retentionDiscount?.couponCode ? (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <code className="inline-flex items-center h-7 text-xs font-mono px-3 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 select-all tracking-wider">
-                      {retentionDiscount.couponCode}
-                    </code>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs px-3 cursor-pointer rounded-xl gap-1.5 border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
-                      onClick={() => handleRetentionCopy(retentionDiscount.couponCode!)}
-                    >
-                      {retentionCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      {retentionCopied ? 'Copied!' : 'Copy'}
-                    </Button>
-                  </div>
+                  <CouponCodeDisplay
+                    code={retentionDiscount.couponCode}
+                    isCopied={retentionCopied}
+                    onCopy={() => handleRetentionCopy(retentionDiscount.couponCode!)}
+                  />
                   {retentionDiscount.expiresAt && (
                     <ExpiryCountdown expiresAt={retentionDiscount.expiresAt} />
                   )}
@@ -280,7 +299,7 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, proSin
                     {retentionClaiming ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
                     Get coupon code
                   </Button>
-                  {retentionError && <p className="text-xs text-rose-500">{retentionError}</p>}
+                  {retentionError && <p role="alert" className="text-xs text-rose-500">{retentionError}</p>}
                 </>
               )}
             </div>
@@ -306,6 +325,7 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, proSin
                 {/* Timeline line + dot */}
                 <div className="flex flex-col items-center">
                   <div
+                    aria-label={achieved ? 'Achieved' : 'Locked'}
                     className={cn(
                       'w-8 h-8 rounded-full flex items-center justify-center shrink-0 border',
                       !achieved && 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-600',
@@ -336,20 +356,11 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, proSin
                     {/* Coupon code display */}
                     {discount?.couponCode && (
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <code className="inline-flex items-center h-7 text-xs font-mono px-3 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 select-all tracking-wider">
-                            {discount.couponCode}
-                          </code>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs px-3 cursor-pointer rounded-xl gap-1.5 border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
-                            onClick={() => handleCopy(milestone.id, discount.couponCode!)}
-                          >
-                            {copiedId === milestone.id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                            {copiedId === milestone.id ? 'Copied!' : 'Copy'}
-                          </Button>
-                        </div>
+                        <CouponCodeDisplay
+                          code={discount.couponCode}
+                          isCopied={copiedId === milestone.id}
+                          onCopy={() => handleCopy(milestone.id, discount.couponCode!)}
+                        />
                         {discount.expiresAt && (
                           <ExpiryCountdown expiresAt={discount.expiresAt} />
                         )}
@@ -384,7 +395,7 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, proSin
                       </Button>
                     )}
                     {claimError && (
-                      <p className="text-xs text-rose-500">{claimError}</p>
+                      <p role="alert" className="text-xs text-rose-500">{claimError}</p>
                     )}
                   </div>
                 </div>
@@ -409,7 +420,7 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, proSin
                 )}
                 style={achieved ? getBadgeInlineStyle(milestone.id) : undefined}
               >
-                <Award className="mx-auto h-6 w-6 mb-1.5" />
+                <Award aria-hidden="true" className="mx-auto h-6 w-6 mb-1.5" />
                 <p className="text-xs font-semibold">
                   {milestone.badgeName}
                 </p>
@@ -427,27 +438,27 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, proSin
         <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-3">How Discounts Work</h2>
         <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
           <li className="flex items-start gap-2">
-            <span className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
+            <span aria-hidden="true" className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
             Each milestone unlocks a one-time discount for your PRO subscription.
           </li>
           <li className="flex items-start gap-2">
-            <span className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
+            <span aria-hidden="true" className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
             Already on PRO? Click &ldquo;Apply to my subscription&rdquo; to get the discount on your next billing cycle — no cancellation needed.
           </li>
           <li className="flex items-start gap-2">
-            <span className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
+            <span aria-hidden="true" className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
             Not yet on PRO? Copy the code and enter it at checkout when upgrading.
           </li>
           <li className="flex items-start gap-2">
-            <span className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
+            <span aria-hidden="true" className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
             Discounts are not accumulated — each can be used once, independently.
           </li>
           <li className="flex items-start gap-2">
-            <span className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
+            <span aria-hidden="true" className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
             All trade modes (live, demo, backtesting) count toward milestones.
           </li>
           <li className="flex items-start gap-2">
-            <span className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
+            <span aria-hidden="true" className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
             Badges are displayed next to your name on Feed posts.
           </li>
         </ul>
@@ -469,7 +480,7 @@ function ApplyDiscountSection({
 }) {
   if (isApplied) {
     return (
-      <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+      <p role="status" className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
         <Check className="h-3 w-3" />
         Discount applied — activates on your next billing cycle
       </p>
@@ -487,7 +498,7 @@ function ApplyDiscountSection({
         {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
         Apply to my subscription
       </Button>
-      {error && <p className="text-xs text-rose-500">{error}</p>}
+      {error && <p role="alert" className="text-xs text-rose-500">{error}</p>}
     </div>
   );
 }

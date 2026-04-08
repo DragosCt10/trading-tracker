@@ -90,11 +90,21 @@ function buildMockClient(cfg: MockClientConfig) {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
               maybeSingle: vi.fn(() =>
-                Promise.resolve({ data: { feature_flags: cfg.featureFlags ?? {} } }),
+                Promise.resolve({ data: { feature_flags: cfg.featureFlags ?? {}, version: 0 } }),
               ),
             })),
           })),
           upsert: upsertSpy,
+          // Support optimistic locking: updateFeatureFlags does .update().eq().eq().select()
+          update: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                select: vi.fn(() =>
+                  Promise.resolve({ data: [{ user_id: 'user-abc' }], error: null }),
+                ),
+              })),
+            })),
+          })),
         };
       }
 
@@ -259,8 +269,8 @@ describe('checkTradeMilestones', () => {
 
       await checkTradeMilestones(PROFILE_ID, USER_ID);
 
-      // Should not even fetch trade count — everything short-circuits
-      expect(mockedGetTotalTrades).not.toHaveBeenCalled();
+      // getTotalExecutedTradeCount is called (it runs in Promise.all with the profile
+      // query), but all DB writes should be skipped after the alpha early return
       expect(upsertSpy).not.toHaveBeenCalled();
     });
   });

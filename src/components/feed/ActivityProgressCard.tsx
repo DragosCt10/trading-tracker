@@ -78,7 +78,7 @@ export default function ActivityProgressCard({
     if (!profileId) return;
     setClaiming(true);
     setClaimError(null);
-    const result = await redeemActivityDiscount(profileId);
+    const result = await redeemActivityDiscount();
     if ('couponCode' in result) {
       setDiscount({ used: false, couponCode: result.couponCode, expiresAt: result.expiresAt });
     } else {

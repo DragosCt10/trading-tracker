@@ -2,6 +2,7 @@
 
 import { getCachedUserSession } from './session';
 import { getFeatureFlags, updateFeatureFlags } from './settings';
+import type { FeatureFlags } from '@/types/featureFlags';
 import { getPaymentProvider } from '@/lib/billing';
 import { getMilestoneById, type TradeMilestoneId } from '@/constants/tradeMilestones';
 import { resolveSubscription } from './subscription';
@@ -11,36 +12,56 @@ import { TIER_DEFINITIONS } from '@/constants/tiers';
 import { getDiscountedVariantId } from '@/constants/discountedVariants';
 import { createClient } from '@/utils/supabase/server';
 
+// Simple in-memory rate limiter — resets on server restart, per-instance
+// Good enough to prevent abuse; not a substitute for infrastructure-level rate limiting
+const _rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+
+function checkRateLimit(userId: string, action: string): boolean {
+  const key = `${userId}:${action}`;
+  const now = Date.now();
+  const entry = _rateLimitStore.get(key);
+  if (!entry || now >= entry.resetAt) {
+    _rateLimitStore.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT_MAX) return false;
+  entry.count++;
+  return true;
+}
+
 /**
  * DEV ONLY — seeds the test_trader discount entry into feature_flags so the
  * full coupon-code flow can be tested without needing 100+ real trades.
  * No-ops in production.
  */
-export async function devSeedTestMilestone(): Promise<void> {
-  if (process.env.NODE_ENV !== 'development') return;
+export async function devSeedTestMilestone(existingFlags?: FeatureFlags): Promise<FeatureFlags> {
+  if (process.env.NODE_ENV !== 'development') return existingFlags ?? {};
 
   const { user } = await getCachedUserSession();
-  if (!user) return;
+  if (!user) return existingFlags ?? {};
 
-  const flags = await getFeatureFlags(user.id);
-  const discounts = Array.isArray(flags.available_discounts)
-    ? (flags.available_discounts as { milestoneId: string; discountPct: number; used: boolean; couponCode?: string }[])
-    : [];
+  const flags = existingFlags ?? await getFeatureFlags(user.id);
+  const discounts = flags.available_discounts ?? [];
 
   // Always reset test_trader so a fresh code can be generated each dev session
   const withoutTest = discounts.filter((d) => d.milestoneId !== 'test_trader');
-  await updateFeatureFlags(user.id, {
+  const updatedFlags = {
     ...flags,
     available_discounts: [
       { milestoneId: 'test_trader', discountPct: 5, used: false },
       ...withoutTest,
     ],
-  });
+  };
+
+  await updateFeatureFlags(user.id, updatedFlags);
+  return updatedFlags;
 }
 
 type RedeemResult =
   | { couponCode: string; expiresAt: string }
-  | { error: string; code: 'UNAUTHORIZED' | 'NOT_FOUND' | 'ALREADY_USED' | 'NOT_EARNED' | 'PROVIDER_ERROR' };
+  | { error: string; code: 'UNAUTHORIZED' | 'NOT_FOUND' | 'ALREADY_USED' | 'NOT_EARNED' | 'EXPIRED' | 'PROVIDER_ERROR' };
 
 /**
  * Server action: redeem a trade milestone discount.
@@ -52,21 +73,26 @@ export async function redeemMilestoneDiscount(
 ): Promise<RedeemResult> {
   const { user } = await getCachedUserSession();
   if (!user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (!checkRateLimit(user.id, 'redeemMilestone')) return { error: 'Too many requests', code: 'UNAUTHORIZED' };
 
   const milestone = getMilestoneById(milestoneId);
   if (!milestone) return { error: 'Unknown milestone', code: 'NOT_FOUND' };
 
   const flags = await getFeatureFlags(user.id);
-  const discounts = Array.isArray(flags.available_discounts)
-    ? (flags.available_discounts as { milestoneId: string; discountPct: number; used: boolean; couponCode?: string; expiresAt?: string }[])
-    : [];
+  const discounts = flags.available_discounts ?? [];
 
   const entry = discounts.find((d) => d.milestoneId === milestoneId);
   if (!entry) return { error: 'Milestone not yet earned', code: 'NOT_EARNED' };
   if (entry.used) return { error: 'Discount already used', code: 'ALREADY_USED' };
 
   // Idempotent: if code was already generated return it without hitting Lemon Squeezy again
-  if (entry.couponCode) return { couponCode: entry.couponCode, expiresAt: entry.expiresAt ?? '' };
+  if (entry.couponCode) {
+    // Check expiry server-side before returning stale code
+    if (entry.expiresAt && new Date(entry.expiresAt) <= new Date()) {
+      return { error: 'Coupon has expired', code: 'EXPIRED' };
+    }
+    return { couponCode: entry.couponCode, expiresAt: entry.expiresAt ?? '' };
+  }
 
   // Generate a unique, human-readable coupon code: e.g. ROOKIE-A1B2C3D4
   const prefix = milestone.id.split('_')[0].toUpperCase(); // ROOKIE / SKILLED / EXPERT / MASTER / ALPHA
@@ -105,9 +131,22 @@ export async function redeemMilestoneDiscount(
  * Idempotent — returns the same code if already generated.
  * Verifies the count server-side via feed_posts + feed_comments.
  */
-export async function redeemActivityDiscount(profileId: string): Promise<RedeemResult> {
+export async function redeemActivityDiscount(): Promise<RedeemResult> {
   const { user } = await getCachedUserSession();
   if (!user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+
+  if (!checkRateLimit(user.id, 'redeemActivity')) return { error: 'Too many requests', code: 'UNAUTHORIZED' };
+
+  // Derive profileId from session — never trust client-supplied profileId (IDOR prevention)
+  const { createAdminClient } = await import('./supabaseAdmin');
+  const adminDb = createAdminClient();
+  const { data: profileRow } = await adminDb
+    .from('social_profiles')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (!profileRow) return { error: 'Social profile not found', code: 'NOT_FOUND' };
+  const profileId = (profileRow as { id: string }).id;
 
   // Verify count server-side
   const { getUserActivityCount } = await import('./feedActivity');
@@ -115,9 +154,14 @@ export async function redeemActivityDiscount(profileId: string): Promise<RedeemR
   if (total < 300) return { error: 'Not yet 300 posts & comments', code: 'NOT_EARNED' };
 
   const flags = await getFeatureFlags(user.id);
-  const existing = flags.activity_rank_up_discount as { used: boolean; couponCode?: string; expiresAt?: string } | undefined;
+  const existing = flags.activity_rank_up_discount;
   if (existing?.used) return { error: 'Discount already used', code: 'ALREADY_USED' };
-  if (existing?.couponCode) return { couponCode: existing.couponCode, expiresAt: existing.expiresAt ?? '' };
+  if (existing?.couponCode) {
+    if (existing.expiresAt && new Date(existing.expiresAt) <= new Date()) {
+      return { error: 'Coupon has expired', code: 'EXPIRED' };
+    }
+    return { couponCode: existing.couponCode, expiresAt: existing.expiresAt ?? '' };
+  }
 
   const suffix = randomBytes(6).toString('hex').toUpperCase();
   const generatedCode = `RANKUP${suffix}`;
@@ -156,6 +200,7 @@ export async function redeemActivityDiscount(profileId: string): Promise<RedeemR
 export async function redeemProRetentionDiscount(): Promise<RedeemResult> {
   const { user } = await getCachedUserSession();
   if (!user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+  if (!checkRateLimit(user.id, 'redeemRetention')) return { error: 'Too many requests', code: 'UNAUTHORIZED' };
 
   const subscription = await resolveSubscription(user.id);
   const proSinceDate = subscription.createdAt;
@@ -165,9 +210,14 @@ export async function redeemProRetentionDiscount(): Promise<RedeemResult> {
   if (monthsSince(proSinceDate) < 3) return { error: 'Not yet 3 months on PRO', code: 'NOT_EARNED' };
 
   const flags = await getFeatureFlags(user.id);
-  const existing = flags.pro_retention_discount as { used: boolean; couponCode?: string; expiresAt?: string } | undefined;
+  const existing = flags.pro_retention_discount;
   if (existing?.used) return { error: 'Discount already used', code: 'ALREADY_USED' };
-  if (existing?.couponCode) return { couponCode: existing.couponCode, expiresAt: existing.expiresAt ?? '' };
+  if (existing?.couponCode) {
+    if (existing.expiresAt && new Date(existing.expiresAt) <= new Date()) {
+      return { error: 'Coupon has expired', code: 'EXPIRED' };
+    }
+    return { couponCode: existing.couponCode, expiresAt: existing.expiresAt ?? '' };
+  }
 
   const suffix = randomBytes(6).toString('hex').toUpperCase();
   const generatedCode = `PROLOYALTY${suffix}`;
@@ -211,6 +261,7 @@ export async function applyDiscountToSubscription(
 ): Promise<ApplyResult> {
   const { user } = await getCachedUserSession();
   if (!user) return { error: 'Not authenticated' };
+  if (!checkRateLimit(user.id, 'applyDiscount')) return { error: 'Too many requests' };
 
   // Resolve discount percentage
   let discountPct: number;
@@ -244,6 +295,28 @@ export async function applyDiscountToSubscription(
 
   const period = row.billing_period as 'monthly' | 'annual' | null;
   if (!period) return { error: 'Could not determine billing period' };
+
+  // Validate discount state before switching variant
+  const currentFlags = await getFeatureFlags(user.id);
+  let validationError: string | null = null;
+  if (discountId === 'retention') {
+    const ret = currentFlags.pro_retention_discount;
+    if (!ret?.couponCode) validationError = 'Coupon not yet claimed';
+    else if (ret.used) validationError = 'Discount already used';
+    else if (ret.expiresAt && new Date(ret.expiresAt) <= new Date()) validationError = 'Coupon has expired';
+  } else if (discountId === 'activity') {
+    const act = currentFlags.activity_rank_up_discount;
+    if (!act?.couponCode) validationError = 'Coupon not yet claimed';
+    else if (act.used) validationError = 'Discount already used';
+    else if (act.expiresAt && new Date(act.expiresAt) <= new Date()) validationError = 'Coupon has expired';
+  } else {
+    const avail = currentFlags.available_discounts ?? [];
+    const entry = avail.find((d) => d.milestoneId === discountId);
+    if (!entry?.couponCode) validationError = 'Coupon not yet claimed';
+    else if (entry.used) validationError = 'Discount already used';
+    else if (entry.expiresAt && new Date(entry.expiresAt) <= new Date()) validationError = 'Coupon has expired';
+  }
+  if (validationError) return { error: validationError };
 
   // Normal variant ID (needed for the revert)
   const tierDef = TIER_DEFINITIONS[row.tier as keyof typeof TIER_DEFINITIONS];

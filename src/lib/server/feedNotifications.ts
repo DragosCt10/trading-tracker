@@ -11,6 +11,7 @@ import { TRADE_MILESTONES, getMilestoneForCount } from '@/constants/tradeMilesto
 import { getTotalExecutedTradeCount } from '@/lib/server/tradeStats';
 import { monthsSince } from '@/utils/helpers/dateHelpers';
 import type { FeedNotification, NotificationType, PaginatedResult } from '@/types/social';
+import { parseFeatureFlags, type FeatureFlags } from '@/types/featureFlags';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -277,26 +278,35 @@ export async function checkTradeMilestones(
   try {
     const supabase = createAdminClient();
 
-    // Early return: if already at alpha_trader, no more milestones to earn
-    const { data: profile } = await supabase
-      .from('social_profiles')
-      .select('trade_badge')
-      .eq('id', profileId)
-      .maybeSingle();
-    if (profile?.trade_badge === 'alpha_trader') return;
+    // Round 1: All independent reads in parallel
+    const [{ data: profile }, totalTrades, { data: settingsRow }] = await Promise.all([
+      supabase
+        .from('social_profiles')
+        .select('trade_badge')
+        .eq('id', profileId)
+        .maybeSingle(),
+      getTotalExecutedTradeCount(userId),
+      supabase
+        .from('user_settings')
+        .select('feature_flags')
+        .eq('user_id', userId)
+        .maybeSingle(),
+    ]);
 
-    const totalTrades = await getTotalExecutedTradeCount(userId);
+    // Early exits
+    if (profile?.trade_badge === 'alpha_trader') return;
     const currentMilestone = getMilestoneForCount(totalTrades);
     if (!currentMilestone) return; // < 100 trades
 
     const crossedMilestones = TRADE_MILESTONES.filter((m) => totalTrades >= m.minTrades);
 
-    // Insert notifications for all crossed milestones (idempotent, single batch)
+    // Round 2: Read existing notifications (depends on crossedMilestones)
     const { data: existingNotifs } = await supabase
       .from('feed_notifications')
       .select('type')
       .eq('recipient_id', profileId)
       .in('type', crossedMilestones.map((m) => m.notificationType));
+
     const existingTypes = new Set((existingNotifs ?? []).map((r: { type: string }) => r.type));
     const toInsert = crossedMilestones
       .filter((m) => !existingTypes.has(m.notificationType))
@@ -307,31 +317,10 @@ export async function checkTradeMilestones(
         post_id:      null,
         comment_id:   null,
       }));
-    if (toInsert.length > 0) {
-      await supabase.from('feed_notifications').insert(toInsert);
-    }
 
-    // Update denormalized trade_badge to highest achieved milestone
-    if (profile?.trade_badge !== currentMilestone.id) {
-      await supabase
-        .from('social_profiles')
-        .update({ trade_badge: currentMilestone.id })
-        .eq('id', profileId);
-    }
-
-    // Update feature_flags with badge info + available discounts
-
-    // Read existing feature_flags to preserve discount "used" state
-    const { data: settingsRow } = await supabase
-      .from('user_settings')
-      .select('feature_flags')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    const existingFlags = (settingsRow?.feature_flags ?? {}) as Record<string, unknown>;
-    const existingDiscounts = Array.isArray((existingFlags as { available_discounts?: unknown }).available_discounts)
-      ? (existingFlags as { available_discounts: { milestoneId: string; discountPct: number; used: boolean; couponCode?: string; generatedAt?: string; achievedAt?: string }[] }).available_discounts
-      : [];
+    // Compute updated feature_flags (uses settingsRow from Round 1)
+    const existingFlags = parseFeatureFlags(settingsRow?.feature_flags);
+    const existingDiscounts = existingFlags.available_discounts ?? [];
 
     const availableDiscounts = crossedMilestones.map((m) => {
       const existing = existingDiscounts.find((d) => d.milestoneId === m.id);
@@ -343,23 +332,32 @@ export async function checkTradeMilestones(
       };
     });
 
-    const existingBadge = (existingFlags.trade_badge ?? {}) as { achievedAt?: string };
+    const existingBadge = existingFlags.trade_badge;
     const featureFlags = {
       ...existingFlags,
       trade_badge: {
         id: currentMilestone.id,
         totalTrades,
-        achievedAt: existingBadge.achievedAt ?? new Date().toISOString(),
+        achievedAt: existingBadge?.achievedAt ?? new Date().toISOString(),
       },
       available_discounts: availableDiscounts,
     };
 
-    await supabase
-      .from('user_settings')
-      .upsert(
-        { user_id: userId, feature_flags: featureFlags },
-        { onConflict: 'user_id' },
-      );
+    // Round 3: All independent writes in parallel
+    await Promise.all([
+      toInsert.length > 0
+        ? supabase.from('feed_notifications').insert(toInsert)
+        : Promise.resolve(),
+      profile?.trade_badge !== currentMilestone.id
+        ? supabase.from('social_profiles').update({ trade_badge: currentMilestone.id }).eq('id', profileId)
+        : Promise.resolve(),
+      supabase
+        .from('user_settings')
+        .upsert(
+          { user_id: userId, feature_flags: featureFlags },
+          { onConflict: 'user_id' },
+        ),
+    ]);
   } catch (err) {
     console.error('[checkTradeMilestones] failed (non-fatal):', err);
   }
@@ -370,7 +368,7 @@ export async function checkTradeMilestones(
  * the pro_3mo_discount notification once the user has been on PRO for ≥3 months.
  * Called on Rewards page load — idempotent, non-fatal.
  */
-export async function syncUserBadge(userId: string, proSinceDate?: string | null): Promise<void> {
+export async function syncUserBadge(userId: string, proSinceDate?: string | null): Promise<FeatureFlags> {
   try {
     const supabase = createAdminClient();
     const { data: profileRow } = await supabase
@@ -378,7 +376,7 @@ export async function syncUserBadge(userId: string, proSinceDate?: string | null
       .select('id')
       .eq('user_id', userId)
       .maybeSingle();
-    if (!profileRow) return;
+    if (!profileRow) return {};
     const profileId = (profileRow as { id: string }).id;
 
     await checkTradeMilestones(profileId, userId);
@@ -387,8 +385,17 @@ export async function syncUserBadge(userId: string, proSinceDate?: string | null
     if (proSinceDate && monthsSince(proSinceDate) >= 3) {
       void ensureOfferNotification(profileId, 'pro_loyalty_unlocked');
     }
+
+    // Return the freshly-written flags so callers avoid a second DB read
+    const { data: settingsRow } = await supabase
+      .from('user_settings')
+      .select('feature_flags')
+      .eq('user_id', userId)
+      .maybeSingle();
+    return parseFeatureFlags(settingsRow?.feature_flags);
   } catch {
     // Non-fatal
+    return {};
   }
 }
 

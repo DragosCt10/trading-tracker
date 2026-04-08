@@ -24,6 +24,7 @@ vi.mock('@/lib/server/subscription');
 vi.mock('@/lib/server/feedActivity');
 vi.mock('@/utils/supabase/server', () => ({ createClient: vi.fn() }));
 vi.mock('@/constants/discountedVariants', () => ({ getDiscountedVariantId: vi.fn() }));
+vi.mock('@/lib/server/supabaseAdmin');
 vi.mock('@/constants/tiers', () => ({
   TIER_DEFINITIONS: {
     pro: {
@@ -44,6 +45,7 @@ import { resolveSubscription } from '@/lib/server/subscription';
 import { getUserActivityCount } from '@/lib/server/feedActivity';
 import { createClient } from '@/utils/supabase/server';
 import { getDiscountedVariantId } from '@/constants/discountedVariants';
+import { createAdminClient as createAdminClientForActivity } from '@/lib/server/supabaseAdmin';
 import {
   redeemMilestoneDiscount,
   redeemProRetentionDiscount,
@@ -53,18 +55,17 @@ import {
 
 // ── Typed mocks ───────────────────────────────────────────────────────────────
 
-const mockedGetSession          = vi.mocked(getCachedUserSession);
-const mockedGetFlags            = vi.mocked(getFeatureFlags);
-const mockedUpdateFlags         = vi.mocked(updateFeatureFlags);
-const mockedGetProvider         = vi.mocked(getPaymentProvider);
-const mockedResolveSubscription = vi.mocked(resolveSubscription);
-const mockedGetActivityCount    = vi.mocked(getUserActivityCount);
-const mockedCreateClient        = vi.mocked(createClient);
-const mockedGetDiscountedId     = vi.mocked(getDiscountedVariantId);
+const mockedGetSession                    = vi.mocked(getCachedUserSession);
+const mockedGetFlags                      = vi.mocked(getFeatureFlags);
+const mockedUpdateFlags                   = vi.mocked(updateFeatureFlags);
+const mockedGetProvider                   = vi.mocked(getPaymentProvider);
+const mockedResolveSubscription           = vi.mocked(resolveSubscription);
+const mockedGetActivityCount              = vi.mocked(getUserActivityCount);
+const mockedCreateClient                  = vi.mocked(createClient);
+const mockedGetDiscountedId               = vi.mocked(getDiscountedVariantId);
+const mockedCreateAdminClientForActivity  = vi.mocked(createAdminClientForActivity);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-const MOCK_USER = { id: 'user-123', email: 'test@example.com' };
 
 /** Builds a mock payment provider. createDiscountCode resolves to { code }. */
 function makeProvider(code = 'GENERATED-CODE') {
@@ -108,9 +109,12 @@ const PRO_MONTHLY_ROW = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('redeemMilestoneDiscount', () => {
+  let testUserId: string;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedGetSession.mockResolvedValue({ user: MOCK_USER } as Awaited<ReturnType<typeof getCachedUserSession>>);
+    testUserId = `user-${Math.random().toString(36).slice(2, 10)}`;
+    mockedGetSession.mockResolvedValue({ user: { id: testUserId, email: 'test@example.com' } } as Awaited<ReturnType<typeof getCachedUserSession>>);
     mockedUpdateFlags.mockResolvedValue(undefined);
   });
 
@@ -174,6 +178,34 @@ describe('redeemMilestoneDiscount', () => {
     expect(result).toMatchObject({ couponCode: 'ROOKIE-ALREADY-THERE' });
     expect(provider.createDiscountCode).not.toHaveBeenCalled();
     expect(mockedUpdateFlags).not.toHaveBeenCalled();
+  });
+
+  it('returns EXPIRED when cached couponCode has past expiresAt', async () => {
+    const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // yesterday
+    mockedGetFlags.mockResolvedValue({
+      available_discounts: [
+        { milestoneId: 'rookie_trader', discountPct: 5, used: false, couponCode: 'ROOKIE-EXPIRED', expiresAt: pastDate },
+      ],
+    });
+
+    const result = await redeemMilestoneDiscount('rookie_trader');
+
+    expect(result).toMatchObject({ code: 'EXPIRED' });
+    expect(mockedGetProvider).not.toHaveBeenCalled();
+  });
+
+  it('returns the coupon code when expiresAt is in the future', async () => {
+    const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // +7 days
+    mockedGetFlags.mockResolvedValue({
+      available_discounts: [
+        { milestoneId: 'rookie_trader', discountPct: 5, used: false, couponCode: 'ROOKIE-VALID', expiresAt: futureDate },
+      ],
+    });
+
+    const result = await redeemMilestoneDiscount('rookie_trader');
+
+    expect(result).toMatchObject({ couponCode: 'ROOKIE-VALID' });
+    expect(mockedGetProvider).not.toHaveBeenCalled();
   });
 
   // ─── Successful first redemption ──────────────────────────────────────────
@@ -270,9 +302,12 @@ describe('redeemMilestoneDiscount', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('redeemProRetentionDiscount', () => {
+  let testUserId: string;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedGetSession.mockResolvedValue({ user: MOCK_USER } as Awaited<ReturnType<typeof getCachedUserSession>>);
+    testUserId = `user-${Math.random().toString(36).slice(2, 10)}`;
+    mockedGetSession.mockResolvedValue({ user: { id: testUserId, email: 'test@example.com' } } as Awaited<ReturnType<typeof getCachedUserSession>>);
     mockedUpdateFlags.mockResolvedValue(undefined);
   });
 
@@ -344,6 +379,19 @@ describe('redeemProRetentionDiscount', () => {
     expect(mockedUpdateFlags).not.toHaveBeenCalled();
   });
 
+  it('returns EXPIRED when pro_retention_discount.couponCode has past expiresAt', async () => {
+    const pastDate = new Date(Date.now() - 1).toISOString();
+    mockedResolveSubscription.mockResolvedValue({
+      isActive: true, tier: 'pro', createdAt: nMonthsAgo(4),
+    } as Awaited<ReturnType<typeof resolveSubscription>>);
+    mockedGetFlags.mockResolvedValue({
+      pro_retention_discount: { used: false, couponCode: 'PROLOYALTY-EXPIRED', expiresAt: pastDate },
+    });
+
+    expect(await redeemProRetentionDiscount()).toMatchObject({ code: 'EXPIRED' });
+    expect(mockedGetProvider).not.toHaveBeenCalled();
+  });
+
   it('calls provider with 10% discount and persists couponCode for eligible user (4+ months PRO)', async () => {
     const provider = makeProvider('PROLOYALTY-NEW');
     mockedResolveSubscription.mockResolvedValue({
@@ -383,10 +431,30 @@ describe('redeemProRetentionDiscount', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('redeemActivityDiscount', () => {
+  let testUserId: string;
+  let mockAdminDb: ReturnType<typeof buildActivityAdminMock>;
+
+  function buildActivityAdminMock(profileData: { id: string } | null) {
+    return {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: profileData }),
+          }),
+        }),
+      }),
+    };
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedGetSession.mockResolvedValue({ user: MOCK_USER } as Awaited<ReturnType<typeof getCachedUserSession>>);
+    testUserId = `user-${Math.random().toString(36).slice(2, 10)}`;
+    mockedGetSession.mockResolvedValue({ user: { id: testUserId, email: 'test@example.com' } } as Awaited<ReturnType<typeof getCachedUserSession>>);
     mockedUpdateFlags.mockResolvedValue(undefined);
+
+    // Default: admin client returns a valid profile for the session user
+    mockAdminDb = buildActivityAdminMock({ id: 'profile-from-session' });
+    mockedCreateAdminClientForActivity.mockReturnValue(mockAdminDb as unknown as ReturnType<typeof createAdminClientForActivity>);
   });
 
   // ─── Auth ─────────────────────────────────────────────────────────────────
@@ -394,7 +462,14 @@ describe('redeemActivityDiscount', () => {
   it('returns UNAUTHORIZED when no user session', async () => {
     mockedGetSession.mockResolvedValue({ user: null } as Awaited<ReturnType<typeof getCachedUserSession>>);
 
-    expect(await redeemActivityDiscount('profile-abc')).toMatchObject({ code: 'UNAUTHORIZED' });
+    expect(await redeemActivityDiscount()).toMatchObject({ code: 'UNAUTHORIZED' });
+  });
+
+  it('returns NOT_FOUND when user has no social profile', async () => {
+    mockAdminDb = buildActivityAdminMock(null);
+    mockedCreateAdminClientForActivity.mockReturnValue(mockAdminDb as unknown as ReturnType<typeof createAdminClientForActivity>);
+
+    expect(await redeemActivityDiscount()).toMatchObject({ code: 'NOT_FOUND' });
   });
 
   // ─── Activity count gate ──────────────────────────────────────────────────
@@ -402,7 +477,7 @@ describe('redeemActivityDiscount', () => {
   it('returns NOT_EARNED when total activity count is below 300', async () => {
     mockedGetActivityCount.mockResolvedValue({ posts: 150, comments: 100, total: 250 });
 
-    const result = await redeemActivityDiscount('profile-abc');
+    const result = await redeemActivityDiscount();
 
     expect(result).toMatchObject({ code: 'NOT_EARNED' });
     expect(mockedGetProvider).not.toHaveBeenCalled();
@@ -411,7 +486,7 @@ describe('redeemActivityDiscount', () => {
   it('returns NOT_EARNED at exactly 299 (boundary)', async () => {
     mockedGetActivityCount.mockResolvedValue({ posts: 200, comments: 99, total: 299 });
 
-    expect(await redeemActivityDiscount('profile-abc')).toMatchObject({ code: 'NOT_EARNED' });
+    expect(await redeemActivityDiscount()).toMatchObject({ code: 'NOT_EARNED' });
   });
 
   it('allows redemption at exactly 300 (boundary)', async () => {
@@ -419,7 +494,7 @@ describe('redeemActivityDiscount', () => {
     mockedGetFlags.mockResolvedValue({});
     mockedGetProvider.mockReturnValue(makeProvider('RANKUP-300') as unknown as ReturnType<typeof getPaymentProvider>);
 
-    expect(await redeemActivityDiscount('profile-abc')).toMatchObject({ couponCode: 'RANKUP-300' });
+    expect(await redeemActivityDiscount()).toMatchObject({ couponCode: 'RANKUP-300' });
   });
 
   // ─── Eligibility guards ───────────────────────────────────────────────────
@@ -430,7 +505,7 @@ describe('redeemActivityDiscount', () => {
       activity_rank_up_discount: { used: true, couponCode: 'RANKUP-SPENT' },
     });
 
-    const result = await redeemActivityDiscount('profile-abc');
+    const result = await redeemActivityDiscount();
 
     expect(result).toMatchObject({ code: 'ALREADY_USED' });
     expect(mockedGetProvider).not.toHaveBeenCalled();
@@ -446,11 +521,22 @@ describe('redeemActivityDiscount', () => {
     });
     mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
 
-    const result = await redeemActivityDiscount('profile-abc');
+    const result = await redeemActivityDiscount();
 
     expect(result).toMatchObject({ couponCode: 'RANKUP-EXISTING' });
     expect(provider.createDiscountCode).not.toHaveBeenCalled();
     expect(mockedUpdateFlags).not.toHaveBeenCalled();
+  });
+
+  it('returns EXPIRED when activity_rank_up_discount.couponCode has past expiresAt', async () => {
+    const pastDate = new Date(Date.now() - 1).toISOString();
+    mockedGetActivityCount.mockResolvedValue({ posts: 200, comments: 150, total: 350 });
+    mockedGetFlags.mockResolvedValue({
+      activity_rank_up_discount: { used: false, couponCode: 'RANKUP-EXPIRED', expiresAt: pastDate },
+    });
+
+    expect(await redeemActivityDiscount()).toMatchObject({ code: 'EXPIRED' });
+    expect(mockedGetProvider).not.toHaveBeenCalled();
   });
 
   // ─── Successful first redemption ──────────────────────────────────────────
@@ -461,7 +547,7 @@ describe('redeemActivityDiscount', () => {
     mockedGetFlags.mockResolvedValue({});
     mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
 
-    const result = await redeemActivityDiscount('profile-abc');
+    const result = await redeemActivityDiscount();
 
     expect(result).toMatchObject({ couponCode: 'RANKUP-NEW' });
     expect(provider.createDiscountCode).toHaveBeenCalledOnce();
@@ -481,7 +567,7 @@ describe('redeemActivityDiscount', () => {
     mockedGetFlags.mockResolvedValue({});
     mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
 
-    await redeemActivityDiscount('profile-abc');
+    await redeemActivityDiscount();
 
     expect(provider.createDiscountCode.mock.calls[0][0].code as string).toMatch(/^RANKUP/);
   });
@@ -497,7 +583,7 @@ describe('redeemActivityDiscount', () => {
     mockedGetFlags.mockResolvedValue({});
     mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
 
-    const result = await redeemActivityDiscount('profile-abc');
+    const result = await redeemActivityDiscount();
 
     expect(result).toMatchObject({ code: 'PROVIDER_ERROR' });
     expect(mockedUpdateFlags).not.toHaveBeenCalled();
@@ -509,10 +595,20 @@ describe('redeemActivityDiscount', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('applyDiscountToSubscription', () => {
+  let testUserId: string;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedGetSession.mockResolvedValue({ user: MOCK_USER } as Awaited<ReturnType<typeof getCachedUserSession>>);
-    mockedGetFlags.mockResolvedValue({});
+    testUserId = `user-${Math.random().toString(36).slice(2, 10)}`;
+    mockedGetSession.mockResolvedValue({ user: { id: testUserId, email: 'test@example.com' } } as Awaited<ReturnType<typeof getCachedUserSession>>);
+    const futureExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    mockedGetFlags.mockResolvedValue({
+      available_discounts: [
+        { milestoneId: 'rookie_trader', discountPct: 5, used: false, couponCode: 'ROOKIE-VALID', expiresAt: futureExpiry },
+      ],
+      pro_retention_discount: { used: false, couponCode: 'RETENTION-VALID', expiresAt: futureExpiry },
+      activity_rank_up_discount: { used: false, couponCode: 'ACTIVITY-VALID', expiresAt: futureExpiry },
+    });
     mockedUpdateFlags.mockResolvedValue(undefined);
     // Default: active PRO monthly subscription
     mockedCreateClient.mockResolvedValue(
@@ -610,6 +706,84 @@ describe('applyDiscountToSubscription', () => {
     expect(mockedUpdateFlags).not.toHaveBeenCalled();
   });
 
+  // ─── Coupon validation guard ──────────────────────────────────────────────
+
+  it('returns error when coupon not yet claimed (no couponCode in flags)', async () => {
+    mockedGetFlags.mockResolvedValue({
+      available_discounts: [
+        { milestoneId: 'rookie_trader', discountPct: 5, used: false },
+        // no couponCode — not yet claimed
+      ],
+    });
+    const provider = makeProvider();
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
+
+    const result = await applyDiscountToSubscription('rookie_trader');
+
+    expect(result).toMatchObject({ error: expect.stringContaining('not yet claimed') });
+    expect(provider.switchSubscriptionVariant).not.toHaveBeenCalled();
+  });
+
+  it('returns error when coupon is already used', async () => {
+    mockedGetFlags.mockResolvedValue({
+      available_discounts: [
+        { milestoneId: 'rookie_trader', discountPct: 5, used: true, couponCode: 'ROOKIE-SPENT' },
+      ],
+    });
+    const provider = makeProvider();
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
+
+    const result = await applyDiscountToSubscription('rookie_trader');
+
+    expect(result).toMatchObject({ error: expect.stringContaining('already used') });
+    expect(provider.switchSubscriptionVariant).not.toHaveBeenCalled();
+  });
+
+  it('returns error when coupon is expired (past expiresAt)', async () => {
+    const pastDate = new Date(Date.now() - 1).toISOString();
+    mockedGetFlags.mockResolvedValue({
+      available_discounts: [
+        { milestoneId: 'rookie_trader', discountPct: 5, used: false, couponCode: 'ROOKIE-EXPIRED', expiresAt: pastDate },
+      ],
+    });
+    const provider = makeProvider();
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
+
+    const result = await applyDiscountToSubscription('rookie_trader');
+
+    expect(result).toMatchObject({ error: expect.stringContaining('expired') });
+    expect(provider.switchSubscriptionVariant).not.toHaveBeenCalled();
+  });
+
+  it('allows apply when coupon is valid (has code, not used, not expired)', async () => {
+    const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    mockedGetFlags.mockResolvedValue({
+      available_discounts: [
+        { milestoneId: 'rookie_trader', discountPct: 5, used: false, couponCode: 'ROOKIE-VALID', expiresAt: futureDate },
+      ],
+    });
+    const provider = makeProvider();
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
+
+    const result = await applyDiscountToSubscription('rookie_trader');
+
+    expect(result).toMatchObject({ success: true });
+    expect(provider.switchSubscriptionVariant).toHaveBeenCalledOnce();
+  });
+
+  it('validates retention discount: returns error when not claimed', async () => {
+    mockedGetFlags.mockResolvedValue({
+      pro_retention_discount: { used: false }, // no couponCode
+    });
+    const provider = makeProvider();
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
+
+    const result = await applyDiscountToSubscription('retention');
+
+    expect(result).toMatchObject({ error: expect.stringContaining('not yet claimed') });
+    expect(provider.switchSubscriptionVariant).not.toHaveBeenCalled();
+  });
+
   // ─── Happy path ───────────────────────────────────────────────────────────
 
   it('calls switchSubscriptionVariant with the subscription ID and discounted variant ID', async () => {
@@ -646,7 +820,14 @@ describe('applyDiscountToSubscription', () => {
   });
 
   it('preserves existing feature_flags when storing pending_variant_revert', async () => {
-    mockedGetFlags.mockResolvedValue({ other_flag: true, another: 'value' });
+    const futureExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    mockedGetFlags.mockResolvedValue({
+      other_flag: true,
+      another: 'value',
+      available_discounts: [
+        { milestoneId: 'rookie_trader', discountPct: 5, used: false, couponCode: 'ROOKIE-VALID', expiresAt: futureExpiry },
+      ],
+    });
     mockedGetProvider.mockReturnValue(makeProvider() as unknown as ReturnType<typeof getPaymentProvider>);
 
     await applyDiscountToSubscription('rookie_trader');
