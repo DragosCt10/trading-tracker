@@ -7,6 +7,7 @@ import {
   listSubscriptions,
   listOrders,
   createDiscount,
+  updateSubscription,
 } from '@lemonsqueezy/lemonsqueezy.js';
 import { TIER_DEFINITIONS } from '@/constants/tiers';
 import type { TierId, BillingPeriod } from '@/types/subscription';
@@ -75,7 +76,6 @@ export class LemonSqueezyProvider implements IPaymentProvider {
       },
       productOptions: {
         redirectUrl: successUrl,
-        enabledVariants: [Number(productId)],
       },
     });
 
@@ -221,7 +221,7 @@ export class LemonSqueezyProvider implements IPaymentProvider {
       };
 
       console.log(`[billing/webhook] action=subscription.updated userId=${userId ?? '—'} event=${eventName}`);
-      return { type: 'subscription.updated', data: mapped, userId };
+      return { type: 'subscription.updated', data: mapped, userId, originalEvent: eventName };
     }
 
     if (eventName === 'subscription_cancelled') {
@@ -370,5 +370,47 @@ export class LemonSqueezyProvider implements IPaymentProvider {
     }
 
     return { code };
+  }
+
+  async switchSubscriptionVariant(subscriptionId: string, variantId: string): Promise<void> {
+    const result = await updateSubscription(subscriptionId, { variantId: Number(variantId) });
+    if (result.error) {
+      throw new Error(`[billing/lemonsqueezy] switchSubscriptionVariant failed: ${JSON.stringify(result.error)}`);
+    }
+  }
+
+  async createDiscountedCheckoutSession({
+    variantId,
+    couponCode,
+    userId,
+    successUrl,
+  }: {
+    variantId: string;
+    couponCode: string;
+    userId: string;
+    successUrl: string;
+  }): Promise<{ checkoutUrl: string }> {
+    const checkout = await createCheckout(this.storeId, variantId, {
+      checkoutOptions: { embed: false, media: false },
+      checkoutData: {
+        discountCode: couponCode,
+        custom: { user_id: userId },
+      },
+      productOptions: {
+        redirectUrl: successUrl,
+        enabledVariants: [Number(variantId)],
+      },
+    });
+
+    if (checkout.error) {
+      throw new Error(
+        `[billing/lemonsqueezy] createDiscountedCheckout error: ${JSON.stringify(checkout.error)}`,
+      );
+    }
+    const url = checkout.data?.data?.attributes?.url;
+    if (!url) {
+      throw new Error('[billing/lemonsqueezy] createDiscountedCheckout returned no URL');
+    }
+    return { checkoutUrl: url };
   }
 }

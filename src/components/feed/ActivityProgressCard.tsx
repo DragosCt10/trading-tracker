@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { Trophy, CheckCircle2, Copy, Check, Loader2 } from 'lucide-react';
 import { FEED_CARD_SURFACE_CLASS } from './feedCardStyles';
 import { useActivityProgress } from '@/hooks/useActivityProgress';
-import { redeemActivityDiscount } from '@/lib/server/rewards';
+import { redeemActivityDiscount, applyDiscountToSubscription } from '@/lib/server/rewards';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -49,11 +49,13 @@ export default function ActivityProgressCard({
   initialCount,
   isPro,
   initialDiscount,
+  initialApplied,
 }: {
   profileId: string | null;
   initialCount?: { posts: number; comments: number; total: number };
   isPro?: boolean;
   initialDiscount?: ActivityDiscount | null;
+  initialApplied?: boolean;
 }) {
   const { total, isLoading } = useActivityProgress(profileId, initialCount);
 
@@ -61,6 +63,10 @@ export default function ActivityProgressCard({
   const [claiming, setClaiming] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const [applyLoading, setApplyLoading] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
+  const [applySuccess, setApplySuccess] = useState(initialApplied ?? false);
 
   if (!profileId) return null;
   if (isLoading) return <ProgressSkeleton />;
@@ -79,6 +85,18 @@ export default function ActivityProgressCard({
       setClaimError(result.error);
     }
     setClaiming(false);
+  }
+
+  async function handleApply() {
+    setApplyLoading(true);
+    setApplyError(null);
+    const result = await applyDiscountToSubscription('activity');
+    if ('success' in result) {
+      setApplySuccess(true);
+    } else {
+      setApplyError(result.error);
+    }
+    setApplyLoading(false);
   }
 
   function handleCopy(code: string) {
@@ -109,57 +127,76 @@ export default function ActivityProgressCard({
             <span className="font-medium">15% PRO discount earned!</span>
           </div>
 
-          {discount?.couponCode ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <code className="inline-flex items-center h-7 text-xs font-mono px-3 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 select-all tracking-wider">
-                  {discount.couponCode}
-                </code>
+          {isPro ? (
+            // PRO users: apply discount directly to subscription
+            discount?.used || applySuccess ? (
+              applySuccess ? (
+                <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                  ✓ Discount applied — activates on your next billing cycle
+                </p>
+              ) : (
+                <p className="text-xs text-slate-500 dark:text-slate-400">Discount already used.</p>
+              )
+            ) : (
+              <>
                 <Button
                   size="sm"
                   variant="outline"
                   className="h-7 text-xs px-3 cursor-pointer rounded-xl gap-1.5 border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
-                  onClick={() => handleCopy(discount.couponCode!)}
+                  disabled={applyLoading}
+                  onClick={handleApply}
                 >
-                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                  {copied ? 'Copied!' : 'Copy'}
+                  {applyLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                  Apply to my subscription
                 </Button>
-              </div>
-              {discount.expiresAt && (
-                <ExpiryCountdown expiresAt={discount.expiresAt} />
-              )}
-              {isPro ? (
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  You&apos;re already PRO.{' '}
-                  <a href="/settings?tab=billing" className="underline underline-offset-2 hover:text-slate-700 dark:hover:text-slate-300">
-                    Go to billing settings →
-                  </a>
-                </p>
-              ) : (
+                {applyError && <p className="text-xs text-rose-500">{applyError}</p>}
+              </>
+            )
+          ) : (
+            // Free users: coupon code flow
+            discount?.couponCode ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <code className="inline-flex items-center h-7 text-xs font-mono px-3 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 select-all tracking-wider">
+                    {discount.couponCode}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs px-3 cursor-pointer rounded-xl gap-1.5 border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
+                    onClick={() => handleCopy(discount.couponCode!)}
+                  >
+                    {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    {copied ? 'Copied!' : 'Copy'}
+                  </Button>
+                </div>
+                {discount.expiresAt && (
+                  <ExpiryCountdown expiresAt={discount.expiresAt} />
+                )}
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   Enter this code at checkout when upgrading to PRO.{' '}
                   <a href="/settings?tab=billing" className="underline underline-offset-2 hover:text-slate-700 dark:hover:text-slate-300">
                     Upgrade now →
                   </a>
                 </p>
-              )}
-            </div>
-          ) : discount?.used ? (
-            <p className="text-xs text-slate-500 dark:text-slate-400">Discount already used.</p>
-          ) : (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs px-3 cursor-pointer rounded-xl gap-1.5 border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
-                disabled={claiming}
-                onClick={handleClaim}
-              >
-                {claiming ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                Get coupon code
-              </Button>
-              {claimError && <p className="text-xs text-rose-500">{claimError}</p>}
-            </>
+              </div>
+            ) : discount?.used ? (
+              <p className="text-xs text-slate-500 dark:text-slate-400">Discount already used.</p>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs px-3 cursor-pointer rounded-xl gap-1.5 border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
+                  disabled={claiming}
+                  onClick={handleClaim}
+                >
+                  {claiming ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                  Get coupon code
+                </Button>
+                {claimError && <p className="text-xs text-rose-500">{claimError}</p>}
+              </>
+            )
           )}
         </div>
       ) : (

@@ -32,6 +32,8 @@ export default async function FeedPage() {
   ]);
 
   const initialActivityDiscount = (flags?.activity_rank_up_discount as { used: boolean; couponCode?: string; expiresAt?: string } | undefined) ?? null;
+  const pendingRevert = flags?.pending_variant_revert as { discountId?: string } | undefined;
+  const initialActivityApplied = pendingRevert?.discountId === 'activity';
 
   return (
     <FeedClient
@@ -43,6 +45,7 @@ export default async function FeedPage() {
       initialFollowingFeedData={initialFollowingFeedData ?? undefined}
       initialActivityCount={initialActivityCount ?? undefined}
       initialActivityDiscount={initialActivityDiscount}
+      initialActivityApplied={initialActivityApplied}
     />
   );
 }

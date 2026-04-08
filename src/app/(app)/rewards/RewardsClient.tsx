@@ -11,7 +11,7 @@ import {
   type TradeMilestone,
   type TradeMilestoneId,
 } from '@/constants/tradeMilestones';
-import { redeemMilestoneDiscount, redeemProRetentionDiscount } from '@/lib/server/rewards';
+import { redeemMilestoneDiscount, redeemProRetentionDiscount, applyDiscountToSubscription } from '@/lib/server/rewards';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { monthsSince } from '@/utils/helpers/dateHelpers';
@@ -20,7 +20,6 @@ interface RewardsClientProps {
   totalTrades: number;
   featureFlags: Record<string, unknown>;
   isPro: boolean;
-  portalUrl: string | null;
   proSinceDate: string | null;
   showBackToSettings?: boolean;
 }
@@ -52,7 +51,7 @@ function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
   );
 }
 
-export default function RewardsClient({ totalTrades, featureFlags, isPro, portalUrl, proSinceDate, showBackToSettings }: RewardsClientProps) {
+export default function RewardsClient({ totalTrades, featureFlags, isPro, proSinceDate, showBackToSettings }: RewardsClientProps) {
   const currentMilestone = getMilestoneForCount(totalTrades);
   const nextMilestone = getNextMilestone(totalTrades);
   const [discounts, setDiscounts] = useState<DiscountEntry[]>(
@@ -63,6 +62,15 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, portal
   const [claimErrors, setClaimErrors] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
+
+  // Apply-to-subscription state (keyed by discountId: milestoneId or 'retention')
+  const [applyLoading, setApplyLoading] = useState<string | null>(null);
+  const [applyErrors, setApplyErrors] = useState<Record<string, string>>({});
+  // Seed from feature_flags so "Discount applied" persists across page refreshes
+  const pendingRevert = featureFlags.pending_variant_revert as { discountId?: string } | undefined;
+  const [applySuccess, setApplySuccess] = useState<Set<string>>(
+    pendingRevert?.discountId ? new Set([pendingRevert.discountId]) : new Set(),
+  );
 
   // PRO retention discount state
   const initialRetention = featureFlags.pro_retention_discount as ProRetentionDiscount | undefined;
@@ -84,6 +92,18 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, portal
       setRetentionError(result.error);
     }
     setRetentionClaiming(false);
+  }
+
+  async function handleApplyDiscount(discountId: string) {
+    setApplyLoading(discountId);
+    setApplyErrors((prev) => { const next = { ...prev }; delete next[discountId]; return next; });
+    const result = await applyDiscountToSubscription(discountId as TradeMilestoneId | 'retention' | 'activity');
+    if ('success' in result) {
+      setApplySuccess((prev) => new Set([...prev, discountId]));
+    } else {
+      setApplyErrors((prev) => ({ ...prev, [discountId]: result.error }));
+    }
+    setApplyLoading(null);
   }
 
   function handleRetentionCopy(code: string) {
@@ -241,20 +261,12 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, portal
                   {retentionDiscount.expiresAt && (
                     <ExpiryCountdown expiresAt={retentionDiscount.expiresAt} />
                   )}
-                  {portalUrl ? (
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      <a href={portalUrl} className="underline underline-offset-2 hover:text-slate-700 dark:hover:text-slate-300">
-                        Apply to current subscription →
-                      </a>
-                    </p>
-                  ) : (
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Enter this code at checkout.{' '}
-                      <a href="/settings?tab=billing" className="underline underline-offset-2 hover:text-slate-700 dark:hover:text-slate-300">
-                        Go to billing →
-                      </a>
-                    </p>
-                  )}
+                  <ApplyDiscountSection
+                    isLoading={applyLoading === 'retention'}
+                    isApplied={applySuccess.has('retention')}
+                    error={applyErrors['retention']}
+                    onApply={() => handleApplyDiscount('retention')}
+                  />
                 </div>
               ) : (
                 <>
@@ -342,18 +354,12 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, portal
                           <ExpiryCountdown expiresAt={discount.expiresAt} />
                         )}
                         {isPro ? (
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            You&apos;re already PRO.{' '}
-                            {portalUrl ? (
-                              <a href={portalUrl} className="underline underline-offset-2 hover:text-slate-700 dark:hover:text-slate-300">
-                                Apply to current subscription →
-                              </a>
-                            ) : (
-                              <a href="/settings?tab=billing" className="underline underline-offset-2 hover:text-slate-700 dark:hover:text-slate-300">
-                                Go to billing settings → Manage subscription
-                              </a>
-                            )}
-                          </p>
+                          <ApplyDiscountSection
+                            isLoading={applyLoading === milestone.id}
+                            isApplied={applySuccess.has(milestone.id)}
+                            error={applyErrors[milestone.id]}
+                            onApply={() => handleApplyDiscount(milestone.id)}
+                          />
                         ) : (
                           <p className="text-xs text-slate-500 dark:text-slate-400">
                             Enter this code at checkout when upgrading to PRO.{' '}
@@ -422,7 +428,15 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, portal
         <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
           <li className="flex items-start gap-2">
             <span className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
-            Each milestone unlocks a one-time discount on a PRO subscription.
+            Each milestone unlocks a one-time discount for your PRO subscription.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
+            Already on PRO? Click &ldquo;Apply to my subscription&rdquo; to get the discount on your next billing cycle — no cancellation needed.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
+            Not yet on PRO? Copy the code and enter it at checkout when upgrading.
           </li>
           <li className="flex items-start gap-2">
             <span className="mt-0.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
@@ -438,6 +452,42 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, portal
           </li>
         </ul>
       </div>
+    </div>
+  );
+}
+
+function ApplyDiscountSection({
+  isLoading,
+  isApplied,
+  error,
+  onApply,
+}: {
+  isLoading: boolean;
+  isApplied: boolean;
+  error?: string;
+  onApply: () => void;
+}) {
+  if (isApplied) {
+    return (
+      <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+        <Check className="h-3 w-3" />
+        Discount applied — activates on your next billing cycle
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-1">
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-7 text-xs px-3 cursor-pointer rounded-xl gap-1.5 border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
+        disabled={isLoading}
+        onClick={onApply}
+      >
+        {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+        Apply to my subscription
+      </Button>
+      {error && <p className="text-xs text-rose-500">{error}</p>}
     </div>
   );
 }

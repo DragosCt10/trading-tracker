@@ -88,6 +88,32 @@ export async function ensureUserForCheckoutEmail(email: string, providerSource: 
 const processedWebhookIds = new Map<string, number>();
 const IDEMPOTENCY_TTL_MS = 5 * 60 * 1000;
 
+// ── Pending price cache ───────────────────────────────────────────────────────
+// order_created fires before subscription_created in LemonSqueezy. For fresh
+// users there is no subscription row yet when the order arrives, so the UPDATE
+// finds 0 rows and price data is lost. We cache the price here and apply it
+// after the subscription upsert in subscription.updated.
+
+interface PendingPrice { amountCents: number; taxCents: number; currency: string; ts: number }
+const pendingPriceByCustomerId = new Map<string, PendingPrice>();
+const PRICE_CACHE_TTL_MS = 10 * 60 * 1000;
+
+function storePendingPrice(providerCustomerId: string, price: Omit<PendingPrice, 'ts'>): void {
+  const now = Date.now();
+  for (const [k, v] of pendingPriceByCustomerId.entries()) {
+    if (now - v.ts > PRICE_CACHE_TTL_MS) pendingPriceByCustomerId.delete(k);
+  }
+  pendingPriceByCustomerId.set(providerCustomerId, { ...price, ts: now });
+}
+
+function consumePendingPrice(providerCustomerId: string): Omit<PendingPrice, 'ts'> | null {
+  const entry = pendingPriceByCustomerId.get(providerCustomerId);
+  if (!entry) return null;
+  pendingPriceByCustomerId.delete(providerCustomerId);
+  const { ts: _ts, ...price } = entry;
+  return price;
+}
+
 export function isAlreadyProcessed(webhookId: string): boolean {
   const now = Date.now();
   for (const [id, ts] of Array.from(processedWebhookIds.entries())) {
@@ -96,6 +122,60 @@ export function isAlreadyProcessed(webhookId: string): boolean {
   if (processedWebhookIds.has(webhookId)) return true;
   processedWebhookIds.set(webhookId, now);
   return false;
+}
+
+// ── Discount variant revert ──────────────────────────────────────────────────
+
+interface PendingVariantRevert {
+  subscriptionId: string;
+  normalVariantId: string;
+  discountedVariantId: string;
+  discountPct: number;
+  discountId: string;
+  appliedAt: string;
+}
+
+/**
+ * After a discounted subscription payment succeeds, switch the subscription back
+ * to the normal variant and mark the discount as used.
+ */
+async function revertDiscountedVariantIfNeeded(userId: string, providerSubscriptionId: string): Promise<void> {
+  const { getFeatureFlags, updateFeatureFlags } = await import('@/lib/server/settings');
+  const flags = await getFeatureFlags(userId);
+  const pending = flags.pending_variant_revert as PendingVariantRevert | undefined;
+
+  if (!pending || pending.subscriptionId !== providerSubscriptionId) return;
+
+  // Clear the revert flag FIRST to prevent loops if the revert webhook fires again
+  const updatedFlags: Record<string, unknown> = { ...flags, pending_variant_revert: null };
+
+  // Mark the original discount as used
+  const { discountId } = pending;
+  if (discountId === 'retention') {
+    const existing = updatedFlags.pro_retention_discount as Record<string, unknown> | undefined;
+    if (existing) updatedFlags.pro_retention_discount = { ...existing, used: true };
+  } else if (discountId === 'activity') {
+    const existing = updatedFlags.activity_rank_up_discount as Record<string, unknown> | undefined;
+    if (existing) updatedFlags.activity_rank_up_discount = { ...existing, used: true };
+  } else {
+    const discounts = Array.isArray(updatedFlags.available_discounts)
+      ? (updatedFlags.available_discounts as Record<string, unknown>[])
+      : [];
+    updatedFlags.available_discounts = discounts.map((d) =>
+      d.milestoneId === discountId ? { ...d, used: true } : d,
+    );
+  }
+
+  await updateFeatureFlags(userId, updatedFlags);
+
+  // Switch back to normal variant
+  try {
+    const provider = getPaymentProvider();
+    await provider.switchSubscriptionVariant(pending.subscriptionId, pending.normalVariantId);
+    console.log(`[billing/webhook] reverted_discount_variant userId=${userId} from=${pending.discountedVariantId} to=${pending.normalVariantId}`);
+  } catch (err) {
+    console.error(`[billing/webhook] revertDiscountedVariant failed userId=${userId}`, err);
+  }
 }
 
 // ── Webhook action processor ─────────────────────────────────────────────────
@@ -175,12 +255,35 @@ export async function processWebhookAction(
       );
       if (error) console.error('[billing/webhook] upsert error:', error.message);
 
+      // Apply price data cached from the preceding order.created event.
+      const pending = action.data.providerCustomerId
+        ? consumePendingPrice(action.data.providerCustomerId)
+        : null;
+      if (pending) {
+        const { error: priceError } = await supabase
+          .from('subscriptions')
+          .update({
+            price_amount: pending.amountCents,
+            tax_amount: pending.taxCents,
+            currency: pending.currency,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', resolvedUserId);
+        if (priceError) console.error('[billing/webhook] price update error:', priceError.message);
+        else console.log(`[billing/webhook] applied pending price userId=${resolvedUserId} amount=${pending.amountCents} currency=${pending.currency}`);
+      }
+
       const isActive = ['active', 'trialing', 'admin_granted', 'past_due'].includes(action.data.status);
       const syncedTier = isActive ? action.data.tierId : 'starter';
       await (supabase as ReturnType<typeof createServiceRoleClient> & { from: (table: string) => any })
         .from('social_profiles')
         .update({ tier: syncedTier, updated_at: new Date().toISOString() })
         .eq('user_id', resolvedUserId);
+
+      // On payment success: check if we need to revert a discounted variant back to normal
+      if (action.originalEvent === 'subscription_payment_success') {
+        await revertDiscountedVariantIfNeeded(resolvedUserId, action.data.providerSubscriptionId);
+      }
       break;
     }
 
@@ -248,6 +351,16 @@ export async function processWebhookAction(
     case 'order.created': {
       console.log(`[billing/webhook] order.created orderId=${action.orderId} amount=$${action.amountUsd} userId=${action.userId ?? '—'} customerId=${action.providerCustomerId ?? '—'}`);
       const supabaseOrder = createServiceRoleClient();
+
+      // Cache price data so subscription.updated can apply it after the
+      // subscription row is created (order_created fires before subscription_created).
+      if (action.providerCustomerId) {
+        storePendingPrice(action.providerCustomerId, {
+          amountCents: action.amountCents,
+          taxCents: action.taxCents,
+          currency: action.currency,
+        });
+      }
 
       if (action.subscription) {
         const sub = action.subscription;

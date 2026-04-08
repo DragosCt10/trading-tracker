@@ -23,6 +23,7 @@ export default function SignupClient() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
   const router = useRouter();
   const { setIsLoading } = useLoading();
@@ -48,15 +49,17 @@ export default function SignupClient() {
       const formData = new FormData();
       formData.set('email', email);
       formData.set('password', password);
-      formData.set('redirectTo', `${window.location.origin}/api/auth/callback?next=/strategies`);
+      formData.set('redirectTo', `${window.location.origin}/api/auth/callback?next=/stats`);
       const result = await signupAction(null, formData);
 
       if (result.error) {
         setError(result.error ?? '');
         setTimeout(() => setError(null), 2000);
         setIsSubmitting(false);
+      } else if (result.requiresEmailConfirmation) {
+        setEmailSent(true);
       } else {
-        // Full page nav so the next request sends the session cookies set by the action
+        // No email confirmation required — session created immediately
         window.location.href = '/stats';
         return;
       }
@@ -113,8 +116,30 @@ export default function SignupClient() {
       </div>
       <ThemePickerModal open={themePickerOpen} onClose={() => setThemePickerOpen(false)} />
 
+      {/* Check your email screen */}
+      {emailSent && (
+        <div className="relative z-10 w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="flex flex-col items-center space-y-6 text-center py-16 px-4">
+            <div className="grid h-20 w-20 place-content-center rounded-2xl bg-muted/50 border border-border backdrop-blur-sm shadow-2xl">
+              <svg className="w-10 h-10" style={{ color: 'var(--tc-primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div className="space-y-3">
+              <h1 className="text-3xl font-bold text-foreground">Check your email</h1>
+              <p className="text-muted-foreground text-sm leading-relaxed max-w-sm">
+                We sent a confirmation link to <span className="font-semibold text-foreground">{email}</span>. Click it to activate your account.
+              </p>
+            </div>
+            <Link href="/login" className="text-sm font-medium text-[var(--tc-primary)] hover:text-[var(--tc-text)] transition-colors duration-200">
+              Back to sign in
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Main content - Full page card */}
-      <div className="relative z-10 w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      {!emailSent && <div className="relative z-10 w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-1000">
         {/* Top accent line — theme-aware */}
         <div className="absolute -top-2.5 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[var(--tc-primary)] to-transparent opacity-50" />
 
@@ -303,7 +328,7 @@ export default function SignupClient() {
             Join AlphaStats and build a disciplined trading routine
           </p>
         </div>
-      </div>
+      </div>}
 
       <style jsx>{`
         @keyframes slide-in-from-bottom-4 {

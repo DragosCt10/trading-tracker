@@ -7,6 +7,9 @@ import { getMilestoneById, type TradeMilestoneId } from '@/constants/tradeMilest
 import { resolveSubscription } from './subscription';
 import { monthsSince } from '@/utils/helpers/dateHelpers';
 import { randomBytes } from 'crypto';
+import { TIER_DEFINITIONS } from '@/constants/tiers';
+import { getDiscountedVariantId } from '@/constants/discountedVariants';
+import { createClient } from '@/utils/supabase/server';
 
 /**
  * DEV ONLY — seeds the test_trader discount entry into feature_flags so the
@@ -98,10 +101,6 @@ export async function redeemMilestoneDiscount(
 }
 
 /**
- * Server action: redeem the PRO loyalty reward (10% off after 3 months on PRO).
- * Idempotent — returns the same code if already generated.
- */
-/**
  * Server action: redeem the activity rank-up discount (15% off at 300 posts & comments).
  * Idempotent — returns the same code if already generated.
  * Verifies the count server-side via feed_posts + feed_comments.
@@ -150,6 +149,10 @@ export async function redeemActivityDiscount(profileId: string): Promise<RedeemR
   }
 }
 
+/**
+ * Server action: redeem the PRO loyalty reward (10% off after 3 months on PRO).
+ * Idempotent — returns the same code if already generated.
+ */
 export async function redeemProRetentionDiscount(): Promise<RedeemResult> {
   const { user } = await getCachedUserSession();
   if (!user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
@@ -194,4 +197,88 @@ export async function redeemProRetentionDiscount(): Promise<RedeemResult> {
     console.error('[redeemProRetentionDiscount] provider error:', err);
     return { error: 'Failed to generate discount code', code: 'PROVIDER_ERROR' };
   }
+}
+
+type ApplyResult = { success: true } | { error: string };
+
+/**
+ * Server action: apply a discount to the user's existing PRO subscription by
+ * switching to a discounted variant for one billing cycle.
+ * The webhook handler auto-reverts to the normal variant after the discounted payment succeeds.
+ */
+export async function applyDiscountToSubscription(
+  discountId: TradeMilestoneId | 'retention' | 'activity',
+): Promise<ApplyResult> {
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: 'Not authenticated' };
+
+  // Resolve discount percentage
+  let discountPct: number;
+  if (discountId === 'retention') {
+    discountPct = 10;
+  } else if (discountId === 'activity') {
+    discountPct = 15;
+  } else {
+    const milestone = getMilestoneById(discountId);
+    if (!milestone) return { error: 'Unknown milestone' };
+    discountPct = milestone.discountPct;
+  }
+
+  // Fetch active subscription
+  const supabase = await createClient();
+  const { data: row } = await supabase
+    .from('subscriptions')
+    .select('tier, billing_period, provider, provider_subscription_id')
+    .eq('user_id', user.id)
+    .in('status', ['active', 'trialing', 'past_due'])
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!row || row.provider !== 'lemonsqueezy') {
+    return { error: 'No active Lemon Squeezy subscription found' };
+  }
+  if (!row.provider_subscription_id) {
+    return { error: 'Subscription ID not found' };
+  }
+
+  const period = row.billing_period as 'monthly' | 'annual' | null;
+  if (!period) return { error: 'Could not determine billing period' };
+
+  // Normal variant ID (needed for the revert)
+  const tierDef = TIER_DEFINITIONS[row.tier as keyof typeof TIER_DEFINITIONS];
+  const normalVariantId = tierDef?.pricing[period]?.productId;
+  if (!normalVariantId) return { error: 'Could not determine current variant' };
+
+  // Discounted variant ID
+  const discountedVariantId = getDiscountedVariantId(row.tier, period, discountPct);
+  if (!discountedVariantId) {
+    return { error: 'Discounted variant not configured yet. Please contact support.' };
+  }
+
+  // Switch subscription to discounted variant — takes effect on next billing cycle
+  try {
+    const provider = getPaymentProvider();
+    await provider.switchSubscriptionVariant(row.provider_subscription_id, discountedVariantId);
+  } catch (err) {
+    console.error('[applyDiscountToSubscription] switchVariant error:', err);
+    return { error: 'Failed to apply discount. Please try again.' };
+  }
+
+  // Store pending revert so the webhook handler can switch back after one payment
+  const flags = await getFeatureFlags(user.id);
+  await updateFeatureFlags(user.id, {
+    ...flags,
+    pending_variant_revert: {
+      subscriptionId: row.provider_subscription_id,
+      normalVariantId,
+      discountedVariantId,
+      discountPct,
+      discountId,
+      appliedAt: new Date().toISOString(),
+    },
+  });
+
+  console.log(`[applyDiscountToSubscription] applied discountId=${discountId} discountPct=${discountPct} userId=${user.id}`);
+  return { success: true };
 }

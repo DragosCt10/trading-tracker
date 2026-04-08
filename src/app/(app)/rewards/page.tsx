@@ -2,8 +2,8 @@ import { redirect } from 'next/navigation';
 import { getCachedUserSession } from '@/lib/server/session';
 import { getTotalExecutedTradeCount } from '@/lib/server/tradeStats';
 import { getFeatureFlags } from '@/lib/server/settings';
-import { resolveSubscription, createApplyDiscountUrl } from '@/lib/server/subscription';
-import { syncProLoyaltyNotification } from '@/lib/server/feedNotifications';
+import { resolveSubscription } from '@/lib/server/subscription';
+import { syncProLoyaltyNotification, syncUserBadge } from '@/lib/server/feedNotifications';
 import { devSeedTestMilestone } from '@/lib/server/rewards';
 import RewardsClient from './RewardsClient';
 
@@ -17,7 +17,6 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
   let totalTrades = 0;
   let featureFlags: Record<string, unknown> = {};
   let isPro = false;
-  let portalUrl: string | null = null;
   let proSinceDate: string | null = null;
 
   if (process.env.NODE_ENV === 'development') {
@@ -25,21 +24,24 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
   }
 
   try {
-    const [[trades, flags], subscription] = await Promise.all([
-      Promise.all([
-        getTotalExecutedTradeCount(user.id),
-        getFeatureFlags(user.id),
-      ]),
+    const [trades, subscription] = await Promise.all([
+      getTotalExecutedTradeCount(user.id),
       resolveSubscription(user.id).catch(() => null),
     ]);
     totalTrades = trades;
-    featureFlags = flags;
     if (subscription) {
       isPro = subscription.tier === 'pro' || subscription.tier === 'elite';
       proSinceDate = subscription.createdAt;
-      if (isPro) portalUrl = await createApplyDiscountUrl().catch(() => null);
     }
-    // Fire 3-month PRO loyalty notification (non-blocking, runs after main data)
+
+    // Ensure milestone discounts are synced before reading flags — fixes the
+    // race where checkTradeMilestones (fire-and-forget in insertTrade) hasn't
+    // written yet by the time the user navigates here.
+    await syncUserBadge(user.id, proSinceDate).catch(() => null);
+
+    featureFlags = await getFeatureFlags(user.id);
+
+    // Fire PRO loyalty notification (non-blocking)
     if (isPro) void syncProLoyaltyNotification(user.id, proSinceDate);
   } catch (err) {
     console.error('[RewardsPage] fetch error (non-fatal):', err);
@@ -50,7 +52,6 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
       totalTrades={totalTrades}
       featureFlags={featureFlags}
       isPro={isPro}
-      portalUrl={portalUrl}
       proSinceDate={proSinceDate}
       showBackToSettings={from === 'settings'}
     />

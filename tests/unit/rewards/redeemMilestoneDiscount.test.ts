@@ -1,39 +1,77 @@
 /**
- * Tests for redeemMilestoneDiscount and redeemProRetentionDiscount in rewards.ts.
+ * Tests for rewards.ts server actions:
+ *   - redeemMilestoneDiscount
+ *   - redeemProRetentionDiscount
+ *   - redeemActivityDiscount        (NEW: activity rank-up flow)
+ *   - applyDiscountToSubscription   (NEW: variant-switch flow for PRO subscribers)
  *
  * Key behaviors under test:
  * - Auth guards (UNAUTHORIZED, NOT_FOUND, NOT_EARNED, ALREADY_USED)
- * - Idempotency: second call with same milestoneId returns existing couponCode without re-calling Polar
- * - Provider integration: coupon code is generated via crypto.randomBytes (not Math.random)
- * - PRO loyalty: 3-month check, idempotency
+ * - Idempotency: second call returns existing code/state without re-hitting provider
+ * - Coupon code format: crypto.randomBytes hex prefix, not Math.random base36
+ * - applyDiscountToSubscription: calls switchSubscriptionVariant and stores
+ *   pending_variant_revert in feature_flags; auto-revert is handled by webhook
+ * - redeemActivityDiscount: server-side count gate (300 threshold) + coupon flow
  */
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-// ── Mock all external dependencies of rewards.ts ─────────────────────────────
+// ── Mocks (hoisted before any imports) ───────────────────────────────────────
 
 vi.mock('@/lib/server/session');
 vi.mock('@/lib/server/settings');
 vi.mock('@/lib/billing');
 vi.mock('@/lib/server/subscription');
+vi.mock('@/lib/server/feedActivity');
+vi.mock('@/utils/supabase/server', () => ({ createClient: vi.fn() }));
+vi.mock('@/constants/discountedVariants', () => ({ getDiscountedVariantId: vi.fn() }));
+vi.mock('@/constants/tiers', () => ({
+  TIER_DEFINITIONS: {
+    pro: {
+      id: 'pro',
+      pricing: {
+        monthly: { productId: 'PRO-MONTHLY-NORMAL' },
+        annual:  { productId: 'PRO-ANNUAL-NORMAL' },
+      },
+    },
+    starter: { id: 'starter', pricing: {} },
+  },
+}));
 
 import { getCachedUserSession } from '@/lib/server/session';
 import { getFeatureFlags, updateFeatureFlags } from '@/lib/server/settings';
 import { getPaymentProvider } from '@/lib/billing';
 import { resolveSubscription } from '@/lib/server/subscription';
-import { redeemMilestoneDiscount, redeemProRetentionDiscount } from '@/lib/server/rewards';
+import { getUserActivityCount } from '@/lib/server/feedActivity';
+import { createClient } from '@/utils/supabase/server';
+import { getDiscountedVariantId } from '@/constants/discountedVariants';
+import {
+  redeemMilestoneDiscount,
+  redeemProRetentionDiscount,
+  redeemActivityDiscount,
+  applyDiscountToSubscription,
+} from '@/lib/server/rewards';
 
-const mockedGetSession = vi.mocked(getCachedUserSession);
-const mockedGetFlags = vi.mocked(getFeatureFlags);
-const mockedUpdateFlags = vi.mocked(updateFeatureFlags);
-const mockedGetProvider = vi.mocked(getPaymentProvider);
+// ── Typed mocks ───────────────────────────────────────────────────────────────
+
+const mockedGetSession          = vi.mocked(getCachedUserSession);
+const mockedGetFlags            = vi.mocked(getFeatureFlags);
+const mockedUpdateFlags         = vi.mocked(updateFeatureFlags);
+const mockedGetProvider         = vi.mocked(getPaymentProvider);
 const mockedResolveSubscription = vi.mocked(resolveSubscription);
+const mockedGetActivityCount    = vi.mocked(getUserActivityCount);
+const mockedCreateClient        = vi.mocked(createClient);
+const mockedGetDiscountedId     = vi.mocked(getDiscountedVariantId);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const MOCK_USER = { id: 'user-123', email: 'test@example.com' };
 
+/** Builds a mock payment provider. createDiscountCode resolves to { code }. */
 function makeProvider(code = 'GENERATED-CODE') {
-  return { createDiscountCode: vi.fn().mockResolvedValue({ code }) };
+  return {
+    createDiscountCode:       vi.fn().mockResolvedValue({ code }),
+    switchSubscriptionVariant: vi.fn().mockResolvedValue(undefined),
+  };
 }
 
 function nMonthsAgo(n: number): string {
@@ -42,7 +80,32 @@ function nMonthsAgo(n: number): string {
   return d.toISOString();
 }
 
-// ── redeemMilestoneDiscount ───────────────────────────────────────────────────
+/**
+ * Builds a chainable Supabase mock for the subscriptions query inside
+ * applyDiscountToSubscription:
+ *   .from('subscriptions').select(...).eq(...).in(...).order(...).limit(1).maybeSingle()
+ */
+function buildSupabaseMock(row: Record<string, unknown> | null) {
+  const maybeSingle = vi.fn().mockResolvedValue({ data: row });
+  const limit  = vi.fn().mockReturnValue({ maybeSingle });
+  const order  = vi.fn().mockReturnValue({ limit });
+  const inFn   = vi.fn().mockReturnValue({ order });
+  const eq     = vi.fn().mockReturnValue({ in: inFn });
+  const select = vi.fn().mockReturnValue({ eq });
+  return { from: vi.fn().mockReturnValue({ select }) };
+}
+
+/** A valid active PRO subscription row returned from Supabase. */
+const PRO_MONTHLY_ROW = {
+  tier: 'pro',
+  billing_period: 'monthly',
+  provider: 'lemonsqueezy',
+  provider_subscription_id: 'sub-abc',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// redeemMilestoneDiscount
+// ─────────────────────────────────────────────────────────────────────────────
 
 describe('redeemMilestoneDiscount', () => {
   beforeEach(() => {
@@ -56,16 +119,11 @@ describe('redeemMilestoneDiscount', () => {
   it('returns UNAUTHORIZED when there is no user session', async () => {
     mockedGetSession.mockResolvedValue({ user: null } as Awaited<ReturnType<typeof getCachedUserSession>>);
 
-    const result = await redeemMilestoneDiscount('rookie_trader');
-
-    expect(result).toMatchObject({ code: 'UNAUTHORIZED' });
+    expect(await redeemMilestoneDiscount('rookie_trader')).toMatchObject({ code: 'UNAUTHORIZED' });
   });
 
   it('returns NOT_FOUND for an unknown milestone id', async () => {
-    // TypeScript would catch this at compile time, but the runtime guard exists too
-    const result = await redeemMilestoneDiscount('nonexistent_trader' as never);
-
-    expect(result).toMatchObject({ code: 'NOT_FOUND' });
+    expect(await redeemMilestoneDiscount('nonexistent_trader' as never)).toMatchObject({ code: 'NOT_FOUND' });
   });
 
   // ─── Eligibility guards ───────────────────────────────────────────────────
@@ -79,15 +137,12 @@ describe('redeemMilestoneDiscount', () => {
     expect(mockedGetProvider).not.toHaveBeenCalled();
   });
 
-  it('returns NOT_EARNED when the milestone entry is absent from available_discounts', async () => {
+  it('returns NOT_EARNED when the specific milestone is absent from available_discounts', async () => {
     mockedGetFlags.mockResolvedValue({
-      // skilled_trader present, but rookie_trader is missing
       available_discounts: [{ milestoneId: 'skilled_trader', discountPct: 10, used: false }],
     });
 
-    const result = await redeemMilestoneDiscount('rookie_trader');
-
-    expect(result).toMatchObject({ code: 'NOT_EARNED' });
+    expect(await redeemMilestoneDiscount('rookie_trader')).toMatchObject({ code: 'NOT_EARNED' });
   });
 
   it('returns ALREADY_USED when the discount entry has used: true', async () => {
@@ -105,122 +160,103 @@ describe('redeemMilestoneDiscount', () => {
 
   // ─── Idempotency ──────────────────────────────────────────────────────────
 
-  it('returns existing couponCode without calling provider when already generated', async () => {
-    const provider = makeProvider('ROOKIE-ALREADY-THERE');
+  it('returns existing couponCode without calling the provider when already generated', async () => {
+    const provider = makeProvider();
     mockedGetFlags.mockResolvedValue({
       available_discounts: [
         { milestoneId: 'rookie_trader', discountPct: 5, used: false, couponCode: 'ROOKIE-ALREADY-THERE' },
       ],
     });
-    mockedGetProvider.mockReturnValue(provider as ReturnType<typeof getPaymentProvider>);
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
 
     const result = await redeemMilestoneDiscount('rookie_trader');
 
     expect(result).toMatchObject({ couponCode: 'ROOKIE-ALREADY-THERE' });
-    // Provider must NOT be called — this is the idempotency guard
     expect(provider.createDiscountCode).not.toHaveBeenCalled();
-    // flags must NOT be updated — no side effects
     expect(mockedUpdateFlags).not.toHaveBeenCalled();
   });
 
   // ─── Successful first redemption ──────────────────────────────────────────
 
-  it('calls provider and persists couponCode on first redemption', async () => {
+  it('calls provider with correct discountPct and persists couponCode on first redemption', async () => {
     const provider = makeProvider('ROOKIE-FRESH');
     mockedGetFlags.mockResolvedValue({
-      available_discounts: [
-        { milestoneId: 'rookie_trader', discountPct: 5, used: false },
-      ],
+      available_discounts: [{ milestoneId: 'rookie_trader', discountPct: 5, used: false }],
     });
-    mockedGetProvider.mockReturnValue(provider as ReturnType<typeof getPaymentProvider>);
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
 
     const result = await redeemMilestoneDiscount('rookie_trader');
 
     expect(result).toMatchObject({ couponCode: 'ROOKIE-FRESH' });
-
-    // Provider called with correct discount
     expect(provider.createDiscountCode).toHaveBeenCalledOnce();
-    expect(provider.createDiscountCode).toHaveBeenCalledWith(
-      expect.objectContaining({ discountPct: 5 }),
-    );
-
-    // Flags updated with couponCode persisted
+    expect(provider.createDiscountCode).toHaveBeenCalledWith(expect.objectContaining({ discountPct: 5 }));
     expect(mockedUpdateFlags).toHaveBeenCalledOnce();
+
     const savedFlags = mockedUpdateFlags.mock.calls[0][1] as { available_discounts: Array<Record<string, unknown>> };
     const saved = savedFlags.available_discounts.find((d) => d.milestoneId === 'rookie_trader');
     expect(saved?.couponCode).toBe('ROOKIE-FRESH');
     expect(saved?.generatedAt).toBeDefined();
   });
 
-  it('preserves other discounts in available_discounts when saving the new couponCode', async () => {
+  it('preserves all other discounts in available_discounts when saving a new couponCode', async () => {
     const provider = makeProvider('EXPERT-NEW');
     mockedGetFlags.mockResolvedValue({
       available_discounts: [
         { milestoneId: 'rookie_trader', discountPct: 5, used: true, couponCode: 'ROOKIE-USED' },
         { milestoneId: 'skilled_trader', discountPct: 10, used: false, couponCode: 'SKILLED-ACTIVE' },
-        { milestoneId: 'expert_trader', discountPct: 15, used: false }, // the one being redeemed
+        { milestoneId: 'expert_trader', discountPct: 15, used: false },
       ],
     });
-    mockedGetProvider.mockReturnValue(provider as ReturnType<typeof getPaymentProvider>);
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
 
     await redeemMilestoneDiscount('expert_trader');
 
-    const savedFlags = mockedUpdateFlags.mock.calls[0][1] as { available_discounts: Array<Record<string, unknown>> };
-    const discounts = savedFlags.available_discounts;
+    const discounts = (mockedUpdateFlags.mock.calls[0][1] as { available_discounts: Array<Record<string, unknown>> }).available_discounts;
 
-    // Other discounts must be untouched
-    const rookie = discounts.find((d) => d.milestoneId === 'rookie_trader');
-    expect(rookie?.couponCode).toBe('ROOKIE-USED');
-    expect(rookie?.used).toBe(true);
-
-    const skilled = discounts.find((d) => d.milestoneId === 'skilled_trader');
-    expect(skilled?.couponCode).toBe('SKILLED-ACTIVE');
-
-    const expert = discounts.find((d) => d.milestoneId === 'expert_trader');
-    expect(expert?.couponCode).toBe('EXPERT-NEW');
+    expect(discounts.find((d) => d.milestoneId === 'rookie_trader')?.couponCode).toBe('ROOKIE-USED');
+    expect(discounts.find((d) => d.milestoneId === 'skilled_trader')?.couponCode).toBe('SKILLED-ACTIVE');
+    expect(discounts.find((d) => d.milestoneId === 'expert_trader')?.couponCode).toBe('EXPERT-NEW');
   });
 
   // ─── Coupon code format ───────────────────────────────────────────────────
 
-  it('generates a coupon code with the milestone prefix', async () => {
-    const provider = { createDiscountCode: vi.fn().mockResolvedValue({ code: 'CAPTURED' }) };
+  it('generates a code starting with the uppercase milestone tier prefix', async () => {
+    const provider = makeProvider('CAPTURED');
     mockedGetFlags.mockResolvedValue({
       available_discounts: [{ milestoneId: 'rookie_trader', discountPct: 5, used: false }],
     });
-    mockedGetProvider.mockReturnValue(provider as ReturnType<typeof getPaymentProvider>);
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
 
     await redeemMilestoneDiscount('rookie_trader');
 
-    // The generated code passed to provider should start with the tier prefix
-    const passedCode: string = provider.createDiscountCode.mock.calls[0][0].code;
-    expect(passedCode).toMatch(/^ROOKIE/);
+    expect(provider.createDiscountCode.mock.calls[0][0].code as string).toMatch(/^ROOKIE/);
   });
 
-  it('uses hex characters in suffix (crypto.randomBytes, not Math.random base36)', async () => {
-    const provider = { createDiscountCode: vi.fn().mockResolvedValue({ code: 'CAPTURED' }) };
+  it('uses hex characters in the suffix (crypto.randomBytes, not Math.random base36)', async () => {
+    const provider = makeProvider('CAPTURED');
     mockedGetFlags.mockResolvedValue({
       available_discounts: [{ milestoneId: 'alpha_trader', discountPct: 25, used: false }],
     });
-    mockedGetProvider.mockReturnValue(provider as ReturnType<typeof getPaymentProvider>);
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
 
     await redeemMilestoneDiscount('alpha_trader');
 
-    const passedCode: string = provider.createDiscountCode.mock.calls[0][0].code;
-    // crypto.randomBytes(6).toString('hex').toUpperCase() → 12 hex chars, all 0-9 A-F
-    // Math.random().toString(36) would produce chars beyond F (G-Z)
-    // Prefix is 'ALPHA', suffix should be hex only
-    const suffix = passedCode.replace(/^ALPHA/, '');
-    expect(suffix).toMatch(/^[0-9A-F]+$/);
+    const code = provider.createDiscountCode.mock.calls[0][0].code as string;
+    // randomBytes(6).toString('hex').toUpperCase() → 12 chars, 0-9 and A-F only
+    expect(code.replace(/^ALPHA/, '')).toMatch(/^[0-9A-F]+$/);
   });
 
   // ─── Provider errors ──────────────────────────────────────────────────────
 
   it('returns PROVIDER_ERROR and does not update flags when provider throws', async () => {
-    const provider = { createDiscountCode: vi.fn().mockRejectedValue(new Error('Polar is down')) };
+    const provider = {
+      createDiscountCode: vi.fn().mockRejectedValue(new Error('LS is down')),
+      switchSubscriptionVariant: vi.fn(),
+    };
     mockedGetFlags.mockResolvedValue({
       available_discounts: [{ milestoneId: 'rookie_trader', discountPct: 5, used: false }],
     });
-    mockedGetProvider.mockReturnValue(provider as ReturnType<typeof getPaymentProvider>);
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
 
     const result = await redeemMilestoneDiscount('rookie_trader');
 
@@ -229,7 +265,9 @@ describe('redeemMilestoneDiscount', () => {
   });
 });
 
-// ── redeemProRetentionDiscount ────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// redeemProRetentionDiscount
+// ─────────────────────────────────────────────────────────────────────────────
 
 describe('redeemProRetentionDiscount', () => {
   beforeEach(() => {
@@ -238,47 +276,35 @@ describe('redeemProRetentionDiscount', () => {
     mockedUpdateFlags.mockResolvedValue(undefined);
   });
 
-  // ─── Auth guards ──────────────────────────────────────────────────────────
+  // ─── Auth ─────────────────────────────────────────────────────────────────
 
   it('returns UNAUTHORIZED when no user session', async () => {
     mockedGetSession.mockResolvedValue({ user: null } as Awaited<ReturnType<typeof getCachedUserSession>>);
 
-    const result = await redeemProRetentionDiscount();
-
-    expect(result).toMatchObject({ code: 'UNAUTHORIZED' });
+    expect(await redeemProRetentionDiscount()).toMatchObject({ code: 'UNAUTHORIZED' });
   });
 
   // ─── Eligibility ──────────────────────────────────────────────────────────
 
-  it('returns NOT_EARNED when user has no subscription (starter tier)', async () => {
+  it('returns NOT_EARNED when user is on starter tier', async () => {
     mockedResolveSubscription.mockResolvedValue({
-      isActive: true,
-      tier: 'starter',
-      createdAt: null,
+      isActive: true, tier: 'starter', createdAt: null,
     } as Awaited<ReturnType<typeof resolveSubscription>>);
 
-    const result = await redeemProRetentionDiscount();
-
-    expect(result).toMatchObject({ code: 'NOT_EARNED' });
+    expect(await redeemProRetentionDiscount()).toMatchObject({ code: 'NOT_EARNED' });
   });
 
   it('returns NOT_EARNED when subscription is not active', async () => {
     mockedResolveSubscription.mockResolvedValue({
-      isActive: false,
-      tier: 'pro',
-      createdAt: nMonthsAgo(6),
+      isActive: false, tier: 'pro', createdAt: nMonthsAgo(6),
     } as Awaited<ReturnType<typeof resolveSubscription>>);
 
-    const result = await redeemProRetentionDiscount();
-
-    expect(result).toMatchObject({ code: 'NOT_EARNED' });
+    expect(await redeemProRetentionDiscount()).toMatchObject({ code: 'NOT_EARNED' });
   });
 
   it('returns NOT_EARNED when user has been PRO for less than 3 months', async () => {
     mockedResolveSubscription.mockResolvedValue({
-      isActive: true,
-      tier: 'pro',
-      createdAt: nMonthsAgo(1),
+      isActive: true, tier: 'pro', createdAt: nMonthsAgo(1),
     } as Awaited<ReturnType<typeof resolveSubscription>>);
     mockedGetFlags.mockResolvedValue({});
 
@@ -292,30 +318,24 @@ describe('redeemProRetentionDiscount', () => {
 
   it('returns ALREADY_USED when pro_retention_discount.used is true', async () => {
     mockedResolveSubscription.mockResolvedValue({
-      isActive: true,
-      tier: 'pro',
-      createdAt: nMonthsAgo(4),
+      isActive: true, tier: 'pro', createdAt: nMonthsAgo(4),
     } as Awaited<ReturnType<typeof resolveSubscription>>);
     mockedGetFlags.mockResolvedValue({
       pro_retention_discount: { used: true, couponCode: 'PROLOYALTY-SPENT' },
     });
 
-    const result = await redeemProRetentionDiscount();
-
-    expect(result).toMatchObject({ code: 'ALREADY_USED' });
+    expect(await redeemProRetentionDiscount()).toMatchObject({ code: 'ALREADY_USED' });
   });
 
-  it('returns existing couponCode without calling provider when already generated', async () => {
-    const provider = makeProvider('PROLOYALTY-EXISTING');
+  it('returns existing couponCode without calling provider (idempotency)', async () => {
+    const provider = makeProvider();
     mockedResolveSubscription.mockResolvedValue({
-      isActive: true,
-      tier: 'pro',
-      createdAt: nMonthsAgo(4),
+      isActive: true, tier: 'pro', createdAt: nMonthsAgo(4),
     } as Awaited<ReturnType<typeof resolveSubscription>>);
     mockedGetFlags.mockResolvedValue({
       pro_retention_discount: { used: false, couponCode: 'PROLOYALTY-EXISTING' },
     });
-    mockedGetProvider.mockReturnValue(provider as ReturnType<typeof getPaymentProvider>);
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
 
     const result = await redeemProRetentionDiscount();
 
@@ -324,44 +344,366 @@ describe('redeemProRetentionDiscount', () => {
     expect(mockedUpdateFlags).not.toHaveBeenCalled();
   });
 
-  it('calls provider and persists couponCode for eligible user (4+ months PRO)', async () => {
+  it('calls provider with 10% discount and persists couponCode for eligible user (4+ months PRO)', async () => {
     const provider = makeProvider('PROLOYALTY-NEW');
     mockedResolveSubscription.mockResolvedValue({
-      isActive: true,
-      tier: 'pro',
-      createdAt: nMonthsAgo(5),
+      isActive: true, tier: 'pro', createdAt: nMonthsAgo(5),
     } as Awaited<ReturnType<typeof resolveSubscription>>);
     mockedGetFlags.mockResolvedValue({});
-    mockedGetProvider.mockReturnValue(provider as ReturnType<typeof getPaymentProvider>);
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
 
     const result = await redeemProRetentionDiscount();
 
     expect(result).toMatchObject({ couponCode: 'PROLOYALTY-NEW' });
-    expect(provider.createDiscountCode).toHaveBeenCalledOnce();
-    expect(provider.createDiscountCode).toHaveBeenCalledWith(
-      expect.objectContaining({ discountPct: 10 }),
-    );
+    expect(provider.createDiscountCode).toHaveBeenCalledWith(expect.objectContaining({ discountPct: 10 }));
     expect(mockedUpdateFlags).toHaveBeenCalledOnce();
 
-    // Saved flags should have the couponCode
-    const saved = mockedUpdateFlags.mock.calls[0][1] as { pro_retention_discount: Record<string, unknown> };
-    expect(saved.pro_retention_discount.couponCode).toBe('PROLOYALTY-NEW');
-    expect(saved.pro_retention_discount.used).toBe(false);
+    const saved = (mockedUpdateFlags.mock.calls[0][1] as { pro_retention_discount: Record<string, unknown> }).pro_retention_discount;
+    expect(saved.couponCode).toBe('PROLOYALTY-NEW');
+    expect(saved.used).toBe(false);
+    expect(saved.generatedAt).toBeDefined();
   });
 
-  it('loyalty coupon code starts with PROLOYALTY prefix', async () => {
-    const provider = { createDiscountCode: vi.fn().mockResolvedValue({ code: 'CAPTURED' }) };
+  it('generated code starts with PROLOYALTY prefix', async () => {
+    const provider = makeProvider('CAPTURED');
     mockedResolveSubscription.mockResolvedValue({
-      isActive: true,
-      tier: 'pro',
-      createdAt: nMonthsAgo(4),
+      isActive: true, tier: 'pro', createdAt: nMonthsAgo(4),
     } as Awaited<ReturnType<typeof resolveSubscription>>);
     mockedGetFlags.mockResolvedValue({});
-    mockedGetProvider.mockReturnValue(provider as ReturnType<typeof getPaymentProvider>);
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
 
     await redeemProRetentionDiscount();
 
-    const passedCode: string = provider.createDiscountCode.mock.calls[0][0].code;
-    expect(passedCode).toMatch(/^PROLOYALTY/);
+    expect(provider.createDiscountCode.mock.calls[0][0].code as string).toMatch(/^PROLOYALTY/);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// redeemActivityDiscount
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('redeemActivityDiscount', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedGetSession.mockResolvedValue({ user: MOCK_USER } as Awaited<ReturnType<typeof getCachedUserSession>>);
+    mockedUpdateFlags.mockResolvedValue(undefined);
+  });
+
+  // ─── Auth ─────────────────────────────────────────────────────────────────
+
+  it('returns UNAUTHORIZED when no user session', async () => {
+    mockedGetSession.mockResolvedValue({ user: null } as Awaited<ReturnType<typeof getCachedUserSession>>);
+
+    expect(await redeemActivityDiscount('profile-abc')).toMatchObject({ code: 'UNAUTHORIZED' });
+  });
+
+  // ─── Activity count gate ──────────────────────────────────────────────────
+
+  it('returns NOT_EARNED when total activity count is below 300', async () => {
+    mockedGetActivityCount.mockResolvedValue({ posts: 150, comments: 100, total: 250 });
+
+    const result = await redeemActivityDiscount('profile-abc');
+
+    expect(result).toMatchObject({ code: 'NOT_EARNED' });
+    expect(mockedGetProvider).not.toHaveBeenCalled();
+  });
+
+  it('returns NOT_EARNED at exactly 299 (boundary)', async () => {
+    mockedGetActivityCount.mockResolvedValue({ posts: 200, comments: 99, total: 299 });
+
+    expect(await redeemActivityDiscount('profile-abc')).toMatchObject({ code: 'NOT_EARNED' });
+  });
+
+  it('allows redemption at exactly 300 (boundary)', async () => {
+    mockedGetActivityCount.mockResolvedValue({ posts: 200, comments: 100, total: 300 });
+    mockedGetFlags.mockResolvedValue({});
+    mockedGetProvider.mockReturnValue(makeProvider('RANKUP-300') as unknown as ReturnType<typeof getPaymentProvider>);
+
+    expect(await redeemActivityDiscount('profile-abc')).toMatchObject({ couponCode: 'RANKUP-300' });
+  });
+
+  // ─── Eligibility guards ───────────────────────────────────────────────────
+
+  it('returns ALREADY_USED when activity_rank_up_discount.used is true', async () => {
+    mockedGetActivityCount.mockResolvedValue({ posts: 200, comments: 150, total: 350 });
+    mockedGetFlags.mockResolvedValue({
+      activity_rank_up_discount: { used: true, couponCode: 'RANKUP-SPENT' },
+    });
+
+    const result = await redeemActivityDiscount('profile-abc');
+
+    expect(result).toMatchObject({ code: 'ALREADY_USED' });
+    expect(mockedGetProvider).not.toHaveBeenCalled();
+  });
+
+  // ─── Idempotency ──────────────────────────────────────────────────────────
+
+  it('returns existing couponCode without calling provider (idempotency)', async () => {
+    const provider = makeProvider();
+    mockedGetActivityCount.mockResolvedValue({ posts: 200, comments: 150, total: 350 });
+    mockedGetFlags.mockResolvedValue({
+      activity_rank_up_discount: { used: false, couponCode: 'RANKUP-EXISTING', expiresAt: '2026-12-31T00:00:00Z' },
+    });
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
+
+    const result = await redeemActivityDiscount('profile-abc');
+
+    expect(result).toMatchObject({ couponCode: 'RANKUP-EXISTING' });
+    expect(provider.createDiscountCode).not.toHaveBeenCalled();
+    expect(mockedUpdateFlags).not.toHaveBeenCalled();
+  });
+
+  // ─── Successful first redemption ──────────────────────────────────────────
+
+  it('calls provider with 15% discount and persists couponCode on first redemption', async () => {
+    const provider = makeProvider('RANKUP-NEW');
+    mockedGetActivityCount.mockResolvedValue({ posts: 200, comments: 150, total: 350 });
+    mockedGetFlags.mockResolvedValue({});
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
+
+    const result = await redeemActivityDiscount('profile-abc');
+
+    expect(result).toMatchObject({ couponCode: 'RANKUP-NEW' });
+    expect(provider.createDiscountCode).toHaveBeenCalledOnce();
+    expect(provider.createDiscountCode).toHaveBeenCalledWith(expect.objectContaining({ discountPct: 15 }));
+    expect(mockedUpdateFlags).toHaveBeenCalledOnce();
+
+    const saved = (mockedUpdateFlags.mock.calls[0][1] as { activity_rank_up_discount: Record<string, unknown> }).activity_rank_up_discount;
+    expect(saved.couponCode).toBe('RANKUP-NEW');
+    expect(saved.used).toBe(false);
+    expect(saved.generatedAt).toBeDefined();
+    expect(saved.expiresAt).toBeDefined();
+  });
+
+  it('generated code starts with RANKUP prefix', async () => {
+    const provider = makeProvider('CAPTURED');
+    mockedGetActivityCount.mockResolvedValue({ posts: 200, comments: 150, total: 350 });
+    mockedGetFlags.mockResolvedValue({});
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
+
+    await redeemActivityDiscount('profile-abc');
+
+    expect(provider.createDiscountCode.mock.calls[0][0].code as string).toMatch(/^RANKUP/);
+  });
+
+  // ─── Provider errors ──────────────────────────────────────────────────────
+
+  it('returns PROVIDER_ERROR and does not update flags when provider throws', async () => {
+    const provider = {
+      createDiscountCode: vi.fn().mockRejectedValue(new Error('LS is down')),
+      switchSubscriptionVariant: vi.fn(),
+    };
+    mockedGetActivityCount.mockResolvedValue({ posts: 200, comments: 150, total: 350 });
+    mockedGetFlags.mockResolvedValue({});
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
+
+    const result = await redeemActivityDiscount('profile-abc');
+
+    expect(result).toMatchObject({ code: 'PROVIDER_ERROR' });
+    expect(mockedUpdateFlags).not.toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// applyDiscountToSubscription
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('applyDiscountToSubscription', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedGetSession.mockResolvedValue({ user: MOCK_USER } as Awaited<ReturnType<typeof getCachedUserSession>>);
+    mockedGetFlags.mockResolvedValue({});
+    mockedUpdateFlags.mockResolvedValue(undefined);
+    // Default: active PRO monthly subscription
+    mockedCreateClient.mockResolvedValue(
+      buildSupabaseMock(PRO_MONTHLY_ROW) as unknown as Awaited<ReturnType<typeof createClient>>,
+    );
+    // Default: discounted variant exists
+    mockedGetDiscountedId.mockReturnValue('PRO-MONTHLY-DISC-5');
+  });
+
+  // ─── Auth ─────────────────────────────────────────────────────────────────
+
+  it('returns error when no user session', async () => {
+    mockedGetSession.mockResolvedValue({ user: null } as Awaited<ReturnType<typeof getCachedUserSession>>);
+
+    expect(await applyDiscountToSubscription('rookie_trader')).toMatchObject({
+      error: expect.stringContaining('authenticated'),
+    });
+  });
+
+  // ─── Discount resolution ──────────────────────────────────────────────────
+
+  it('returns error for an unknown milestone id', async () => {
+    expect(await applyDiscountToSubscription('nonexistent_trader' as never)).toMatchObject({
+      error: expect.stringContaining('Unknown milestone'),
+    });
+  });
+
+  // ─── Subscription lookup ──────────────────────────────────────────────────
+
+  it('returns error when no active subscription exists in DB', async () => {
+    mockedCreateClient.mockResolvedValue(
+      buildSupabaseMock(null) as unknown as Awaited<ReturnType<typeof createClient>>,
+    );
+
+    expect(await applyDiscountToSubscription('rookie_trader')).toMatchObject({
+      error: expect.stringContaining('No active Lemon Squeezy subscription'),
+    });
+  });
+
+  it('returns error when provider is not lemonsqueezy', async () => {
+    mockedCreateClient.mockResolvedValue(
+      buildSupabaseMock({ ...PRO_MONTHLY_ROW, provider: 'stripe' }) as unknown as Awaited<ReturnType<typeof createClient>>,
+    );
+
+    expect(await applyDiscountToSubscription('rookie_trader')).toMatchObject({
+      error: expect.stringContaining('No active Lemon Squeezy subscription'),
+    });
+  });
+
+  it('returns error when provider_subscription_id is missing', async () => {
+    mockedCreateClient.mockResolvedValue(
+      buildSupabaseMock({ ...PRO_MONTHLY_ROW, provider_subscription_id: null }) as unknown as Awaited<ReturnType<typeof createClient>>,
+    );
+
+    expect(await applyDiscountToSubscription('rookie_trader')).toMatchObject({
+      error: expect.stringContaining('Subscription ID not found'),
+    });
+  });
+
+  it('returns error when billing_period is null', async () => {
+    mockedCreateClient.mockResolvedValue(
+      buildSupabaseMock({ ...PRO_MONTHLY_ROW, billing_period: null }) as unknown as Awaited<ReturnType<typeof createClient>>,
+    );
+
+    expect(await applyDiscountToSubscription('rookie_trader')).toMatchObject({
+      error: expect.stringContaining('billing period'),
+    });
+  });
+
+  // ─── Variant resolution ───────────────────────────────────────────────────
+
+  it('returns error when no discounted variant is configured (env var missing)', async () => {
+    mockedGetDiscountedId.mockReturnValue(null);
+    const provider = makeProvider();
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
+
+    const result = await applyDiscountToSubscription('rookie_trader');
+
+    expect(result).toMatchObject({ error: expect.stringContaining('not configured') });
+    expect(provider.switchSubscriptionVariant).not.toHaveBeenCalled();
+  });
+
+  // ─── Provider ─────────────────────────────────────────────────────────────
+
+  it('returns error and does not store pending_variant_revert when switchSubscriptionVariant throws', async () => {
+    const provider = {
+      createDiscountCode: vi.fn(),
+      switchSubscriptionVariant: vi.fn().mockRejectedValue(new Error('LS API error')),
+    };
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
+
+    const result = await applyDiscountToSubscription('rookie_trader');
+
+    expect(result).toMatchObject({ error: expect.stringContaining('Failed to apply discount') });
+    expect(mockedUpdateFlags).not.toHaveBeenCalled();
+  });
+
+  // ─── Happy path ───────────────────────────────────────────────────────────
+
+  it('calls switchSubscriptionVariant with the subscription ID and discounted variant ID', async () => {
+    mockedGetDiscountedId.mockReturnValue('PRO-MONTHLY-DISC-5');
+    const provider = makeProvider();
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
+
+    await applyDiscountToSubscription('rookie_trader');
+
+    expect(provider.switchSubscriptionVariant).toHaveBeenCalledOnce();
+    expect(provider.switchSubscriptionVariant).toHaveBeenCalledWith('sub-abc', 'PRO-MONTHLY-DISC-5');
+  });
+
+  it('returns { success: true } after successful variant switch', async () => {
+    mockedGetProvider.mockReturnValue(makeProvider() as unknown as ReturnType<typeof getPaymentProvider>);
+
+    expect(await applyDiscountToSubscription('rookie_trader')).toMatchObject({ success: true });
+  });
+
+  it('stores pending_variant_revert in feature_flags with correct shape', async () => {
+    mockedGetDiscountedId.mockReturnValue('PRO-MONTHLY-DISC-5');
+    mockedGetProvider.mockReturnValue(makeProvider() as unknown as ReturnType<typeof getPaymentProvider>);
+
+    await applyDiscountToSubscription('rookie_trader');
+
+    expect(mockedUpdateFlags).toHaveBeenCalledOnce();
+    const saved = (mockedUpdateFlags.mock.calls[0][1] as { pending_variant_revert: Record<string, unknown> }).pending_variant_revert;
+    expect(saved.subscriptionId).toBe('sub-abc');
+    expect(saved.discountedVariantId).toBe('PRO-MONTHLY-DISC-5');
+    expect(saved.normalVariantId).toBe('PRO-MONTHLY-NORMAL');
+    expect(saved.discountId).toBe('rookie_trader');
+    expect(saved.discountPct).toBe(5);
+    expect(saved.appliedAt).toBeDefined();
+  });
+
+  it('preserves existing feature_flags when storing pending_variant_revert', async () => {
+    mockedGetFlags.mockResolvedValue({ other_flag: true, another: 'value' });
+    mockedGetProvider.mockReturnValue(makeProvider() as unknown as ReturnType<typeof getPaymentProvider>);
+
+    await applyDiscountToSubscription('rookie_trader');
+
+    const saved = mockedUpdateFlags.mock.calls[0][1] as Record<string, unknown>;
+    expect(saved.other_flag).toBe(true);
+    expect(saved.another).toBe('value');
+    expect(saved.pending_variant_revert).toBeDefined();
+  });
+
+  // ─── Discount percentage routing ──────────────────────────────────────────
+
+  it("uses 10% discount for discountId 'retention'", async () => {
+    mockedGetProvider.mockReturnValue(makeProvider() as unknown as ReturnType<typeof getPaymentProvider>);
+
+    await applyDiscountToSubscription('retention');
+
+    expect(mockedGetDiscountedId).toHaveBeenCalledWith('pro', 'monthly', 10);
+    const saved = (mockedUpdateFlags.mock.calls[0][1] as { pending_variant_revert: Record<string, unknown> }).pending_variant_revert;
+    expect(saved.discountPct).toBe(10);
+  });
+
+  it("uses 15% discount for discountId 'activity'", async () => {
+    mockedGetProvider.mockReturnValue(makeProvider() as unknown as ReturnType<typeof getPaymentProvider>);
+
+    await applyDiscountToSubscription('activity');
+
+    expect(mockedGetDiscountedId).toHaveBeenCalledWith('pro', 'monthly', 15);
+    const saved = (mockedUpdateFlags.mock.calls[0][1] as { pending_variant_revert: Record<string, unknown> }).pending_variant_revert;
+    expect(saved.discountPct).toBe(15);
+  });
+
+  it('uses the milestone discountPct for a trade milestone (rookie_trader = 5%)', async () => {
+    mockedGetProvider.mockReturnValue(makeProvider() as unknown as ReturnType<typeof getPaymentProvider>);
+
+    await applyDiscountToSubscription('rookie_trader');
+
+    expect(mockedGetDiscountedId).toHaveBeenCalledWith('pro', 'monthly', 5);
+  });
+
+  // ─── Annual billing period ────────────────────────────────────────────────
+
+  it('resolves annual variant IDs and normalVariantId when billing_period is annual', async () => {
+    mockedCreateClient.mockResolvedValue(
+      buildSupabaseMock({ ...PRO_MONTHLY_ROW, billing_period: 'annual' }) as unknown as Awaited<ReturnType<typeof createClient>>,
+    );
+    mockedGetDiscountedId.mockReturnValue('PRO-ANNUAL-DISC-5');
+    const provider = makeProvider();
+    mockedGetProvider.mockReturnValue(provider as unknown as ReturnType<typeof getPaymentProvider>);
+
+    await applyDiscountToSubscription('rookie_trader');
+
+    expect(mockedGetDiscountedId).toHaveBeenCalledWith('pro', 'annual', 5);
+    expect(provider.switchSubscriptionVariant).toHaveBeenCalledWith('sub-abc', 'PRO-ANNUAL-DISC-5');
+
+    const saved = (mockedUpdateFlags.mock.calls[0][1] as { pending_variant_revert: Record<string, unknown> }).pending_variant_revert;
+    expect(saved.normalVariantId).toBe('PRO-ANNUAL-NORMAL');
+    expect(saved.discountedVariantId).toBe('PRO-ANNUAL-DISC-5');
   });
 });

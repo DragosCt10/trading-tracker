@@ -38,6 +38,7 @@ interface FeedClientProps {
   initialFollowingFeedData?: PaginatedResult<FeedPost>;
   initialActivityCount?: { posts: number; comments: number; total: number };
   initialActivityDiscount?: { used: boolean; couponCode?: string } | null;
+  initialActivityApplied?: boolean;
 }
 
 type FeedTab = 'public' | 'following' | 'channels';
@@ -69,7 +70,7 @@ function ChannelListSkeleton({ rows = 3, compact = false }: { rows?: number; com
   );
 }
 
-export default function FeedClient({ userId, initialProfile, initialFeedData, initialSubscription, initialMyChannels, initialFollowingFeedData, initialActivityCount, initialActivityDiscount }: FeedClientProps) {
+export default function FeedClient({ userId, initialProfile, initialFeedData, initialSubscription, initialMyChannels, initialFollowingFeedData, initialActivityCount, initialActivityDiscount, initialActivityApplied }: FeedClientProps) {
   const uid = userId ?? undefined;
   const { subscription } = useSubscription({ userId: uid, initialData: initialSubscription ?? undefined });
   const [createError, setCreateError] = useState('');
@@ -601,7 +602,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
             </div>
           </div>
 
-          {initialProfile && <ActivityProgressCard profileId={initialProfile.id} initialCount={initialActivityCount} isPro={isPro} initialDiscount={initialActivityDiscount} />}
+          {initialProfile && <ActivityProgressCard profileId={initialProfile.id} initialCount={initialActivityCount} isPro={isPro} initialDiscount={initialActivityDiscount} initialApplied={initialActivityApplied} />}
 
           {mounted && userId && initialProfile && subscription && (
             <div

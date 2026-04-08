@@ -23,6 +23,8 @@ export type WebhookAction =
       type: 'subscription.updated';
       data: ProviderSubscriptionData;
       userId: string | null;
+      /** Raw event name from the provider (e.g. 'subscription_payment_success'). */
+      originalEvent?: string;
     }
   | {
       type: 'subscription.canceled';
@@ -82,4 +84,13 @@ export interface IPaymentProvider {
   getActiveSubscriptionForUser(userId: string): Promise<ProviderSubscriptionData | null>;
   /** Create a one-time percentage discount coupon code the user can apply themselves. */
   createDiscountCode(params: { discountPct: number; discountLabel: string; code: string }): Promise<{ code: string }>;
+  /** Switch an existing subscription to a different variant (e.g. a discounted one). */
+  switchSubscriptionVariant(subscriptionId: string, variantId: string): Promise<void>;
+  /** Create a checkout URL for an existing variant with a discount code pre-filled. */
+  createDiscountedCheckoutSession?(params: {
+    variantId: string;
+    couponCode: string;
+    userId: string;
+    successUrl: string;
+  }): Promise<{ checkoutUrl: string }>;
 }

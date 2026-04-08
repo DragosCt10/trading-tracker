@@ -14,7 +14,7 @@ export async function revokeOtherSessions(supabase: SupabaseClient): Promise<voi
   }
 }
 
-export type AuthResult = { error?: string };
+export type AuthResult = { error?: string; requiresEmailConfirmation?: boolean };
 
 /** Map Supabase auth error messages to user-safe messages. */
 function sanitizeAuthError(error: { message: string }): string {
@@ -92,7 +92,7 @@ export async function signupAction(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: { emailRedirectTo: redirectTo },
@@ -102,6 +102,13 @@ export async function signupAction(
     console.error('[auth] signupAction error:', error.message);
     return { error: sanitizeAuthError(error) };
   }
+
+  // session is null when email confirmation is required; ensureDefaultAccount
+  // will be called in the auth callback after the user confirms their email.
+  if (!data.session) {
+    return { requiresEmailConfirmation: true };
+  }
+
   await ensureDefaultAccount();
   return {};
 }
