@@ -19,7 +19,7 @@ import { useTheme } from '@/hooks/useTheme';
 import Logo from '@/components/shared/Logo';
 import { ThemePickerModal } from '@/components/shared/ThemePickerModal';
 
-const NAV_LINKS = [
+const BASE_NAV_LINKS = [
   { label: 'Features', href: '#stats-board' },
   { label: 'Pricing', href: '/pricing' },
   { label: 'Testimonials', href: '#testimonials' },
@@ -31,6 +31,11 @@ interface LandingNavbarProps {
 
 export function LandingNavbar({ isLoggedIn: isLoggedInProp }: LandingNavbarProps) {
   const pathname = usePathname();
+  const navLinks = BASE_NAV_LINKS.map((link) =>
+    link.href === '/pricing' && pathname === '/pricing'
+      ? { label: 'Home', href: '/' }
+      : link,
+  );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
@@ -160,7 +165,7 @@ export function LandingNavbar({ isLoggedIn: isLoggedInProp }: LandingNavbarProps
 
           {/* ── Desktop: HUD-style nav pill ── */}
           <div className="hidden lg:flex items-center gap-[30px] rounded-full hud-brackets px-10 py-2 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm header-entrance header-entrance-delay-2">
-            {NAV_LINKS.map((link, i) => (
+            {navLinks.map((link, i) => (
               <a
                 key={link.href}
                 href={getHref(link.href)}
@@ -253,7 +258,7 @@ export function LandingNavbar({ isLoggedIn: isLoggedInProp }: LandingNavbarProps
                 </div>
 
                 <nav className="mt-4 flex flex-col gap-1">
-                  {NAV_LINKS.map((link) => (
+                  {navLinks.map((link) => (
                     <a
                       key={link.href}
                       href={getHref(link.href)}
