@@ -292,6 +292,35 @@ export async function createPortalUrl(): Promise<string | null> {
 }
 
 /**
+ * Server action: get the direct update-payment-method URL for the current user's subscription.
+ * Used on the past_due banner for a frictionless card update flow.
+ */
+export async function createUpdatePaymentMethodUrl(): Promise<string | null> {
+  const session = await getCachedUserSession();
+  if (!session.user) throw new Error('Not authenticated');
+
+  const supabase = await createClient();
+  const { data: row } = await supabase
+    .from('subscriptions')
+    .select('provider, provider_subscription_id')
+    .eq('user_id', session.user.id)
+    .in('status', ['active', 'trialing', 'past_due'])
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!row?.provider_subscription_id || row.provider !== 'lemonsqueezy') {
+    return null;
+  }
+
+  const provider = getPaymentProvider();
+  const { url } = await provider.getUpdatePaymentMethodUrl({
+    subscriptionId: row.provider_subscription_id,
+  });
+  return url;
+}
+
+/**
  * Server action: cancel current user's Lemon Squeezy subscription.
  * Enters grace period — access continues until end of billing period.
  */

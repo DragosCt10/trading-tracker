@@ -108,6 +108,15 @@ export class LemonSqueezyProvider implements IPaymentProvider {
     return { portalUrl };
   }
 
+  async getUpdatePaymentMethodUrl({ subscriptionId }: { subscriptionId: string }): Promise<{ url: string }> {
+    const sub = await getSubscription(subscriptionId);
+    const url = sub.data?.data?.attributes?.urls?.update_payment_method;
+    if (!url) {
+      throw new Error('[billing/lemonsqueezy] No update_payment_method URL found for subscription');
+    }
+    return { url };
+  }
+
   async getCustomerEmail(customerId: string): Promise<string | null> {
     try {
       const sub = await getSubscription(customerId);

@@ -7,6 +7,7 @@ import {
   cancelCurrentSubscription,
   createCheckoutUrl,
   createPortalUrl,
+  createUpdatePaymentMethodUrl,
   getLatestInvoiceUrl,
   verifyAndActivateSubscription,
 } from '@/lib/server/subscription';
@@ -69,6 +70,7 @@ export function BillingSettingsPanel({
   const [isPortalPending, startPortalTransition] = useTransition();
   const [isCancelPending, startCancelTransition] = useTransition();
   const [isInvoicePending, startInvoiceTransition] = useTransition();
+  const [isPaymentMethodPending, startPaymentMethodTransition] = useTransition();
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showProcessingBanner, setShowProcessingBanner] = useState(
     justPaid && initialSubscription.tier === 'starter'
@@ -146,6 +148,17 @@ export function BillingSettingsPanel({
     startCheckoutTransition(async () => {
       const url = await createCheckoutUrl(billingPeriod);
       router.push(url);
+    });
+  }
+
+  function handleUpdatePaymentMethod() {
+    startPaymentMethodTransition(async () => {
+      const url = await createUpdatePaymentMethodUrl();
+      if (url) {
+        router.push(url);
+      } else {
+        alert('Unable to retrieve payment update link. Please try managing your subscription instead.');
+      }
     });
   }
 
@@ -232,11 +245,11 @@ export function BillingSettingsPanel({
           <Button
             size="sm"
             variant="outline"
-            disabled={isPortalPending}
-            onClick={handlePortal}
+            disabled={isPaymentMethodPending}
+            onClick={handleUpdatePaymentMethod}
             className="shrink-0 rounded-xl border-red-500/40 text-red-600 dark:text-red-300 hover:bg-red-500/10 dark:hover:bg-red-500/20"
           >
-            {isPortalPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Update payment method'}
+            {isPaymentMethodPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Update payment method'}
           </Button>
         </div>
       )}
