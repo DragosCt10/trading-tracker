@@ -164,7 +164,7 @@ export function LandingNavbar({ isLoggedIn: isLoggedInProp }: LandingNavbarProps
               <a
                 key={link.href}
                 href={getHref(link.href)}
-                onClick={(e) => handleNavClick(e, link.href)}
+                onClick={(e) => handleNavClick(e, getHref(link.href))}
                 className="futuristic-nav-link text-[13px] font-light tracking-wider uppercase text-muted-foreground hover:text-slate-900 dark:hover:text-white whitespace-nowrap"
                 style={{ animationDelay: `${i * 100}ms` }}
               >
@@ -257,7 +257,7 @@ export function LandingNavbar({ isLoggedIn: isLoggedInProp }: LandingNavbarProps
                     <a
                       key={link.href}
                       href={getHref(link.href)}
-                      onClick={(e) => handleNavClick(e, link.href)}
+                      onClick={(e) => handleNavClick(e, getHref(link.href))}
                       className="flex h-10 items-center rounded-xl px-3 text-sm font-light tracking-wider uppercase text-slate-600 dark:text-white/50 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-all duration-300 hover:shadow-[inset_0_0_12px_color-mix(in_oklch,var(--tc-primary)_10%,transparent)]"
                     >
                       {link.label}
