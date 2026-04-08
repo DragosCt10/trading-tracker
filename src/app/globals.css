@@ -1886,6 +1886,10 @@ body:has(.landing-page-override) > .fixed.z-0 {
 
 /* ---- Badge color palettes — fixed per milestone tier, light + dark ---- */
 :root {
+  /* Test — gray (dev only) */
+  --badge-test-bg: linear-gradient(to bottom right, rgb(100 116 139 / 0.18), rgb(71 85 105 / 0.12));
+  --badge-test-border: rgb(100 116 139 / 0.4);
+  --badge-test-text: #475569;
   /* Rookie — copper */
   --badge-rookie-bg: linear-gradient(to bottom right, rgb(196 106 46 / 0.18), rgb(146 64 14 / 0.12));
   --badge-rookie-border: rgb(196 106 46 / 0.4);
@@ -1912,6 +1916,9 @@ body:has(.landing-page-override) > .fixed.z-0 {
   --badge-alpha-text: #b45309;
 }
 .dark {
+  /* Test — gray (dev only) */
+  --badge-test-bg: linear-gradient(to bottom right, rgb(100 116 139 / 0.22), rgb(71 85 105 / 0.16));
+  --badge-test-text: #94a3b8;
   --badge-rookie-bg: linear-gradient(to bottom right, rgb(196 106 46 / 0.22), rgb(146 64 14 / 0.16));
   --badge-rookie-text: #E0996B;
   --badge-skilled-bg: linear-gradient(to bottom right, rgb(59 130 246 / 0.22), rgb(37 99 235 / 0.16));

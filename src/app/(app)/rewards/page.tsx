@@ -4,6 +4,7 @@ import { getTotalExecutedTradeCount } from '@/lib/server/tradeStats';
 import { getFeatureFlags } from '@/lib/server/settings';
 import { resolveSubscription, createApplyDiscountUrl } from '@/lib/server/subscription';
 import { syncProLoyaltyNotification } from '@/lib/server/feedNotifications';
+import { devSeedTestMilestone } from '@/lib/server/rewards';
 import RewardsClient from './RewardsClient';
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,10 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
   let isPro = false;
   let portalUrl: string | null = null;
   let proSinceDate: string | null = null;
+
+  if (process.env.NODE_ENV === 'development') {
+    await devSeedTestMilestone().catch(() => null);
+  }
 
   try {
     const [[trades, flags], subscription] = await Promise.all([

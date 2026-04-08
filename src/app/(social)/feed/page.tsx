@@ -31,7 +31,7 @@ export default async function FeedPage() {
     user ? getFeatureFlags(user.id) : null,
   ]);
 
-  const initialActivityDiscount = (flags?.activity_rank_up_discount as { used: boolean; couponCode?: string } | undefined) ?? null;
+  const initialActivityDiscount = (flags?.activity_rank_up_discount as { used: boolean; couponCode?: string; expiresAt?: string } | undefined) ?? null;
 
   return (
     <FeedClient

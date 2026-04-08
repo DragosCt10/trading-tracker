@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Trophy, CheckCircle2, Copy, Check, Loader2 } from 'lucide-react';
 import { FEED_CARD_SURFACE_CLASS } from './feedCardStyles';
 import { useActivityProgress } from '@/hooks/useActivityProgress';
@@ -15,6 +15,20 @@ const GOAL = 300;
 interface ActivityDiscount {
   used: boolean;
   couponCode?: string;
+  expiresAt?: string;
+}
+
+function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
+  const days = useMemo(() => {
+    const now = new Date();
+    return Math.ceil((new Date(expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  }, [expiresAt]);
+  if (days <= 0) return <span className="text-xs text-rose-500">Expired</span>;
+  return (
+    <span className={`text-xs ${days <= 7 ? 'text-amber-500 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'}`}>
+      Expires in {days} day{days !== 1 ? 's' : ''}
+    </span>
+  );
 }
 
 function ProgressSkeleton() {
@@ -60,7 +74,7 @@ export default function ActivityProgressCard({
     setClaimError(null);
     const result = await redeemActivityDiscount(profileId);
     if ('couponCode' in result) {
-      setDiscount({ used: false, couponCode: result.couponCode });
+      setDiscount({ used: false, couponCode: result.couponCode, expiresAt: result.expiresAt });
     } else {
       setClaimError(result.error);
     }
@@ -111,6 +125,9 @@ export default function ActivityProgressCard({
                   {copied ? 'Copied!' : 'Copy'}
                 </Button>
               </div>
+              {discount.expiresAt && (
+                <ExpiryCountdown expiresAt={discount.expiresAt} />
+              )}
               {isPro ? (
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   You&apos;re already PRO.{' '}

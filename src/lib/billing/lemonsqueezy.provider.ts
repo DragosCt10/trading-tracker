@@ -350,6 +350,9 @@ export class LemonSqueezyProvider implements IPaymentProvider {
     discountLabel,
     code,
   }: { discountPct: number; discountLabel: string; code: string }): Promise<{ code: string }> {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
     const result = await createDiscount({
       storeId: Number(this.storeId),
       name: discountLabel,
@@ -357,7 +360,9 @@ export class LemonSqueezyProvider implements IPaymentProvider {
       amount: discountPct,
       amountType: 'percent',
       duration: 'once',
+      isLimitedRedemptions: true,
       maxRedemptions: 1,
+      expiresAt: expiresAt.toISOString(),
     });
 
     if (result.error) {

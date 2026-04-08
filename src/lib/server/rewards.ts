@@ -8,8 +8,35 @@ import { resolveSubscription } from './subscription';
 import { monthsSince } from '@/utils/helpers/dateHelpers';
 import { randomBytes } from 'crypto';
 
+/**
+ * DEV ONLY — seeds the test_trader discount entry into feature_flags so the
+ * full coupon-code flow can be tested without needing 100+ real trades.
+ * No-ops in production.
+ */
+export async function devSeedTestMilestone(): Promise<void> {
+  if (process.env.NODE_ENV !== 'development') return;
+
+  const { user } = await getCachedUserSession();
+  if (!user) return;
+
+  const flags = await getFeatureFlags(user.id);
+  const discounts = Array.isArray(flags.available_discounts)
+    ? (flags.available_discounts as { milestoneId: string; discountPct: number; used: boolean; couponCode?: string }[])
+    : [];
+
+  // Always reset test_trader so a fresh code can be generated each dev session
+  const withoutTest = discounts.filter((d) => d.milestoneId !== 'test_trader');
+  await updateFeatureFlags(user.id, {
+    ...flags,
+    available_discounts: [
+      { milestoneId: 'test_trader', discountPct: 5, used: false },
+      ...withoutTest,
+    ],
+  });
+}
+
 type RedeemResult =
-  | { couponCode: string }
+  | { couponCode: string; expiresAt: string }
   | { error: string; code: 'UNAUTHORIZED' | 'NOT_FOUND' | 'ALREADY_USED' | 'NOT_EARNED' | 'PROVIDER_ERROR' };
 
 /**
@@ -28,7 +55,7 @@ export async function redeemMilestoneDiscount(
 
   const flags = await getFeatureFlags(user.id);
   const discounts = Array.isArray(flags.available_discounts)
-    ? (flags.available_discounts as { milestoneId: string; discountPct: number; used: boolean; couponCode?: string }[])
+    ? (flags.available_discounts as { milestoneId: string; discountPct: number; used: boolean; couponCode?: string; expiresAt?: string }[])
     : [];
 
   const entry = discounts.find((d) => d.milestoneId === milestoneId);
@@ -36,7 +63,7 @@ export async function redeemMilestoneDiscount(
   if (entry.used) return { error: 'Discount already used', code: 'ALREADY_USED' };
 
   // Idempotent: if code was already generated return it without hitting Lemon Squeezy again
-  if (entry.couponCode) return { couponCode: entry.couponCode };
+  if (entry.couponCode) return { couponCode: entry.couponCode, expiresAt: entry.expiresAt ?? '' };
 
   // Generate a unique, human-readable coupon code: e.g. ROOKIE-A1B2C3D4
   const prefix = milestone.id.split('_')[0].toUpperCase(); // ROOKIE / SKILLED / EXPERT / MASTER / ALPHA
@@ -51,13 +78,19 @@ export async function redeemMilestoneDiscount(
       code: generatedCode,
     });
 
+    const now = new Date();
+    const expiresAt = new Date(now);
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
     // Persist the code so re-clicks return the same code
     const updatedDiscounts = discounts.map((d) =>
-      d.milestoneId === milestoneId ? { ...d, couponCode: code, generatedAt: new Date().toISOString() } : d,
+      d.milestoneId === milestoneId
+        ? { ...d, couponCode: code, generatedAt: now.toISOString(), expiresAt: expiresAt.toISOString() }
+        : d,
     );
     await updateFeatureFlags(user.id, { ...flags, available_discounts: updatedDiscounts });
 
-    return { couponCode: code };
+    return { couponCode: code, expiresAt: expiresAt.toISOString() };
   } catch (err) {
     console.error('[redeemMilestoneDiscount] provider error:', err);
     return { error: 'Failed to generate discount code', code: 'PROVIDER_ERROR' };
@@ -83,9 +116,9 @@ export async function redeemActivityDiscount(profileId: string): Promise<RedeemR
   if (total < 300) return { error: 'Not yet 300 posts & comments', code: 'NOT_EARNED' };
 
   const flags = await getFeatureFlags(user.id);
-  const existing = flags.activity_rank_up_discount as { used: boolean; couponCode?: string } | undefined;
+  const existing = flags.activity_rank_up_discount as { used: boolean; couponCode?: string; expiresAt?: string } | undefined;
   if (existing?.used) return { error: 'Discount already used', code: 'ALREADY_USED' };
-  if (existing?.couponCode) return { couponCode: existing.couponCode };
+  if (existing?.couponCode) return { couponCode: existing.couponCode, expiresAt: existing.expiresAt ?? '' };
 
   const suffix = randomBytes(6).toString('hex').toUpperCase();
   const generatedCode = `RANKUP${suffix}`;
@@ -98,12 +131,19 @@ export async function redeemActivityDiscount(profileId: string): Promise<RedeemR
       code: generatedCode,
     });
 
+    const activityExpiresAt = new Date();
+    activityExpiresAt.setDate(activityExpiresAt.getDate() + 30);
     await updateFeatureFlags(user.id, {
       ...flags,
-      activity_rank_up_discount: { used: false, couponCode: code, generatedAt: new Date().toISOString() },
+      activity_rank_up_discount: {
+        used: false,
+        couponCode: code,
+        generatedAt: new Date().toISOString(),
+        expiresAt: activityExpiresAt.toISOString(),
+      },
     });
 
-    return { couponCode: code };
+    return { couponCode: code, expiresAt: activityExpiresAt.toISOString() };
   } catch (err) {
     console.error('[redeemActivityDiscount] provider error:', err);
     return { error: 'Failed to generate discount code', code: 'PROVIDER_ERROR' };
@@ -122,9 +162,9 @@ export async function redeemProRetentionDiscount(): Promise<RedeemResult> {
   if (monthsSince(proSinceDate) < 3) return { error: 'Not yet 3 months on PRO', code: 'NOT_EARNED' };
 
   const flags = await getFeatureFlags(user.id);
-  const existing = flags.pro_retention_discount as { used: boolean; couponCode?: string } | undefined;
+  const existing = flags.pro_retention_discount as { used: boolean; couponCode?: string; expiresAt?: string } | undefined;
   if (existing?.used) return { error: 'Discount already used', code: 'ALREADY_USED' };
-  if (existing?.couponCode) return { couponCode: existing.couponCode };
+  if (existing?.couponCode) return { couponCode: existing.couponCode, expiresAt: existing.expiresAt ?? '' };
 
   const suffix = randomBytes(6).toString('hex').toUpperCase();
   const generatedCode = `PROLOYALTY${suffix}`;
@@ -137,12 +177,19 @@ export async function redeemProRetentionDiscount(): Promise<RedeemResult> {
       code: generatedCode,
     });
 
+    const retentionExpiresAt = new Date();
+    retentionExpiresAt.setDate(retentionExpiresAt.getDate() + 30);
     await updateFeatureFlags(user.id, {
       ...flags,
-      pro_retention_discount: { used: false, couponCode: code, generatedAt: new Date().toISOString() },
+      pro_retention_discount: {
+        used: false,
+        couponCode: code,
+        generatedAt: new Date().toISOString(),
+        expiresAt: retentionExpiresAt.toISOString(),
+      },
     });
 
-    return { couponCode: code };
+    return { couponCode: code, expiresAt: retentionExpiresAt.toISOString() };
   } catch (err) {
     console.error('[redeemProRetentionDiscount] provider error:', err);
     return { error: 'Failed to generate discount code', code: 'PROVIDER_ERROR' };

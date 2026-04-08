@@ -6,6 +6,7 @@
  */
 
 export type TradeMilestoneId =
+  | 'test_trader'
   | 'rookie_trader'
   | 'skilled_trader'
   | 'expert_trader'
@@ -22,7 +23,22 @@ export interface TradeMilestone {
   notificationType: string; // matches DB enum value
 }
 
+const TEST_MILESTONE: TradeMilestone[] =
+  process.env.NODE_ENV === 'development'
+    ? [
+        {
+          id: 'test_trader',
+          minTrades: 1,
+          maxTrades: 99,
+          badgeName: 'Test Trader',
+          discountPct: 5,
+          notificationType: 'trade_milestone_1',
+        },
+      ]
+    : [];
+
 export const TRADE_MILESTONES: TradeMilestone[] = [
+  ...TEST_MILESTONE,
   {
     id: 'rookie_trader',
     minTrades: 100,

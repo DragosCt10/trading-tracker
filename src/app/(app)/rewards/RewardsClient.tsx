@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Award, Check, ChevronRight, Copy, Lock, Loader2, Trophy, ShieldCheck } from 'lucide-react';
 import {
@@ -30,11 +30,26 @@ interface DiscountEntry {
   discountPct: number;
   used: boolean;
   couponCode?: string;
+  expiresAt?: string;
 }
 
 interface ProRetentionDiscount {
   used: boolean;
   couponCode?: string;
+  expiresAt?: string;
+}
+
+function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
+  const days = useMemo(() => {
+    const now = new Date();
+    return Math.ceil((new Date(expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  }, [expiresAt]);
+  if (days <= 0) return <span className="text-xs text-rose-500">Expired</span>;
+  return (
+    <span className={`text-xs ${days <= 7 ? 'text-amber-500 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'}`}>
+      Expires in {days} day{days !== 1 ? 's' : ''}
+    </span>
+  );
 }
 
 export default function RewardsClient({ totalTrades, featureFlags, isPro, portalUrl, proSinceDate, showBackToSettings }: RewardsClientProps) {
@@ -64,7 +79,7 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, portal
     setRetentionError(null);
     const result = await redeemProRetentionDiscount();
     if ('couponCode' in result) {
-      setRetentionDiscount({ used: false, couponCode: result.couponCode });
+      setRetentionDiscount({ used: false, couponCode: result.couponCode, expiresAt: result.expiresAt });
     } else {
       setRetentionError(result.error);
     }
@@ -85,7 +100,7 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, portal
       const result = await redeemMilestoneDiscount(milestoneId);
       if ('couponCode' in result) {
         setDiscounts((prev) =>
-          prev.map((d) => (d.milestoneId === milestoneId ? { ...d, couponCode: result.couponCode } : d)),
+          prev.map((d) => (d.milestoneId === milestoneId ? { ...d, couponCode: result.couponCode, expiresAt: result.expiresAt } : d)),
         );
       } else {
         setClaimErrors((prev) => ({ ...prev, [milestoneId]: result.error }));
@@ -223,6 +238,9 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, portal
                       {retentionCopied ? 'Copied!' : 'Copy'}
                     </Button>
                   </div>
+                  {retentionDiscount.expiresAt && (
+                    <ExpiryCountdown expiresAt={retentionDiscount.expiresAt} />
+                  )}
                   {portalUrl ? (
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       <a href={portalUrl} className="underline underline-offset-2 hover:text-slate-700 dark:hover:text-slate-300">
@@ -320,6 +338,9 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, portal
                             {copiedId === milestone.id ? 'Copied!' : 'Copy'}
                           </Button>
                         </div>
+                        {discount.expiresAt && (
+                          <ExpiryCountdown expiresAt={discount.expiresAt} />
+                        )}
                         {isPro ? (
                           <p className="text-xs text-slate-500 dark:text-slate-400">
                             You&apos;re already PRO.{' '}
