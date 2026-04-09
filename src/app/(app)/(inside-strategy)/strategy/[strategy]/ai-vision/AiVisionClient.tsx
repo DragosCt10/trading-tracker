@@ -1,9 +1,9 @@
 'use client';
 
-// src/app/(app)/(inside-strategy)/strategy/[strategy]/ai-vision/AiVisionClient.tsx
 import { useMemo, useState } from 'react';
-import { format } from 'date-fns';
+import { format, getDaysInMonth, parse } from 'date-fns';
 import { Crown } from 'lucide-react';
+import type { Trade } from '@/types/trade';
 import { AiVisionPatternsSkeleton, AiVisionScoreCardsSkeleton, AiVisionMetricRowsSkeleton } from '@/components/dashboard/ai-vision/AiVisionSkeleton';
 import { AiVisionLoadingOverlay } from '@/components/dashboard/ai-vision/AiVisionLoadingOverlay';
 import { AiVisionScoreCard } from '@/components/dashboard/ai-vision/AiVisionScoreCard';
@@ -23,8 +23,11 @@ import { SectionHeading } from '../sections/SectionHeading';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useDarkMode } from '@/hooks/useDarkMode';
 import { cn } from '@/lib/utils';
+
+// Stable reference for metrics with no trend history — prevents new `[]` per
+// render from breaking `React.memo` on AiVisionMetricRow. (Audit finding F18.)
+const EMPTY_TREND: TrendPoint[] = [];
 
 interface AiVisionClientProps {
   userId: string;
@@ -211,7 +214,6 @@ export default function AiVisionClient({
   // ── Subscription / PRO gate ───────────────────────────────────────────────
   const { isPro } = useSubscription({ userId });
   const isLocked = !isPro;
-  const { isDark } = useDarkMode();
 
   // ── Filter state ─────────────────────────────────────────────────────────
   const [selectedMarket, setSelectedMarket] = useState('all');
@@ -219,6 +221,7 @@ export default function AiVisionClient({
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>('short');
 
   // ── Data queries ─────────────────────────────────────────────────────────
+  // Skip the network fetch entirely when locked — non-PRO users see demo data.
   const {
     periods,
     allTrades,
@@ -231,70 +234,101 @@ export default function AiVisionClient({
     strategyId,
     market: selectedMarket,
     execution: selectedExecution,
+    enabled: !isLocked,
   });
 
   // ── Active preset keys ────────────────────────────────────────────────────
   const [keyA, keyB, keyC] = PERIOD_PRESETS[periodPreset].keys;
 
-  // Destructure trades for stable useMemo deps (avoids eslint-disable for dynamic indexing)
   const tradesA = periods[keyA].trades;
   const tradesB = periods[keyB].trades;
   const tradesC = periods[keyC].trades;
 
   // ── Metric computation ───────────────────────────────────────────────────
+  // When locked, return demo values directly — saves the full calculation
+  // pipeline for every non-PRO render. (Audit finding F5.)
   const metricsA = useMemo(
-    () => calculatePeriodMetrics(tradesA, accountBalance, daysForKey(keyA)),
-    [tradesA, accountBalance, keyA],
+    () => (isLocked ? DEMO_METRICS_A : calculatePeriodMetrics(tradesA, accountBalance, daysForKey(keyA))),
+    [isLocked, tradesA, accountBalance, keyA],
   );
   const metricsB = useMemo(
-    () => calculatePeriodMetrics(tradesB, accountBalance, daysForKey(keyB)),
-    [tradesB, accountBalance, keyB],
+    () => (isLocked ? DEMO_METRICS_B : calculatePeriodMetrics(tradesB, accountBalance, daysForKey(keyB))),
+    [isLocked, tradesB, accountBalance, keyB],
   );
   const metricsC = useMemo(
-    () => calculatePeriodMetrics(tradesC, accountBalance, daysForKey(keyC)),
-    [tradesC, accountBalance, keyC],
+    () => (isLocked ? DEMO_METRICS_C : calculatePeriodMetrics(tradesC, accountBalance, daysForKey(keyC))),
+    [isLocked, tradesC, accountBalance, keyC],
   );
 
-  const scoreA = useMemo(() => calculateAiVisionScore(metricsA), [metricsA]);
-  const scoreB = useMemo(() => calculateAiVisionScore(metricsB), [metricsB]);
-  const scoreC = useMemo(() => calculateAiVisionScore(metricsC), [metricsC]);
+  const scoreA = useMemo(() => (isLocked ? DEMO_SCORE_A : calculateAiVisionScore(metricsA)), [isLocked, metricsA]);
+  const scoreB = useMemo(() => (isLocked ? DEMO_SCORE_B : calculateAiVisionScore(metricsB)), [isLocked, metricsB]);
+  const scoreC = useMemo(() => (isLocked ? DEMO_SCORE_C : calculateAiVisionScore(metricsC)), [isLocked, metricsC]);
 
-  // Monthly trendline data per metric key, derived from allTrades
+  // Monthly trendline data per metric key, derived from allTrades.
+  //
+  // Previous implementation called `calculatePeriodMetrics` 11× per month
+  // (once for each METRIC_GAUGE_CONFIGS entry) and only kept one field each
+  // time — O(months × 11) scans. Now we compute each month's metrics once
+  // and fan out to every metric key. (Audit finding F1.)
+  //
+  // Also:
+  //  - Uses `date-fns/parse` instead of `new Date('01 MMM yy')` so Firefox
+  //    and Safari don't silently return Invalid Date. (Audit finding F6.)
+  //  - Uses `getDaysInMonth()` for the `days` arg so `tradeFrequency` is
+  //    correct for 28/30/31-day months. (Audit finding F7.)
+  //  - Skips malformed `trade_date` rows instead of producing
+  //    `"Invalid Date"` month keys. (Eng-review critical gap.)
   const trendByMetric = useMemo<Record<string, TrendPoint[]>>(() => {
+    if (isLocked) return DEMO_TREND_BY_METRIC;
     if (allTrades.length === 0) return {};
-    const byMonth = new Map<string, typeof allTrades>();
-    for (const t of allTrades) {
-      const key = format(new Date(t.trade_date), 'MMM yy');
-      if (!byMonth.has(key)) byMonth.set(key, []);
-      byMonth.get(key)!.push(t);
-    }
-    // Sort months chronologically (oldest → newest)
-    const sortedMonths = Array.from(byMonth.entries()).sort(([a], [b]) => {
-      return new Date(`01 ${a}`).getTime() - new Date(`01 ${b}`).getTime();
-    });
 
-    // Fill in missing months between first and last with null
-    const filledMonths: Array<[string, typeof allTrades | null]> = [];
-    if (sortedMonths.length > 0) {
-      const start = new Date(`01 ${sortedMonths[0][0]}`);
-      const end = new Date(`01 ${sortedMonths[sortedMonths.length - 1][0]}`);
-      const cur = new Date(start);
-      while (cur <= end) {
-        const label = format(cur, 'MMM yy');
-        filledMonths.push([label, byMonth.get(label) ?? null]);
-        cur.setMonth(cur.getMonth() + 1);
+    const byMonth = new Map<string, Trade[]>();
+    for (const t of allTrades) {
+      const d = new Date(t.trade_date);
+      if (Number.isNaN(d.getTime())) continue;
+      const key = format(d, 'MMM yy');
+      let bucket = byMonth.get(key);
+      if (!bucket) {
+        bucket = [];
+        byMonth.set(key, bucket);
       }
+      bucket.push(t);
     }
+    if (byMonth.size === 0) return {};
+
+    const parseMonthLabel = (label: string) => parse(label, 'MMM yy', new Date());
+
+    const sortedMonths = Array.from(byMonth.entries()).sort(
+      ([a], [b]) => parseMonthLabel(a).getTime() - parseMonthLabel(b).getTime(),
+    );
+
+    // Fill in missing months between first and last with null.
+    const filledMonths: Array<[string, Trade[] | null]> = [];
+    const start = parseMonthLabel(sortedMonths[0][0]);
+    const end = parseMonthLabel(sortedMonths[sortedMonths.length - 1][0]);
+    const cur = new Date(start);
+    while (cur <= end) {
+      const label = format(cur, 'MMM yy');
+      filledMonths.push([label, byMonth.get(label) ?? null]);
+      cur.setMonth(cur.getMonth() + 1);
+    }
+
+    // Compute metrics ONCE per month, then fan out across METRIC_GAUGE_CONFIGS.
+    const metricsByMonth = filledMonths.map(([month, trades]) => {
+      if (!trades) return { month, metrics: null as PeriodMetrics | null };
+      const daysInMonth = getDaysInMonth(parseMonthLabel(month));
+      return { month, metrics: calculatePeriodMetrics(trades, accountBalance, daysInMonth) };
+    });
 
     const result: Record<string, TrendPoint[]> = {};
     for (const cfg of METRIC_GAUGE_CONFIGS) {
-      result[cfg.key] = filledMonths.map(([month, trades]) => ({
+      result[cfg.key] = metricsByMonth.map(({ month, metrics }) => ({
         month,
-        value: trades ? calculatePeriodMetrics(trades, accountBalance, 30)[cfg.key] as number : null,
+        value: metrics ? (metrics[cfg.key] as number) : null,
       }));
     }
     return result;
-  }, [allTrades, accountBalance]);
+  }, [isLocked, allTrades, accountBalance]);
 
   const markets = useMemo(
     () => Array.from(new Set(allTrades.map((t) => t.market).filter(Boolean))),
@@ -303,6 +337,8 @@ export default function AiVisionClient({
 
   // ── Pattern detection (across all 3 periods + multi-period trends) ─────
   const detectedPatterns = useMemo(() => {
+    if (isLocked) return DEMO_PATTERNS;
+
     const labelA = labelForKey(keyA);
     const labelB = labelForKey(keyB);
     const labelC = labelForKey(keyC);
@@ -320,25 +356,16 @@ export default function AiVisionClient({
 
     // Add trend patterns (these are already unique, no merging needed)
     return [...merged, ...trendPatterns].sort((a, b) => a.priority - b.priority);
-  }, [tradesA, tradesB, tradesC, metricsA, metricsB, metricsC, accountBalance, keyA, keyB, keyC]);
+  }, [isLocked, tradesA, tradesB, tradesC, metricsA, metricsB, metricsC, accountBalance, keyA, keyB, keyC]);
 
   const allEmpty =
+    !isLocked &&
     !isInitialLoading &&
     metricsA.tradeCount === 0 &&
     metricsB.tradeCount === 0 &&
     metricsC.tradeCount === 0;
 
-  // ── When locked, substitute demo values so blurred content looks populated ─
-  const displayMetricsA = isLocked ? DEMO_METRICS_A : metricsA;
-  const displayMetricsB = isLocked ? DEMO_METRICS_B : metricsB;
-  const displayMetricsC = isLocked ? DEMO_METRICS_C : metricsC;
-  const displayScoreA   = isLocked ? DEMO_SCORE_A   : scoreA;
-  const displayScoreB   = isLocked ? DEMO_SCORE_B   : scoreB;
-  const displayScoreC   = isLocked ? DEMO_SCORE_C   : scoreC;
-  const displayTrend    = isLocked ? DEMO_TREND_BY_METRIC : trendByMetric;
-  const displayPatterns = isLocked ? DEMO_PATTERNS : detectedPatterns;
-  const displayEmpty    = isLocked ? false : allEmpty;
-  const displayLoading  = isLocked ? false : isInitialLoading;
+  const isLoading = !isLocked && isInitialLoading;
 
   return (
     <div className="relative min-h-screen">
@@ -363,11 +390,16 @@ export default function AiVisionClient({
         {/* ── Filters row: period preset + market + execution ─────────────── */}
         <div className="flex flex-wrap items-center gap-4">
           {/* Period preset toggle */}
-          <div className="flex items-center gap-1.5 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 p-1">
+          <div
+            className="flex items-center gap-1.5 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 p-1"
+            role="group"
+            aria-label="Period preset"
+          >
             {(Object.entries(PERIOD_PRESETS) as [PeriodPreset, typeof PERIOD_PRESETS[PeriodPreset]][]).map(([key, preset]) => (
               <button
                 key={key}
                 type="button"
+                aria-pressed={periodPreset === key}
                 onClick={() => setPeriodPreset(key)}
                 className={cn(
                   'rounded-lg px-3 py-1 text-xs font-semibold transition-all duration-200',
@@ -383,9 +415,9 @@ export default function AiVisionClient({
 
           {/* Market filter */}
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">Market:</span>
+            <span id="ai-vision-market-label" className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">Market:</span>
             <Select value={selectedMarket} onValueChange={setSelectedMarket}>
-              <SelectTrigger className="w-32 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none text-slate-900 dark:text-slate-50">
+              <SelectTrigger aria-labelledby="ai-vision-market-label" className="w-32 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none text-slate-900 dark:text-slate-50">
                 <SelectValue placeholder="All Markets" />
               </SelectTrigger>
               <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl text-slate-900 dark:text-slate-50">
@@ -399,9 +431,9 @@ export default function AiVisionClient({
 
           {/* Execution filter */}
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">Execution:</span>
+            <span id="ai-vision-execution-label" className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">Execution:</span>
             <Select value={selectedExecution} onValueChange={(v) => setSelectedExecution(v as 'all' | 'executed' | 'nonExecuted')}>
-              <SelectTrigger className="w-32 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none text-slate-900 dark:text-slate-50">
+              <SelectTrigger aria-labelledby="ai-vision-execution-label" className="w-32 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none text-slate-900 dark:text-slate-50">
                 <SelectValue placeholder="Executed" />
               </SelectTrigger>
               <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl text-slate-900 dark:text-slate-50">
@@ -421,23 +453,23 @@ export default function AiVisionClient({
                 {/* PRO badge */}
                 {isLocked && (
                   <span className="absolute right-0 top-0 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
-                    <Crown className="w-3 h-3" /> PRO
+                    <Crown className="w-3 h-3" aria-hidden="true" /> PRO
                   </span>
                 )}
 
                 {/* Blur glass overlay */}
                 {isLocked && (
-                  <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px] rounded-2xl" />
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px] rounded-2xl" />
                 )}
 
                 {/* Content — blurred when locked */}
                 <div className={cn('flex flex-col gap-6', isLocked && 'blur-[3px] opacity-70 pointer-events-none select-none')}>
 
                   {/* ── AI Detected Patterns ───────────────────────────────── */}
-                  {displayLoading ? (
+                  {isLoading ? (
                     <AiVisionPatternsSkeleton />
-                  ) : !displayEmpty ? (
-                    <AiVisionPatterns patterns={displayPatterns} />
+                  ) : !allEmpty ? (
+                    <AiVisionPatterns patterns={detectedPatterns} />
                   ) : null}
 
                   {/* ── Score cards ────────────────────────────────────────── */}
@@ -448,55 +480,55 @@ export default function AiVisionClient({
                       containerClassName="mt-10"
                     />
 
-                    {displayLoading ? (
+                    {isLoading ? (
                       <AiVisionScoreCardsSkeleton />
-                    ) : displayEmpty ? (
+                    ) : allEmpty ? (
                       <>
-                        <div className="grid grid-cols-3 gap-6">
-                          <AiVisionScoreCard label={labelForKey(keyA)} score={displayScoreA} delta={null} hasNoTrades />
-                          <AiVisionScoreCard label={labelForKey(keyB)} score={displayScoreB} delta={null} hasNoTrades />
-                          <AiVisionScoreCard label={labelForKey(keyC)} score={displayScoreC} delta={null} isBaseline hasNoTrades />
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                          <AiVisionScoreCard label={labelForKey(keyA)} score={scoreA} delta={null} hasNoTrades />
+                          <AiVisionScoreCard label={labelForKey(keyB)} score={scoreB} delta={null} hasNoTrades />
+                          <AiVisionScoreCard label={labelForKey(keyC)} score={scoreC} delta={null} isBaseline hasNoTrades />
                         </div>
-                        <div className="flex items-center justify-center py-16 text-slate-400 dark:text-slate-500 text-sm">
+                        <div className="flex items-center justify-center py-16 text-slate-500 dark:text-slate-400 text-sm">
                           No trades found for this period. Start trading to see AI Vision insights.
                         </div>
                       </>
                     ) : (
-                      <div className="grid grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                         <AiVisionScoreCard
                           label={labelForKey(keyA)}
-                          score={displayScoreA}
-                          delta={displayMetricsA.tradeCount > 0 && displayMetricsB.tradeCount > 0 ? displayScoreA - displayScoreB : null}
+                          score={scoreA}
+                          delta={metricsA.tradeCount > 0 && metricsB.tradeCount > 0 ? scoreA - scoreB : null}
                           vsLabel={`vs ${keyB}`}
-                          hasNoTrades={displayMetricsA.tradeCount === 0}
+                          hasNoTrades={metricsA.tradeCount === 0}
                         />
                         <AiVisionScoreCard
                           label={labelForKey(keyB)}
-                          score={displayScoreB}
-                          delta={displayMetricsB.tradeCount > 0 && displayMetricsC.tradeCount > 0 ? displayScoreB - displayScoreC : null}
+                          score={scoreB}
+                          delta={metricsB.tradeCount > 0 && metricsC.tradeCount > 0 ? scoreB - scoreC : null}
                           vsLabel={`vs ${keyC}`}
-                          hasNoTrades={displayMetricsB.tradeCount === 0}
+                          hasNoTrades={metricsB.tradeCount === 0}
                         />
                         <AiVisionScoreCard
                           label={labelForKey(keyC)}
-                          score={displayScoreC}
+                          score={scoreC}
                           delta={null}
                           isBaseline
-                          hasNoTrades={displayMetricsC.tradeCount === 0}
+                          hasNoTrades={metricsC.tradeCount === 0}
                         />
                       </div>
                     )}
                   </section>
 
                   {/* ── Metric Rows ─────────────────────────────────────────── */}
-                  {!displayEmpty && (
+                  {!allEmpty && (
                     <section aria-label="Metric rows">
                       <SectionHeading
                         title="Performance Metrics"
                         description="Deep dive into each metric that contributes to the health score."
                         containerClassName="mt-14"
                       />
-                      {displayLoading ? (
+                      {isLoading ? (
                         <AiVisionMetricRowsSkeleton />
                       ) : (
                         <div className="flex flex-col gap-6 mt-3">
@@ -506,11 +538,11 @@ export default function AiVisionClient({
                               title={cfg.label}
                               infoText={cfg.infoText}
                               periods={[
-                                { label: labelForKey(keyA), value: displayMetricsA[cfg.key] as number, hasNoTrades: displayMetricsA.tradeCount === 0 },
-                                { label: labelForKey(keyB), value: displayMetricsB[cfg.key] as number, hasNoTrades: displayMetricsB.tradeCount === 0 },
-                                { label: labelForKey(keyC), value: displayMetricsC[cfg.key] as number, hasNoTrades: displayMetricsC.tradeCount === 0 },
+                                { label: labelForKey(keyA), value: metricsA[cfg.key] as number, hasNoTrades: metricsA.tradeCount === 0 },
+                                { label: labelForKey(keyB), value: metricsB[cfg.key] as number, hasNoTrades: metricsB.tradeCount === 0 },
+                                { label: labelForKey(keyC), value: metricsC[cfg.key] as number, hasNoTrades: metricsC.tradeCount === 0 },
                               ]}
-                              trendData={displayTrend[cfg.key] ?? []}
+                              trendData={trendByMetric[cfg.key] ?? EMPTY_TREND}
                               formatValue={cfg.format}
                               invertBetter={cfg.invertBetter}
                               gaugeMax={cfg.gaugeMax}
@@ -535,7 +567,7 @@ export default function AiVisionClient({
                 sideOffset={8}
                 className="max-w-sm text-xs rounded-2xl p-3 relative overflow-hidden border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50"
               >
-                {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+                <div aria-hidden="true" className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl hidden dark:block" />
                 <div className="relative">The data shown under the blur is fictive and for demo purposes only. Upgrade to PRO to unlock AI Vision insights.</div>
               </TooltipContent>
             )}
