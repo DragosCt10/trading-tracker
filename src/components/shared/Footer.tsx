@@ -80,7 +80,7 @@ function FooterSection({
   );
 }
 
-export function Footer({ constrained = false }: { constrained?: boolean }) {
+export function Footer({ constrained = false, spacious = false }: { constrained?: boolean; spacious?: boolean }) {
   return (
     <footer
       role="contentinfo"
@@ -95,7 +95,7 @@ export function Footer({ constrained = false }: { constrained?: boolean }) {
           constrained && "sm:px-0 max-w-7xl"
         )}
       >
-        <div className="py-10 sm:py-12">
+        <div className={spacious ? "py-10 sm:py-12 sm:px-10" : "py-10 sm:py-12"}>
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8 lg:gap-12">
             {/* Brand - left */}
             <div className="lg:max-w-xs">

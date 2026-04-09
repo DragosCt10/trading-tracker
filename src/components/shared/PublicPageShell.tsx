@@ -23,7 +23,7 @@ export function PublicPageShell({ children }: PublicPageShellProps) {
         <PricingHeroBackground />
         {children}
         <div className="relative [&>footer]:bg-transparent [&>footer]:border-0 [&>footer]:mt-0">
-          <Footer />
+          <Footer spacious />
         </div>
       </section>
     </div>

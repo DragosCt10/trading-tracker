@@ -13,12 +13,18 @@ export default async function StrategiesPage() {
   const { account: initialActiveAccount, mode: initialMode } = await resolveActiveAccount(user.id);
 
   // Pre-fetch strategies and overview in parallel so StrategiesClient renders
-  // immediately without skeleton. Both calls are safe — they return empty
-  // values on error and the client will re-fetch if needed.
+  // immediately without skeleton. Failures fall back to empty values so the
+  // shell still renders — but we must log so regressions are detectable.
   const [initialStrategies, initialOverview] = initialActiveAccount
     ? await Promise.all([
-        getUserStrategies(user.id, initialActiveAccount.id).catch(() => []),
-        getStrategiesOverview(initialActiveAccount.id, initialMode).catch(() => ({})),
+        getUserStrategies(user.id, initialActiveAccount.id).catch((err) => {
+          console.error('[stats/page] getUserStrategies prefetch failed', err);
+          return [];
+        }),
+        getStrategiesOverview(initialActiveAccount.id, initialMode).catch((err) => {
+          console.error('[stats/page] getStrategiesOverview prefetch failed', err);
+          return {};
+        }),
       ])
     : [[], {}];
 

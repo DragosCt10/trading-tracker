@@ -71,6 +71,12 @@ function generateSlug(name: string): string {
 export async function ensureDefaultStrategy(userId: string, accountId: string): Promise<Strategy | null> {
   const supabase = await createClient();
 
+  // Defense-in-depth: verify the caller is acting on their own user id.
+  // Supabase RLS on the `strategies` table should already block cross-user
+  // inserts, but server actions must not trust their own arguments.
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.id !== userId) return null;
+
   // Only create a default strategy on demo accounts
   const { data: account } = await supabase
     .from('account_settings')
@@ -148,6 +154,11 @@ export async function ensureDefaultStrategy(userId: string, accountId: string): 
  */
 export async function getUserStrategies(userId: string, accountId: string): Promise<Strategy[]> {
   const supabase = await createClient();
+
+  // Defense-in-depth: verify the authenticated user matches the requested userId
+  // before touching the strategies table. Sibling CRUD actions already do this.
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.id !== userId) return [];
 
   await ensureDefaultStrategy(userId, accountId);
 
@@ -446,7 +457,8 @@ export async function getInactiveStrategies(userId: string): Promise<Strategy[]>
     .eq('user_id', userId)
     .eq('is_active', false)
     .gte('updated_at', thirtyDaysAgoISO) // Only get strategies updated (archived) within the last 30 days
-    .order('updated_at', { ascending: false });
+    .order('updated_at', { ascending: false })
+    .limit(100); // Cap: pg_cron deletes archived rows after 30 days, so this is a safety net.
 
   if (error) {
     console.error('Error fetching inactive strategies:', error);
