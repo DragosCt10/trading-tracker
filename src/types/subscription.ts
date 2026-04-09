@@ -103,4 +103,6 @@ export interface ResolvedSubscription {
   currency: string | null;
   /** ISO timestamp of when the subscription row was first created. Null for starter/fallback. */
   createdAt: string | null;
+  /** ISO timestamp of the most recent update (upgrades, renewals, status changes). Null for starter/fallback. */
+  updatedAt: string | null;
 }

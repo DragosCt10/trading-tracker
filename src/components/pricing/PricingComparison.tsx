@@ -28,6 +28,49 @@ const themedGradientStyle = {
   boxShadow: '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
 } as React.CSSProperties;
 
+/**
+ * Module-level "Buy now" CTA used by both the mobile and desktop layouts in
+ * PricingComparison. Declared outside the parent component so React/React
+ * Compiler can memoize it properly and preserve component identity between
+ * renders (see react-hooks/static-components lint rule).
+ */
+function BuyNowButton({
+  size,
+  onCheckout,
+  isCheckoutPending,
+}: {
+  size: 'sm' | 'default';
+  onCheckout: () => void;
+  isCheckoutPending: boolean;
+}) {
+  return (
+    <Button
+      onClick={onCheckout}
+      disabled={isCheckoutPending}
+      className={cn(
+        'relative cursor-pointer overflow-hidden w-full rounded-lg text-white font-semibold disabled:opacity-60 border-0 shadow-lg hover:shadow-xl transition-all duration-300 group',
+        size === 'sm' ? 'text-xs' : 'text-sm',
+      )}
+      size={size}
+      style={themedGradientStyle}
+    >
+      <span className="relative z-10 flex items-center justify-center gap-1">
+        {isCheckoutPending ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <>
+            Buy now
+            <ArrowRight className="ml-1 h-4 w-4" />
+          </>
+        )}
+      </span>
+      {!isCheckoutPending && (
+        <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
+      )}
+    </Button>
+  );
+}
+
 export function BillingToggle({
   billingPeriod,
   setBillingPeriod,
@@ -98,33 +141,6 @@ export function PricingComparison({
   const proCompareAt = isAnnual ? `$${MONTHLY_PRICE}/mo` : undefined;
   const proBillingNote = isAnnual ? `$${ANNUAL_PRICE} billed annually` : undefined;
 
-  const BuyNowButton = ({ size }: { size: 'sm' | 'default' }) => (
-    <Button
-      onClick={onCheckout}
-      disabled={isCheckoutPending}
-      className={cn(
-        'relative cursor-pointer overflow-hidden w-full rounded-lg text-white font-semibold disabled:opacity-60 border-0 shadow-lg hover:shadow-xl transition-all duration-300 group',
-        size === 'sm' ? 'text-xs' : 'text-sm',
-      )}
-      size={size}
-      style={themedGradientStyle}
-    >
-      <span className="relative z-10 flex items-center justify-center gap-1">
-        {isCheckoutPending ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <>
-            Buy now
-            <ArrowRight className="ml-1 h-4 w-4" />
-          </>
-        )}
-      </span>
-      {!isCheckoutPending && (
-        <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
-      )}
-    </Button>
-  );
-
   return (
     <div className={className}>
       {!hideToggle && (
@@ -178,7 +194,7 @@ export function PricingComparison({
           <p className={cn('text-[10px] -mt-1 mb-2', proBillingNote ? 'text-muted-foreground' : 'invisible')}>
             {proBillingNote || '\u00A0'}
           </p>
-          <BuyNowButton size="sm" />
+          <BuyNowButton size="sm" onCheckout={onCheckout} isCheckoutPending={isCheckoutPending} />
         </PricingTablePlan>
       </div>
 
@@ -233,7 +249,7 @@ export function PricingComparison({
                 <p className={cn('text-xs -mt-1 mb-3', proBillingNote ? 'text-muted-foreground' : 'invisible')}>
                   {proBillingNote || '\u00A0'}
                 </p>
-                <BuyNowButton size="default" />
+                <BuyNowButton size="default" onCheckout={onCheckout} isCheckoutPending={isCheckoutPending} />
               </PricingTablePlan>
             </th>
           </PricingTableRow>

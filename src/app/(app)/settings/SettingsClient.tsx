@@ -1,12 +1,32 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useMemo, useState, useTransition } from 'react';
 import { Award, CreditCard, Loader2, Settings, User, Users } from 'lucide-react';
-import { BillingSettingsPanel } from '@/components/settings/BillingSettingsPanel';
-import ProfileSettingsPanel from '@/components/settings/ProfileSettingsPanel';
-import ReviewSection from '@/components/settings/ReviewSection';
+import { PanelSkeleton } from '@/components/settings/PanelSkeleton';
 import { Button } from '@/components/ui/button';
+
+// Tab panels are lazy-loaded so users viewing one tab don't download the other
+// two tabs' JavaScript upfront. Chunk-load failures are caught by the scoped
+// error.tsx boundary in this route (prevents infinite-skeleton state). SSR is
+// enabled so the active tab renders server-side for LCP parity with the
+// original static import.
+const BillingSettingsPanel = dynamic(
+  () =>
+    import('@/components/settings/BillingSettingsPanel').then((m) => ({
+      default: m.BillingSettingsPanel,
+    })),
+  { loading: () => <PanelSkeleton />, ssr: true }
+);
+const ProfileSettingsPanel = dynamic(
+  () => import('@/components/settings/ProfileSettingsPanel'),
+  { loading: () => <PanelSkeleton />, ssr: true }
+);
+const ReviewSection = dynamic(() => import('@/components/settings/ReviewSection'), {
+  loading: () => <PanelSkeleton />,
+  ssr: true,
+});
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -14,9 +34,10 @@ import type { ResolvedSubscription } from '@/types/subscription';
 import type { SocialProfile } from '@/types/social';
 import { updateEmailAction, updatePasswordAction } from '@/lib/server/auth';
 import { PASSWORD_RULES, getPasswordStrength } from '@/utils/passwordValidation';
+import type { SettingsTab } from './page';
 
 interface SettingsClientProps {
-  initialTab: 'billing' | 'account' | 'profile';
+  initialTab: SettingsTab;
   subscription: ResolvedSubscription;
   justPaid: boolean;
   featureContext?: string;
@@ -34,7 +55,6 @@ export default function SettingsClient({
   userId,
   socialProfile,
 }: SettingsClientProps) {
-  const activeTab = initialTab === 'account' ? 'account' : initialTab === 'profile' ? 'profile' : 'billing';
   const [newEmail, setNewEmail] = useState(userEmail);
   const [emailError, setEmailError] = useState('');
   const [emailMessage, setEmailMessage] = useState('');
@@ -123,14 +143,14 @@ export default function SettingsClient({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl shadow-sm themed-header-icon-box">
-              <Settings className="w-6 h-6" />
+              <Settings className="w-6 h-6" aria-hidden="true" />
             </div>
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
                 Settings
               </h1>
               <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                Manage billing and account.
+                Manage your account.
               </p>
             </div>
           </div>
@@ -138,43 +158,55 @@ export default function SettingsClient({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <aside className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-3 h-fit">
+        <nav
+          aria-label="Settings sections"
+          className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-3 h-fit"
+        >
           <div className="space-y-2">
-            <Button asChild variant="ghost" className={navItemClass(activeTab === 'billing')}>
-              <Link href="/settings?tab=billing">
-                <CreditCard className="h-4 w-4" />
+            <Button asChild variant="ghost" className={navItemClass(initialTab === 'billing')}>
+              <Link
+                href="/settings?tab=billing"
+                aria-current={initialTab === 'billing' ? 'page' : undefined}
+              >
+                <CreditCard className="h-4 w-4" aria-hidden="true" />
                 Billing
               </Link>
             </Button>
-            <Button asChild variant="ghost" className={navItemClass(activeTab === 'account')}>
-              <Link href="/settings?tab=account">
-                <User className="h-4 w-4" />
+            <Button asChild variant="ghost" className={navItemClass(initialTab === 'account')}>
+              <Link
+                href="/settings?tab=account"
+                aria-current={initialTab === 'account' ? 'page' : undefined}
+              >
+                <User className="h-4 w-4" aria-hidden="true" />
                 Account
               </Link>
             </Button>
-            <Button asChild variant="ghost" className={navItemClass(activeTab === 'profile')}>
-              <Link href="/settings?tab=profile">
-                <Users className="h-4 w-4" />
+            <Button asChild variant="ghost" className={navItemClass(initialTab === 'profile')}>
+              <Link
+                href="/settings?tab=profile"
+                aria-current={initialTab === 'profile' ? 'page' : undefined}
+              >
+                <Users className="h-4 w-4" aria-hidden="true" />
                 Profile
               </Link>
             </Button>
             <Button asChild variant="ghost" className={navItemClass(false)}>
               <Link href="/rewards?from=settings">
-                <Award className="h-4 w-4" />
+                <Award className="h-4 w-4" aria-hidden="true" />
                 Rewards
               </Link>
             </Button>
           </div>
-        </aside>
+        </nav>
 
         <section className="min-w-0">
-          {activeTab === 'billing' ? (
+          {initialTab === 'billing' ? (
             <BillingSettingsPanel
               initialSubscription={subscription}
               justPaid={justPaid}
               featureContext={featureContext}
             />
-          ) : activeTab === 'profile' ? (
+          ) : initialTab === 'profile' ? (
             <div className="space-y-6">
               <ProfileSettingsPanel initialProfile={socialProfile} />
               <ReviewSection socialProfile={socialProfile} />

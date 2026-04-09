@@ -44,6 +44,7 @@ export function useSubscription({ userId, initialData }: UseSubscriptionOptions 
     taxAmount: null,
     currency: null,
     createdAt: null,
+    updatedAt: null,
   };
 
   const subscription = userId ? query.data : starterSubscription;

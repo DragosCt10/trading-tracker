@@ -62,7 +62,7 @@ export async function mapSupabaseNoteToNote(
   strategies?: Array<{ id: string; name: string; slug: string }>,
   trades?: Array<{ id: string; mode: TradingMode; trade_date: string; market: string; direction: string; trade_outcome: string; strategy_name?: string }>,
   linkedTradesFull?: Trade[]
-): Note {
+): Promise<Note> {
   const row = note as any;
   return {
     id: note.id,
@@ -222,7 +222,7 @@ export async function getNotes(
           ? note.trade_refs.map((r: TradeRef) => tradesByRef.get(refKey(r)))
           : [];
       const linkedTradesFull = rawTrades.length > 0
-        ? (rawTrades.filter((t): t is TradeSummary => t != null) as unknown as Trade[])
+        ? (rawTrades.filter((t: TradeSummary | undefined): t is TradeSummary => t != null) as unknown as Trade[])
         : undefined;
 
       return await mapSupabaseNoteToNote(note, strategy, strategies, undefined, linkedTradesFull);

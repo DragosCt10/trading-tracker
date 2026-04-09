@@ -106,7 +106,7 @@ export function LandingNavbar({ isLoggedIn: isLoggedInProp }: LandingNavbarProps
       }
       setMobileMenuOpen(false);
     },
-    [],
+    [setMobileMenuOpen],
   );
 
 

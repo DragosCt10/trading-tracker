@@ -22,6 +22,7 @@ const STARTER_SUBSCRIPTION: ResolvedSubscription = {
   taxAmount: null,
   currency: null,
   createdAt: null,
+  updatedAt: null,
 };
 
 function getAppUrl(): string {
@@ -97,6 +98,7 @@ function resolveFromRow(row: SubscriptionRow): ResolvedSubscription {
     taxAmount: row.tax_amount ?? null,
     currency: row.currency ?? null,
     createdAt: isActive ? (row.created_at ?? null) : null,
+    updatedAt: isActive ? (row.updated_at ?? null) : null,
   };
 }
 
