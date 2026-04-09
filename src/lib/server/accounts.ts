@@ -9,8 +9,8 @@ import { canAddAccount } from '@/lib/server/subscription';
 import type { Database } from '@/types/supabase';
 import type { SavedNewsItem } from '@/types/account-settings';
 import {
-  LAST_ACCOUNT_MODE_COOKIE,
-  LAST_ACCOUNT_INDEX_COOKIE,
+  lastAccountModeCookieName,
+  lastAccountIndexCookieName,
 } from '@/constants/lastAccountCookie';
 
 export type AccountRow = Database['public']['Tables']['account_settings']['Row'];
@@ -269,13 +269,22 @@ export async function ensureDefaultAccountForUserId(userId: string): Promise<voi
 
 /**
  * Gets all accounts for a user across all modes (for the ActionBar grouped dropdown).
+ *
+ * Explicit column list instead of SELECT * — declare what the consumers read
+ * so the query stays stable as the schema grows. The dashboard-publishing
+ * columns (`dashboard_hash`, `is_dashboard_public`) are omitted because
+ * ActionBar and its downstream modals never touch them; they are fetched
+ * separately by the dashboard-sharing flow.
  */
+const ACCOUNT_SELECTOR_COLUMNS =
+  'id, user_id, name, mode, currency, account_balance, is_active, description, created_at, updated_at';
+
 export async function getAllAccountsForUser(userId: string): Promise<AccountRow[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('account_settings')
-    .select('*')
+    .select(ACCOUNT_SELECTOR_COLUMNS)
     .eq('user_id', userId)
     .order('mode', { ascending: true })
     .order('created_at', { ascending: true });
@@ -294,8 +303,9 @@ const VALID_MODES: AccountMode[] = ['live', 'demo', 'backtesting'];
 
 /**
  * Resolves the active account and mode for server-side data prefetching.
- * Reads `tt_last_mode` + `tt_last_index` cookies (same logic as AppLayout) so
- * Data fetchers respect the user's selected mode instead of hardcoding 'live'.
+ * Reads the userId-scoped `tt_last_mode_<userId>` + `tt_last_index_<userId>`
+ * cookies so a different user signing in on the same device does not inherit
+ * the previous user's selection (multi-tenancy fix 2026-04-09).
  *
  * Uses getCachedAllAccountsForUser — no extra DB call when layout already fetched it.
  */
@@ -305,8 +315,8 @@ export async function resolveActiveAccountFromCookies(
   const allAccounts = await getCachedAllAccountsForUser(userId);
 
   const cookieStore = await cookies();
-  const lastMode = cookieStore.get(LAST_ACCOUNT_MODE_COOKIE)?.value;
-  const lastIndexStr = cookieStore.get(LAST_ACCOUNT_INDEX_COOKIE)?.value;
+  const lastMode = cookieStore.get(lastAccountModeCookieName(userId))?.value;
+  const lastIndexStr = cookieStore.get(lastAccountIndexCookieName(userId))?.value;
 
   if (lastMode && VALID_MODES.includes(lastMode as AccountMode)) {
     const accountsForMode = allAccounts.filter((a) => a.mode === lastMode);
@@ -354,8 +364,21 @@ export async function updateAccountSavedNews(
 }
 
 /**
- * Sets the active account for a mode (server-side only). Replaces client-side
- * account_settings updates so security does not depend on RLS alone.
+ * Sets the active account for a mode.
+ *
+ * Backed by the `account_settings_exclusive_active_trg` BEFORE UPDATE trigger
+ * and the `account_active_per_user_mode` partial unique index added in the
+ * 20260409160000 migration. The trigger clears sibling `is_active` rows in the
+ * same (user_id, mode) slice; the partial unique index prevents concurrent
+ * double-active rows.
+ *
+ * Critical: the `.eq('user_id', user.id)` clause is part of the UPDATE's WHERE,
+ * gating ANY write on the caller owning the target row. This fixes the prior
+ * authorization-ordering bug where a 2-step clear-then-set could wipe the
+ * caller's active flag even when the set step failed on a forged accountId.
+ *
+ * Passing `accountId = null` explicitly clears all is_active flags for the
+ * caller in this mode (used when deleting the currently active account).
  */
 export async function setActiveAccount(
   mode: AccountMode,
@@ -365,35 +388,36 @@ export async function setActiveAccount(
   if (!user) return { data: null, error: { message: 'Unauthorized' } };
   const supabase = await createClient();
 
-  // Clear active flag for all user's accounts in this mode
-  const { error: clearError } = await supabase
-    .from('account_settings')
-    .update({ is_active: false } as never)
-    .eq('user_id', user.id)
-    .eq('mode', mode);
-
-  if (clearError) {
-    console.error('Error clearing active account:', clearError);
-    return { data: null, error: { message: clearError.message ?? 'Failed to set active account' } };
-  }
-
   if (!accountId) {
+    // Explicit deactivation path — narrowed to caller's own rows.
+    const { error } = await supabase
+      .from('account_settings')
+      .update({ is_active: false } as never)
+      .eq('user_id', user.id)
+      .eq('mode', mode);
+    if (error) {
+      console.error('Error clearing active account:', error);
+      return { data: null, error: { message: error.message ?? 'Failed to clear active account' } };
+    }
     return { data: null, error: null };
   }
 
-  // Set the selected account as active (only if it belongs to this user)
-  const { data: updated, error: setError } = await supabase
+  // Single atomic UPDATE. The trigger clears siblings; the WHERE clause gates
+  // the write on the caller's user_id so a forged accountId simply matches 0
+  // rows and leaves the state untouched.
+  const { data, error } = await supabase
     .from('account_settings')
     .update({ is_active: true } as never)
     .eq('id', accountId)
     .eq('user_id', user.id)
+    .eq('mode', mode)
     .select('*')
     .single();
 
-  if (setError) {
-    console.error('Error setting active account:', setError);
-    return { data: null, error: { message: setError.message ?? 'Failed to set active account' } };
+  if (error) {
+    console.error('Error setting active account:', error);
+    return { data: null, error: { message: error.message ?? 'Failed to set active account' } };
   }
 
-  return { data: updated as AccountRow, error: null };
+  return { data: data as AccountRow, error: null };
 }

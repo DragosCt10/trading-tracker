@@ -4,13 +4,12 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useQueryClient } from '@tanstack/react-query';
-import { createAccount, setActiveAccount } from '@/lib/server/accounts';
+import { createAccount, setActiveAccount, type AccountRow } from '@/lib/server/accounts';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useQuery } from '@tanstack/react-query';
-import { getAllAccountsForUser } from '@/lib/server/accounts';
+import { useAllAccounts } from '@/hooks/useAllAccounts';
+import { setSelectionFor } from '@/hooks/useActionBarSelection';
 import { queryKeys } from '@/lib/queryKeys';
-import { STATIC_DATA } from '@/constants/queryConfig';
 import { Loader2, UserPlus } from 'lucide-react';
 
 // shadcn/ui
@@ -62,12 +61,11 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
   const { data: userId } = useUserDetails();
   const { isPro, subscription } = useSubscription({ userId: userId?.user?.id });
 
-  const { data: allAccounts } = useQuery({
-    queryKey: queryKeys.accounts(userId?.user?.id, 'all' as never),
-    queryFn: () => getAllAccountsForUser(userId!.user!.id),
-    enabled: !!userId?.user?.id && !isPro,
-    ...STATIC_DATA,
-  });
+  // Shares the same cache entry as ActionBar / AccountModePopover — reads the
+  // canonical `['accounts:all', userId]` key instead of the old accounts:list
+  // key (pre-existing cache-miss bug fixed as part of the useAllAccounts
+  // migration).
+  const { data: allAccounts } = useAllAccounts(userId?.user?.id);
 
   const maxAccounts = subscription?.definition.limits.maxAccounts ?? null;
   const isAtAccountLimit = !isPro && maxAccounts !== null && (allAccounts?.length ?? 0) >= maxAccounts;
@@ -152,10 +150,12 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
 
       await setActiveAccount(createdAccount.mode, createdAccount.id);
 
-      // Sync ActionBar's in-memory selection to the newly created account
-      queryClient.setQueryData(['actionBar:selection'], {
+      // Sync ActionBar's in-memory selection to the newly created account.
+      // `data` is the full AccountRow from the server; createdAccount is just a
+      // narrow local view so we pass `data` to the store to preserve the shape.
+      setSelectionFor(userId?.user?.id, {
         mode: createdAccount.mode,
-        activeAccount: createdAccount,
+        activeAccount: data as AccountRow,
       });
 
       onCreated?.(createdAccount);

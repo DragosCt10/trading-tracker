@@ -38,7 +38,7 @@ export default function SocialNavActions({ userId, initialUnreadCount }: SocialN
           }
         }
         keysToRemove.forEach((key) => localStorage.removeItem(key));
-        clearLastAccountPreference();
+        clearLastAccountPreference(userId ?? undefined);
       }
       const supabase = createClient();
       await supabase.auth.signOut();
@@ -47,7 +47,7 @@ export default function SocialNavActions({ userId, initialUnreadCount }: SocialN
     } catch {
       setIsSigningOut(false);
     }
-  }, [queryClient, router]);
+  }, [queryClient, router, userId]);
 
   const iconBtnClass =
     'cursor-pointer h-8 w-8 rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 p-0 flex items-center justify-center transition-colors duration-200 group';

@@ -80,7 +80,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
         keysToRemove.forEach((key) => localStorage.removeItem(key));
 
         // Clear last-account cookies so a new login doesn't inherit the previous selection.
-        clearLastAccountPreference();
+        clearLastAccountPreference(userId);
       }
 
       const supabase = createClient();
@@ -90,7 +90,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
       console.error('Error signing out:', error);
       setIsSigningOut(false);
     }
-  }, [queryClient, router]);
+  }, [queryClient, router, userId]);
 
   const isActive = useCallback((path: string) => {
     if (path === '/stats') return pathname.startsWith('/stats');

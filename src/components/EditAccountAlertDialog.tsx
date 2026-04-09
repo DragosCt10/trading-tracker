@@ -4,9 +4,11 @@ import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { deleteAccount, updateAccount } from '@/lib/server/accounts';
+import { deleteAccount, updateAccount, type AccountRow } from '@/lib/server/accounts';
 import { setLastAccountPreference } from '@/utils/lastAccountCookie';
-import { TRADE_QUERY_PREFIXES } from '@/lib/queryKeys';
+import { queryKeys, TRADE_QUERY_PREFIXES } from '@/lib/queryKeys';
+import { patchAllAccounts } from '@/hooks/useAllAccounts';
+import { getSelectionFor, setSelectionFor } from '@/hooks/useActionBarSelection';
 import { getTradeCountForAccount } from '@/lib/server/trades';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { Loader2, Pencil } from 'lucide-react';
@@ -187,21 +189,21 @@ export function EditAccountAlertDialog({
         },
       });
       // Update actionBar selection if the edited account is the active one (name, balance, mode, etc. show immediately)
-      const selectionKey = ['actionBar:selection'] as const;
-      const currentSelection = queryClient.getQueryData(selectionKey) as { mode: string; activeAccount: { id: string } | null } | undefined;
-      if (currentSelection?.activeAccount?.id === account.id) {
-        const updatedMode = updated.mode ?? currentSelection.mode;
-        queryClient.setQueryData(selectionKey, { ...currentSelection, mode: updatedMode, activeAccount: updated });
+      const uid = userId?.user?.id;
+      const currentSelection = getSelectionFor(uid);
+      if (currentSelection.activeAccount?.id === account.id) {
+        const updatedMode = (updated.mode ?? currentSelection.mode) as typeof currentSelection.mode;
+        // `data` is the full AccountRow from the server; updated is a narrow local view
+        setSelectionFor(uid, { ...currentSelection, mode: updatedMode, activeAccount: data as AccountRow });
 
         // When mode changed, update cookie and invalidate trade queries so they refetch for the new mode
         if (updatedMode !== currentSelection.mode) {
           // Update cookie so next page load/login picks the correct mode
-          const uid = userId?.user?.id;
           if (uid) {
-            const allAccounts = queryClient.getQueryData<{ id: string; mode: string }[]>(['accounts:all', uid]) ?? [];
+            const allAccounts = queryClient.getQueryData<{ id: string; mode: string }[]>(queryKeys.accountsAll(uid)) ?? [];
             const accountsForNewMode = allAccounts.filter((a) => a.mode === updatedMode);
             const idx = accountsForNewMode.findIndex((a) => a.id === account.id);
-            setLastAccountPreference(updatedMode, idx >= 0 ? idx : 0);
+            setLastAccountPreference(uid, updatedMode, idx >= 0 ? idx : 0);
           }
 
           queryClient.invalidateQueries({
@@ -232,11 +234,21 @@ export function EditAccountAlertDialog({
         return;
       }
 
-      // Clear ActionBar selection if the deleted account was the active one (so dashboard/AccountOverviewCard stops showing it)
-      const selectionKey = ['actionBar:selection'] as const;
-      const currentSelection = queryClient.getQueryData(selectionKey) as { mode: string; activeAccount: { id: string } | null } | undefined;
-      if (currentSelection?.activeAccount?.id === account.id) {
-        queryClient.setQueryData(selectionKey, { ...currentSelection, activeAccount: null });
+      // Remove the deleted row from the shared accounts:all cache SYNCHRONOUSLY
+      // BEFORE clearing the selection. Otherwise ActionBar's auto-apply effect
+      // fires with stale data (still containing the deleted row), picks the
+      // deleted account as the fallback, applies it optimistically, and leaves
+      // the UI showing the deleted account name until the async refetch
+      // completes. Patching the cache first guarantees the auto-apply effect
+      // sees the fresh list on the same render cycle as the selection clear.
+      const deleteUid = userId?.user?.id;
+      patchAllAccounts(queryClient, deleteUid, (rows) => rows.filter((a) => a.id !== account.id));
+
+      // Clear ActionBar selection if the deleted account was the active one
+      // so the auto-apply effect runs and picks the next available account.
+      const currentSelection = getSelectionFor(deleteUid);
+      if (currentSelection.activeAccount?.id === account.id) {
+        setSelectionFor(deleteUid, { ...currentSelection, activeAccount: null });
       }
 
       onDeleted?.();

@@ -2,13 +2,14 @@
 
 import * as React from 'react';
 import clsx from 'clsx';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { setActiveAccount, getAllAccountsForUser } from '@/lib/server/accounts';
+import { useQueryClient } from '@tanstack/react-query';
+import { setActiveAccount } from '@/lib/server/accounts';
 import type { AccountRow } from '@/lib/server/accounts';
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
-import { STATIC_DATA } from '@/constants/queryConfig';
+import { useAllAccounts, patchAllAccounts, invalidateAllAccounts } from '@/hooks/useAllAccounts';
+import { useProgressDialog } from '@/hooks/useProgressDialog';
 
 import { usePathname, useRouter } from 'next/navigation';
 import { AccountModePopover } from '@/components/shared/AccountModePopover';
@@ -18,8 +19,8 @@ import { CreateAccountAlertDialog } from '../CreateAccountModal';
 import { setLastAccountPreference } from '@/utils/lastAccountCookie';
 import { StrategySelectPopover } from '@/components/shared/StrategySelectPopover';
 import { CreateStrategyModal } from '@/components/CreateStrategyModal';
+import { EmptyAccountsCTA } from '@/components/shared/EmptyAccountsCTA';
 import { useStrategies } from '@/hooks/useStrategies';
-import { useSubscription } from '@/hooks/useSubscription';
 import { queryKeys, TRADE_QUERY_PREFIXES } from '@/lib/queryKeys';
 import type { Strategy } from '@/types/strategy';
 import { Plus } from 'lucide-react';
@@ -50,29 +51,18 @@ interface ActionBarProps {
 export default function ActionBar({ initialData, showAddButton = true }: ActionBarProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const hydratedRef = useRef(false);
 
-  // Hydrate TanStack cache from server-fetched initial data (before paint)
-  useLayoutEffect(() => {
-    if (!initialData || hydratedRef.current) return;
-    const { userDetails, mode, activeAccount, accountsForMode, allAccounts: initialAll } = initialData;
-    const uid = userDetails?.user?.id;
-    if (uid) {
-      queryClient.setQueryData(['userDetails'], userDetails);
-      queryClient.setQueryData(['actionBar:selection'], { mode, activeAccount });
-      queryClient.setQueryData(['accounts:list', uid, mode], accountsForMode);
-      if (initialAll != null) {
-        queryClient.setQueryData(['accounts:all', uid], initialAll);
-      }
-      hydratedRef.current = true;
-    }
-  }, [initialData, queryClient]);
+  // Note: no hydration useLayoutEffect — AppLayout.tsx already seeds every
+  // cache key we depend on (userDetails, accounts:list, accounts:all,
+  // actionBar:selection) with identical `getQueryData === undefined` guards.
+  // See the ARCH-1 decision in ~/.claude/plans/compressed-twirling-melody.md.
 
   const { data: userDetails } = useUserDetails();
   const { selection, setSelection } = useActionBarSelection();
   const [applying, setApplying] = React.useState(false);
   const [isCreateStrategyOpen, setIsCreateStrategyOpen] = React.useState(false);
   const applyingRef = useRef(false);
+  const { error: switchError, setError: setSwitchError } = useProgressDialog(3000);
 
   const userId = userDetails?.user?.id;
 
@@ -81,20 +71,15 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
   const {
     data: allAccounts = [],
     isFetching: accountsLoading,
-    refetch: refetchAccounts,
-  } = useQuery<AccountRow[]>({
-    queryKey: ['accounts:all', userId],
-    enabled: !!userId,
-    initialData: initialData?.allAccounts,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    ...STATIC_DATA,
-    queryFn: async () => {
-      if (!userId) return [];
-      return getAllAccountsForUser(userId);
-    },
-  });
+  } = useAllAccounts(userId, { initialData: initialData?.allAccounts });
+
+  // Ref so applyWith can read the latest allAccounts without putting it in the
+  // dep array. Without this, applyWith is recreated on every list change and
+  // the auto-apply effect churns its dep array needlessly.
+  const allAccountsRef = useRef(allAccounts);
+  useEffect(() => {
+    allAccountsRef.current = allAccounts;
+  }, [allAccounts]);
 
   // Group accounts by mode for the dropdown sections
   const accountsByMode = React.useMemo(() => {
@@ -116,47 +101,83 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
       : null;
 
   // ---------- Apply helper (persist active account and invalidate trade queries)
+  //
+  // Accepts a pre-resolved AccountRow so the callback doesn't depend on the
+  // mutable `allAccounts` query result. Behaviour:
+  //   1. PERF-1 short-circuit: if the target is already the active account
+  //      in the DB AND the store, do nothing (avoids wasted writes on first
+  //      mount when the server-side hydration already matches).
+  //   2. CWV1 optimistic: update the selection store IMMEDIATELY so the UI
+  //      lights up without waiting on the server round trip.
+  //   3. Call setActiveAccount. On error, roll back the store and show an
+  //      inline banner via useProgressDialog (auto-dismisses after 3s).
+  //   4. On success, patch the shared `accounts:all` cache in place using
+  //      the row the server returned — no refetchAccounts, no extra RTT.
+  //   5. Invalidate trade query caches so dashboards refetch under the new
+  //      account context.
   const applyWith = useCallback(
-    async (mode: TradingMode, accountId: string | null) => {
-      if (!userId) return;
-      if (applyingRef.current) return;
+    async (mode: TradingMode, resolvedAccount: AccountRow) => {
+      if (!userId || applyingRef.current) return;
+
+      // PERF-1 short-circuit: DB + store both already match
+      if (
+        resolvedAccount.is_active &&
+        resolvedAccount.mode === mode &&
+        selection.mode === mode &&
+        selection.activeAccount?.id === resolvedAccount.id
+      ) {
+        return;
+      }
+
       applyingRef.current = true;
       setApplying(true);
+      const previous = selection;
+
+      // CWV1 optimistic update — UI reflects the target instantly
+      setSelection({ mode, activeAccount: resolvedAccount });
+
+      // Persist the cookie preference so refresh restores the same selection.
+      // Phase 7.10 rewrites this to be userId-scoped.
+      const listForMode = allAccountsRef.current.filter((a) => a.mode === mode);
+      const index = listForMode.findIndex((a) => a.id === resolvedAccount.id);
+      if (index >= 0) setLastAccountPreference(userId, mode, index);
+
       try {
-        const { data: activeAccountObj, error } = await setActiveAccount(mode, accountId);
-        if (error) {
-          console.error('setActiveAccount failed:', error.message);
+        const { data, error } = await setActiveAccount(mode, resolvedAccount.id);
+        if (error || !data) {
+          // CQ-2: rollback + user-visible error
+          setSelection(previous);
+          setSwitchError('Could not switch account. Try again.');
+          console.error('setActiveAccount failed:', error?.message);
           return;
         }
-        const resolved =
-          activeAccountObj ??
-          (accountId ? allAccounts.find((a) => a.id === accountId) ?? null : null);
-        setSelection({ mode, activeAccount: resolved });
 
-        // Persist mode + index (no ids) so refresh restores same account
-        if (resolved) {
-          const listForMode = allAccounts.filter((a) => a.mode === mode);
-          const index = listForMode.findIndex((a) => a.id === resolved.id);
-          if (index >= 0) setLastAccountPreference(mode, index);
-        }
+        // Patch the shared accounts:all cache in place so every consumer
+        // (ActionBar, AccountModePopover, modals) sees the new is_active
+        // flag without a refetch.
+        patchAllAccounts(queryClient, userId, (rows) =>
+          rows.map((a) => ({
+            ...a,
+            is_active: a.id === data.id && a.mode === data.mode,
+          }))
+        );
 
         queryClient.invalidateQueries({
           predicate: (q) => TRADE_QUERY_PREFIXES.has((q.queryKey?.[0] as string) ?? ''),
         });
-        refetchAccounts();
       } finally {
         applyingRef.current = false;
         setApplying(false);
       }
     },
-    [userId, allAccounts, queryClient, refetchAccounts, setSelection]
+    [userId, queryClient, selection, setSelection, setSwitchError]
   );
 
   const handleAccountModeChange = useCallback(
     (sel: { mode: TradingMode; accountId: string | null; account?: AccountRow | null }) => {
-      if (!sel.accountId) return;
+      if (!sel.accountId || !sel.account) return;
       if (sel.accountId === activeAccount?.id && sel.mode === activeMode) return;
-      applyWith(sel.mode, sel.accountId);
+      applyWith(sel.mode, sel.account);
     },
     [activeAccount?.id, activeMode, applyWith]
   );
@@ -184,7 +205,7 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
 
     if (!pick) return;
 
-    applyWith(pickedMode, pick.id);
+    applyWith(pickedMode, pick);
   }, [userId, accountsLoading, accountsByMode, applyWith, selection.activeAccount]);
 
   // Detect strategy page synchronously (no flash — no useEffect needed)
@@ -201,16 +222,36 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
   const strategyOptions = strategies.map((s) => ({ id: s.id, name: s.name, slug: s.slug }));
   const accountId = activeAccount?.id ?? null;
 
-  const isInitializing = !activeAccount;
+  // True when we've finished loading and the user genuinely has zero accounts
+  // across every mode. Without this branch the auto-apply effect bails and the
+  // skeleton pulses forever (T7).
+  const hasZeroAccounts =
+    !!userId && !accountsLoading && allAccounts.length === 0;
+  const isInitializing = !activeAccount && !hasZeroAccounts;
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 min-w-0">
-      {/* Mode badge — left of account/strategy selector */}
-      {isInitializing ? (
-        <div className="h-8 w-16 sm:w-20 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse shrink-0" />
-      ) : (
+    <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 min-w-0 relative">
+      {/* Switch-error banner — auto-dismisses after 3s via useProgressDialog */}
+      {switchError && (
         <div
-          title={`Current mode: ${activeMode}`}
+          role="alert"
+          aria-live="polite"
+          className="absolute -top-9 left-1/2 -translate-x-1/2 z-50 whitespace-nowrap rounded-lg border border-rose-300/60 bg-rose-50/90 px-3 py-1.5 text-xs font-medium text-rose-700 shadow-md dark:border-rose-700/40 dark:bg-rose-950/80 dark:text-rose-200"
+        >
+          {switchError}
+        </div>
+      )}
+
+      {/* Empty-accounts state — takes precedence over the mode badge so users
+          with zero accounts see a prompt instead of an infinite skeleton (T7). */}
+      {hasZeroAccounts ? (
+        <EmptyAccountsCTA />
+      ) : isInitializing ? (
+        /* Mode badge skeleton — still loading */
+        <div aria-hidden="true" className="h-8 w-16 sm:w-20 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse shrink-0" />
+      ) : (
+        /* Mode badge — normal state */
+        <div
           className={clsx(
             'flex items-center justify-center h-8 rounded-xl border px-2 sm:px-4 pointer-events-none shrink-0',
             'text-xs sm:text-sm font-medium',
@@ -221,12 +262,12 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
         </div>
       )}
 
-      {isStrategyPage ? (
+      {hasZeroAccounts ? null : isStrategyPage ? (
         /* Strategy page: show strategy switcher + add strategy button */
         <>
           {strategiesLoading || strategyOptions.length === 0 ? (
             /* Skeleton while strategies are loading */
-            <div className="h-8 w-36 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
+            <div aria-hidden="true" className="h-8 w-36 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
           ) : (
             <StrategySelectPopover
               strategies={strategyOptions}
@@ -237,7 +278,7 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
           {showAddButton && (
             <>
               {strategiesLoading || strategyOptions.length === 0 ? (
-                <div className="h-8 w-8 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                <div aria-hidden="true" className="h-8 w-8 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
               ) : (
                 <button
                   type="button"
@@ -289,7 +330,7 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
           />
 
           {isInitializing ? (
-            <div className="h-8 w-16 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse shrink-0" />
+            <div aria-hidden="true" className="h-8 w-16 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse shrink-0" />
           ) : (
             <EditAccountAlertDialog
               account={
@@ -305,14 +346,14 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
                   : null
               }
               isDeletable={allAccounts.length > 1}
-              onUpdated={async () => { refetchAccounts(); }}
-              onDeleted={async () => { refetchAccounts(); }}
+              onUpdated={async () => { invalidateAllAccounts(queryClient, userId); }}
+              onDeleted={async () => { invalidateAllAccounts(queryClient, userId); }}
             />
           )}
 
           {showAddButton && (
             <CreateAccountAlertDialog
-              onCreated={async () => { refetchAccounts(); }}
+              onCreated={async () => { invalidateAllAccounts(queryClient, userId); }}
             />
           )}
         </>

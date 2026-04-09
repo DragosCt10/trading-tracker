@@ -6,7 +6,7 @@ import { resolveSubscription } from '@/lib/server/subscription';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { ReactNode } from 'react';
-import { LAST_ACCOUNT_MODE_COOKIE, LAST_ACCOUNT_INDEX_COOKIE } from '@/constants/lastAccountCookie';
+import { lastAccountModeCookieName, lastAccountIndexCookieName } from '@/constants/lastAccountCookie';
 
 const VALID_MODES: AccountMode[] = ['live', 'demo', 'backtesting'];
 
@@ -36,10 +36,12 @@ export default async function AppLayoutComponent({ children }: AppLayoutProps) {
   let initialActiveAccount: AccountRow | null = null;
   let initialActiveAccountMode: AccountMode = 'live';
 
-  // Prefer last selection from cookie (mode + index only, no ids)
+  // Prefer last selection from cookie (mode + index only, no ids).
+  // Cookies are userId-scoped so a different user signing in on the same
+  // device does NOT inherit the previous user's selection.
   const cookieStore = await cookies();
-  const lastMode = cookieStore.get(LAST_ACCOUNT_MODE_COOKIE)?.value;
-  const lastIndexStr = cookieStore.get(LAST_ACCOUNT_INDEX_COOKIE)?.value;
+  const lastMode = cookieStore.get(lastAccountModeCookieName(userId))?.value;
+  const lastIndexStr = cookieStore.get(lastAccountIndexCookieName(userId))?.value;
   if (lastMode && VALID_MODES.includes(lastMode as AccountMode)) {
     const accountsForMode = initialAllAccounts.filter((a) => a.mode === lastMode);
     const idx = lastIndexStr != null ? parseInt(lastIndexStr, 10) : 0;

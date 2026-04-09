@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useEffect } from 'react';
 import { USER_DATA } from '@/constants/queryConfig';
 import { queryKeys } from '@/lib/queryKeys';
+import { clearSelectionFor } from '@/hooks/useActionBarSelection';
 
 /**
  * Single auth call (getUser only) to match server and reduce Supabase auth requests (audit 1.5).
@@ -24,7 +25,11 @@ export function useUserDetails() {
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
-        // Clear user data on sign out
+        // Clear user data + ActionBar selection on sign out (defense in depth
+        // against multi-tenancy leak — the store already keys by userId but
+        // wiping the slot prevents stale state if the same user signs back in).
+        const prevUserId = (queryClient.getQueryData(queryKeys.userDetails()) as { user?: { id?: string } } | null)?.user?.id;
+        if (prevUserId) clearSelectionFor(prevUserId);
         queryClient.setQueryData(queryKeys.userDetails(), null);
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         // Update user data on sign in or token refresh

@@ -20,6 +20,13 @@ export const queryKeys = {
   accounts: (userId?: string, mode?: TradingMode) =>
     ['accounts:list', userId, mode] as const,
 
+  /**
+   * All accounts for a user across every mode (powers the ActionBar grouped dropdown).
+   * Owner: `useAllAccounts` hook. Consumers: ActionBar, AccountModePopover,
+   * EditAccountAlertDialog, CreateAccountModal, AppLayout hydration.
+   */
+  accountsAll: (userId?: string) => ['accounts:all', userId] as const,
+
   strategies: (userId?: string, accountId?: string) =>
     ['strategies:list', userId, accountId] as const,
 

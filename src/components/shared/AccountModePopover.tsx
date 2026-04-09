@@ -2,12 +2,10 @@
 
 import * as React from 'react';
 import clsx from 'clsx';
-import { useQuery } from '@tanstack/react-query';
-import { getAllAccountsForUser } from '@/lib/server/accounts';
 import type { AccountRow } from '@/lib/server/accounts';
 import { ChevronDown, Check, Loader2 } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { STATIC_DATA } from '@/constants/queryConfig';
+import { useAllAccounts } from '@/hooks/useAllAccounts';
 import type { TradingMode } from '@/types/trade';
 
 /** @deprecated Use `TradingMode` from `@/types/trade` directly. */
@@ -56,12 +54,7 @@ export function AccountModePopover({
 }: AccountModePopoverProps) {
   const [open, setOpen] = React.useState(false);
 
-  const { data: allAccounts = [] } = useQuery<AccountRow[]>({
-    queryKey: ['accounts:all', userId],
-    enabled: !!userId,
-    ...STATIC_DATA,
-    queryFn: () => (userId ? getAllAccountsForUser(userId) : []),
-  });
+  const { data: allAccounts = [] } = useAllAccounts(userId);
 
   const accountsByMode = React.useMemo(() => {
     const map: Record<TradingMode, AccountRow[]> = { live: [], demo: [], backtesting: [] };

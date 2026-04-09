@@ -6,6 +6,7 @@ import type { AccountRow, AccountMode } from '@/lib/server/accounts';
 import type { ResolvedSubscription } from '@/types/subscription';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
+import { initSelectionFor } from '@/hooks/useActionBarSelection';
 import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode } from 'react';
 import { AlertTriangle, Loader2 } from 'lucide-react';
@@ -73,14 +74,14 @@ export default function AppLayout({
     initialAllAccounts?.filter((a) => a.mode === initialActiveAccountMode) ?? [];
 
   // Hydrate caches so Navbar/ActionBar and useUserDetails/useAccounts/useActionBarSelection get data on first paint (no client fetch)
-  if (initialUserDetails != null && queryClient.getQueryData(['userDetails']) === undefined) {
-    queryClient.setQueryData(['userDetails'], initialUserDetails);
+  if (initialUserDetails != null && queryClient.getQueryData(queryKeys.userDetails()) === undefined) {
+    queryClient.setQueryData(queryKeys.userDetails(), initialUserDetails);
   }
-  if (userId != null && queryClient.getQueryData(['accounts:list', userId, initialActiveAccountMode]) === undefined) {
-    queryClient.setQueryData(['accounts:list', userId, initialActiveAccountMode], accountsForInitialMode);
+  if (userId != null && queryClient.getQueryData(queryKeys.accounts(userId, initialActiveAccountMode)) === undefined) {
+    queryClient.setQueryData(queryKeys.accounts(userId, initialActiveAccountMode), accountsForInitialMode);
   }
-  if (userId != null && initialAllAccounts != null && queryClient.getQueryData(['accounts:all', userId]) === undefined) {
-    queryClient.setQueryData(['accounts:all', userId], initialAllAccounts);
+  if (userId != null && initialAllAccounts != null && queryClient.getQueryData(queryKeys.accountsAll(userId)) === undefined) {
+    queryClient.setQueryData(queryKeys.accountsAll(userId), initialAllAccounts);
   }
   // Seed subscription cache so useSubscription() has data on first render (no loading flash).
   if (userId != null && initialSubscription != null && queryClient.getQueryData(queryKeys.subscription(userId)) === undefined) {
@@ -89,8 +90,12 @@ export default function AppLayout({
 
   // Always hydrate selection from server on first paint so client matches server (avoids hydration error
   // when persisted cache had a different mode, e.g. user was on demo then refreshed and server picked live).
-  if (userId != null && initialActiveAccount !== undefined && initialAllAccounts != null && queryClient.getQueryData(['actionBar:selection']) === undefined) {
-    queryClient.setQueryData(['actionBar:selection'], { mode: initialActiveAccountMode, activeAccount: initialActiveAccount ?? null });
+  // `initSelectionFor` is a no-op when the user already has a stored selection, so it never clobbers in-session changes.
+  if (userId != null && initialActiveAccount !== undefined && initialAllAccounts != null) {
+    initSelectionFor(userId, {
+      mode: initialActiveAccountMode,
+      activeAccount: initialActiveAccount ?? null,
+    });
   }
 
   const isPastDue = (subscription ?? initialSubscription)?.status === 'past_due';
