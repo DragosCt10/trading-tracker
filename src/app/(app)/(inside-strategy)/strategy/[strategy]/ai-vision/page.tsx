@@ -1,6 +1,8 @@
 import { getInsideStrategyPageContext } from '@/lib/server/insideStrategyPageContext';
 import AiVisionData from './AiVisionData';
 
+// Force dynamic rendering — getInsideStrategyPageContext reads cookies
+// (Supabase session + active-account) which require per-request execution.
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
