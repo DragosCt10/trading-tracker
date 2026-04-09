@@ -3,7 +3,6 @@ import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getPaymentProvider } from '@/lib/billing';
 import { ensureDefaultAccountForUserId } from '@/lib/server/accounts';
 import type { WebhookAction } from './provider.interface';
-import type { FeatureFlags } from '@/types/featureFlags';
 
 function getAppUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
@@ -130,51 +129,46 @@ export function isAlreadyProcessed(webhookId: string): boolean {
 /**
  * After a discounted subscription payment succeeds, switch the subscription back
  * to the normal variant and mark the discount as used.
+ *
+ * Uses the normalized user_discounts table (SC3). Every write is a single atomic
+ * UPDATE — no read-modify-write cycles, no optimistic locking retries.
  */
 async function revertDiscountedVariantIfNeeded(userId: string, providerSubscriptionId: string): Promise<void> {
-  const { getFeatureFlags, updateFeatureFlags } = await import('@/lib/server/settings');
-  const flags = await getFeatureFlags(userId);
-  const pending = flags.pending_variant_revert;
+  const {
+    getPendingRevertBySubscription,
+    incrementRevertAttempts,
+    markDiscountUsed,
+  } = await import('@/lib/server/discounts');
 
-  if (!pending || pending.subscriptionId !== providerSubscriptionId) return;
+  const pending = await getPendingRevertBySubscription(userId, providerSubscriptionId);
+  if (!pending) return;
+  if (!pending.revertNormalVariantId) return; // Defensive: shouldn't happen
 
-  const attempts = pending.revertAttempts ?? 0;
-  if (attempts >= 3) {
-    console.warn(`[billing/webhook] revertDiscountedVariant max_attempts_reached userId=${userId} — page-load safety check will handle`);
+  if (pending.revertAttempts >= 3) {
+    console.warn(
+      `[billing/webhook] revertDiscountedVariant max_attempts_reached userId=${userId} — page-load safety check will handle`,
+    );
     return;
   }
 
-  // Increment attempts counter BEFORE API call so we track failures
-  const updatedFlagsWithAttempts: FeatureFlags = {
-    ...flags,
-    pending_variant_revert: { ...pending, revertAttempts: attempts + 1 },
-  };
-  await updateFeatureFlags(userId, updatedFlagsWithAttempts);
+  // Increment attempts counter BEFORE API call so a permanent failure eventually caps out.
+  await incrementRevertAttempts(pending.id);
 
   // Now attempt the API call
   try {
     const provider = getPaymentProvider();
-    await provider.switchSubscriptionVariant(pending.subscriptionId, pending.normalVariantId);
-    console.log(`[billing/webhook] reverted_discount_variant userId=${userId} from=${pending.discountedVariantId} to=${pending.normalVariantId}`);
+    await provider.switchSubscriptionVariant(providerSubscriptionId, pending.revertNormalVariantId);
+    console.log(
+      `[billing/webhook] reverted_discount_variant userId=${userId} from=${pending.revertDiscountedVariantId} to=${pending.revertNormalVariantId}`,
+    );
 
-    // Success: clear the flag and mark discount as used
-    const successFlags: FeatureFlags = { ...flags, pending_variant_revert: null };
-    const { discountId } = pending;
-    if (discountId === 'retention') {
-      const existing = successFlags.pro_retention_discount;
-      if (existing) successFlags.pro_retention_discount = { ...existing, used: true };
-    } else if (discountId === 'activity') {
-      const existing = successFlags.activity_rank_up_discount;
-      if (existing) successFlags.activity_rank_up_discount = { ...existing, used: true };
-    } else {
-      const discounts = successFlags.available_discounts ?? [];
-      successFlags.available_discounts = discounts.map((d) =>
-        d.milestoneId === discountId ? { ...d, used: true } : d,
-      );
-    }
-    await updateFeatureFlags(userId, successFlags);
+    // Success: atomic update — clear revert columns + set used=true
+    await markDiscountUsed(pending.id);
   } catch (err) {
-    console.error(`[billing/webhook] revertDiscountedVariant failed userId=${userId} attempt=${attempts + 1}`, err);
+    console.error(
+      `[billing/webhook] revertDiscountedVariant failed userId=${userId} attempt=${pending.revertAttempts + 1}`,
+      err,
+    );
     // Incremented attempts already written — webhook will retry on next payment event
   }
 }

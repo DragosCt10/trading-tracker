@@ -7,16 +7,11 @@ import { useActivityProgress } from '@/hooks/useActivityProgress';
 import { redeemActivityDiscount, applyDiscountToSubscription } from '@/lib/server/rewards';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import type { UserDiscount } from '@/types/userDiscount';
 
 const MILESTONES = [100, 200];
 const MILESTONE_LABELS = [100, 200, 300];
 const GOAL = 300;
-
-interface ActivityDiscount {
-  used: boolean;
-  couponCode?: string;
-  expiresAt?: string;
-}
 
 function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
   const days = useMemo(() => {
@@ -54,12 +49,12 @@ export default function ActivityProgressCard({
   profileId: string | null;
   initialCount?: { posts: number; comments: number; total: number };
   isPro?: boolean;
-  initialDiscount?: ActivityDiscount | null;
+  initialDiscount?: UserDiscount | null;
   initialApplied?: boolean;
 }) {
   const { total, isLoading } = useActivityProgress(profileId, initialCount);
 
-  const [discount, setDiscount] = useState<ActivityDiscount | null>(initialDiscount ?? null);
+  const [discount, setDiscount] = useState<UserDiscount | null>(initialDiscount ?? null);
   const [claiming, setClaiming] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -80,7 +75,29 @@ export default function ActivityProgressCard({
     setClaimError(null);
     const result = await redeemActivityDiscount();
     if ('couponCode' in result) {
-      setDiscount({ used: false, couponCode: result.couponCode, expiresAt: result.expiresAt });
+      // Merge the new coupon into the existing row, or build a synthetic minimal row
+      // if this is the first claim (server creates the row on demand).
+      setDiscount((prev) =>
+        prev
+          ? { ...prev, couponCode: result.couponCode, expiresAt: result.expiresAt }
+          : {
+              id: '',
+              userId: '',
+              discountType: 'activity',
+              milestoneId: '__none__',
+              discountPct: 15,
+              used: false,
+              couponCode: result.couponCode,
+              generatedAt: new Date().toISOString(),
+              expiresAt: result.expiresAt,
+              achievedAt: null,
+              revertSubscriptionId: null,
+              revertNormalVariantId: null,
+              revertDiscountedVariantId: null,
+              revertAppliedAt: null,
+              revertAttempts: 0,
+            },
+      );
     } else {
       setClaimError(result.error);
     }

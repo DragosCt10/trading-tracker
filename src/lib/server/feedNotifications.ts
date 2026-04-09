@@ -12,6 +12,8 @@ import { getTotalExecutedTradeCount } from '@/lib/server/tradeStats';
 import { monthsSince } from '@/utils/helpers/dateHelpers';
 import type { FeedNotification, NotificationType, PaginatedResult } from '@/types/social';
 import { parseFeatureFlags, type FeatureFlags } from '@/types/featureFlags';
+import { upsertMilestoneDiscount } from './discounts';
+import { updateFeatureFlags } from './settings';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -318,32 +320,25 @@ export async function checkTradeMilestones(
         comment_id:   null,
       }));
 
-    // Compute updated feature_flags (uses settingsRow from Round 1)
+    // Build the updated trade_badge in feature_flags (non-discount field).
+    // trade_badge stays in JSONB; discounts are now in user_discounts table.
     const existingFlags = parseFeatureFlags(settingsRow?.feature_flags);
-    const existingDiscounts = existingFlags.available_discounts ?? [];
-
-    const availableDiscounts = crossedMilestones.map((m) => {
-      const existing = existingDiscounts.find((d) => d.milestoneId === m.id);
-      return {
-        ...existing,
-        milestoneId: m.id,
-        discountPct: m.discountPct,
-        used: existing?.used ?? false,
-      };
-    });
-
     const existingBadge = existingFlags.trade_badge;
-    const featureFlags = {
+    const nextFlags: FeatureFlags = {
       ...existingFlags,
       trade_badge: {
         id: currentMilestone.id,
         totalTrades,
         achievedAt: existingBadge?.achievedAt ?? new Date().toISOString(),
       },
-      available_discounts: availableDiscounts,
     };
 
-    // Round 3: All independent writes in parallel
+    // Two independent write groups:
+    //   1. feed_notifications insert + social_profiles badge update + trade_badge JSONB
+    //   2. user_discounts upserts (one per crossed milestone, INSERT ON CONFLICT DO NOTHING)
+    //
+    // Both are idempotent and self-heal on next invocation (this function runs on every
+    // trade insert + every rewards page load), so a partial failure recovers within minutes.
     await Promise.all([
       toInsert.length > 0
         ? supabase.from('feed_notifications').insert(toInsert)
@@ -351,12 +346,10 @@ export async function checkTradeMilestones(
       profile?.trade_badge !== currentMilestone.id
         ? supabase.from('social_profiles').update({ trade_badge: currentMilestone.id }).eq('id', profileId)
         : Promise.resolve(),
-      supabase
-        .from('user_settings')
-        .upsert(
-          { user_id: userId, feature_flags: featureFlags },
-          { onConflict: 'user_id' },
-        ),
+      updateFeatureFlags(userId, nextFlags),
+      ...crossedMilestones.map((m) =>
+        upsertMilestoneDiscount(userId, m.id, m.discountPct),
+      ),
     ]);
   } catch (err) {
     console.error('[checkTradeMilestones] failed (non-fatal):', err);
@@ -367,6 +360,9 @@ export async function checkTradeMilestones(
  * Looks up the social profile for a user, syncs trade_badge, and fires
  * the pro_3mo_discount notification once the user has been on PRO for ≥3 months.
  * Called on Rewards page load — idempotent, non-fatal.
+ *
+ * Returns the freshly-written FeatureFlags (trade_badge only). Discounts are
+ * fetched separately via `getUserDiscounts()` — see src/app/(app)/rewards/page.tsx.
  */
 export async function syncUserBadge(userId: string, proSinceDate?: string | null): Promise<FeatureFlags> {
   try {
@@ -386,7 +382,7 @@ export async function syncUserBadge(userId: string, proSinceDate?: string | null
       void ensureOfferNotification(profileId, 'pro_loyalty_unlocked');
     }
 
-    // Return the freshly-written flags so callers avoid a second DB read
+    // Return the freshly-written flags (trade_badge) so callers avoid a second DB read
     const { data: settingsRow } = await supabase
       .from('user_settings')
       .select('feature_flags')

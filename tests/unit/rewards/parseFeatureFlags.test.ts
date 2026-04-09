@@ -10,45 +10,18 @@ describe('parseFeatureFlags', () => {
     expect(parseFeatureFlags(undefined)).toEqual({});
   });
 
-  it('parses a valid complete object', () => {
+  it('parses a valid trade_badge', () => {
     const input = {
-      available_discounts: [
-        { milestoneId: 'rookie_trader', discountPct: 5, used: false, couponCode: 'ROOKIE123', expiresAt: '2026-05-01T00:00:00Z' },
-      ],
-      pro_retention_discount: { used: true, couponCode: 'PROLOYALTY456' },
-      activity_rank_up_discount: { used: false },
       trade_badge: { id: 'skilled_trader', totalTrades: 500, achievedAt: '2026-03-15T00:00:00Z' },
-      pending_variant_revert: {
-        subscriptionId: 'sub_123',
-        normalVariantId: 'var_normal',
-        discountedVariantId: 'var_discount',
-        discountPct: 10,
-        discountId: 'retention',
-        appliedAt: '2026-04-01T00:00:00Z',
-        revertAttempts: 1,
-      },
     };
     const result = parseFeatureFlags(input);
-    expect(result.available_discounts).toHaveLength(1);
-    expect(result.available_discounts![0].milestoneId).toBe('rookie_trader');
-    expect(result.pro_retention_discount?.used).toBe(true);
     expect(result.trade_badge?.id).toBe('skilled_trader');
-    expect(result.pending_variant_revert?.subscriptionId).toBe('sub_123');
-    expect(result.pending_variant_revert?.revertAttempts).toBe(1);
+    expect(result.trade_badge?.totalTrades).toBe(500);
   });
 
-  it('parses a valid partial object (only trade_badge)', () => {
-    const input = { trade_badge: { id: 'rookie_trader', totalTrades: 100, achievedAt: '2026-01-01T00:00:00Z' } };
-    const result = parseFeatureFlags(input);
-    expect(result.trade_badge?.id).toBe('rookie_trader');
-    expect(result.available_discounts).toBeUndefined();
-    expect(result.pro_retention_discount).toBeUndefined();
-    expect(result.pending_variant_revert).toBeUndefined();
-  });
-
-  it('warns and returns {} for invalid field type', () => {
+  it('warns and returns {} for invalid trade_badge type', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const input = { available_discounts: 'not-an-array' };
+    const input = { trade_badge: 'not-an-object' };
     const result = parseFeatureFlags(input);
     expect(result).toEqual({});
     expect(warnSpy).toHaveBeenCalledOnce();
@@ -68,9 +41,18 @@ describe('parseFeatureFlags', () => {
     expect(result).toEqual({});
   });
 
-  it('handles pending_variant_revert set to null', () => {
-    const input = { pending_variant_revert: null };
+  it('ignores legacy discount fields via passthrough (no validation, no error)', () => {
+    // Legacy fields from pre-SC3 feature_flags JSONB. parseFeatureFlags should not
+    // crash if they're still present in the DB — passthrough lets them through
+    // without being exposed as typed fields.
+    const input = {
+      available_discounts: [{ milestoneId: 'rookie_trader', discountPct: 5, used: false }],
+      pro_retention_discount: { used: false },
+      trade_badge: { id: 'rookie_trader', totalTrades: 100, achievedAt: '2026-01-01' },
+    };
     const result = parseFeatureFlags(input);
-    expect(result.pending_variant_revert).toBeNull();
+    expect(result.trade_badge?.id).toBe('rookie_trader');
+    // Legacy fields are preserved via passthrough
+    expect((result as Record<string, unknown>).available_discounts).toBeDefined();
   });
 });

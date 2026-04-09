@@ -28,6 +28,7 @@ import { FEED_CARD_SURFACE_CLASS } from '@/components/feed/feedCardStyles';
 import { cn } from '@/lib/utils';
 import type { SocialProfile, FeedPost, FeedChannel, PaginatedResult } from '@/types/social';
 import type { ResolvedSubscription } from '@/types/subscription';
+import type { UserDiscount } from '@/types/userDiscount';
 
 interface FeedClientProps {
   userId: string | null;
@@ -37,7 +38,7 @@ interface FeedClientProps {
   initialMyChannels?: FeedChannel[];
   initialFollowingFeedData?: PaginatedResult<FeedPost>;
   initialActivityCount?: { posts: number; comments: number; total: number };
-  initialActivityDiscount?: { used: boolean; couponCode?: string } | null;
+  initialActivityDiscount?: UserDiscount | null;
   initialActivityApplied?: boolean;
 }
 

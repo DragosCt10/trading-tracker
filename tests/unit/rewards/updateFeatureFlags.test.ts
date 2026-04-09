@@ -1,5 +1,9 @@
 /**
- * Tests for updateFeatureFlags optimistic locking in settings.ts
+ * Tests for updateFeatureFlags in settings.ts.
+ *
+ * After SC3, feature_flags only contains `trade_badge` (discounts moved to user_discounts).
+ * The optimistic locking retry loop was replaced with a plain upsert since trade_badge is
+ * always a full overwrite (idempotent concurrent writes).
  */
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
@@ -10,102 +14,53 @@ import { updateFeatureFlags } from '@/lib/server/settings';
 
 const mockedCreateAdminClient = vi.mocked(createAdminClient);
 
-function buildSelectMock(existing: { version: number } | null) {
-  const maybeSingle = vi.fn().mockResolvedValue({ data: existing, error: null });
-  const eq = vi.fn().mockReturnValue({ maybeSingle });
-  const select = vi.fn().mockReturnValue({ eq });
-  return { select };
-}
-
-function buildUpdateMock(rowsAffected: number) {
-  const select = vi.fn().mockResolvedValue({ data: rowsAffected > 0 ? [{ user_id: 'u1' }] : [], error: null });
-  const eq2 = vi.fn().mockReturnValue({ select });
-  const eq1 = vi.fn().mockReturnValue({ eq: eq2 });
-  const update = vi.fn().mockReturnValue({ eq: eq1 });
-  return { update };
-}
-
 describe('updateFeatureFlags', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('inserts a new row when user_settings does not exist', async () => {
-    const insertFn = vi.fn().mockResolvedValue({ error: null });
+  it('upserts the feature_flags row', async () => {
+    const upsertFn = vi.fn().mockResolvedValue({ error: null });
     mockedCreateAdminClient.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        ...buildSelectMock(null),
-        insert: insertFn,
-      }),
+      from: vi.fn().mockReturnValue({ upsert: upsertFn }),
     } as unknown as ReturnType<typeof createAdminClient>);
 
-    await updateFeatureFlags('user-1', { trade_badge: { id: 'rookie' } });
+    const flags = { trade_badge: { id: 'rookie_trader', totalTrades: 100, achievedAt: '2026-01-01T00:00:00Z' } };
+    await updateFeatureFlags('user-1', flags);
 
-    expect(insertFn).toHaveBeenCalledOnce();
-    expect(insertFn).toHaveBeenCalledWith(expect.objectContaining({
-      user_id: 'user-1',
-      version: 1,
-      feature_flags: { trade_badge: { id: 'rookie' } },
-    }));
+    expect(upsertFn).toHaveBeenCalledOnce();
+    expect(upsertFn).toHaveBeenCalledWith(
+      { user_id: 'user-1', feature_flags: flags },
+      { onConflict: 'user_id' },
+    );
   });
 
-  it('throws when insert fails with non-conflict error', async () => {
+  it('throws when upsert fails', async () => {
+    const upsertFn = vi.fn().mockResolvedValue({ error: { message: 'DB error', code: '42501' } });
     mockedCreateAdminClient.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        ...buildSelectMock(null),
-        insert: vi.fn().mockResolvedValue({ error: { message: 'DB error', code: '42501' } }),
-      }),
+      from: vi.fn().mockReturnValue({ upsert: upsertFn }),
     } as unknown as ReturnType<typeof createAdminClient>);
 
-    await expect(updateFeatureFlags('user-1', {})).rejects.toThrow('failed');
-  });
-
-  it('updates with incremented version when row exists', async () => {
-    const updateFn = vi.fn().mockReturnValue({
-      eq: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          select: vi.fn().mockResolvedValue({ data: [{ user_id: 'user-1' }], error: null }),
-        }),
-      }),
-    });
-    mockedCreateAdminClient.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        ...buildSelectMock({ version: 5 }),
-        update: updateFn,
-      }),
-    } as unknown as ReturnType<typeof createAdminClient>);
-
-    await updateFeatureFlags('user-1', { foo: 'bar' });
-
-    expect(updateFn).toHaveBeenCalledOnce();
-    expect(updateFn).toHaveBeenCalledWith(expect.objectContaining({ version: 6, feature_flags: { foo: 'bar' } }));
-  });
-
-  it('throws after exhausting retries on persistent version conflict', async () => {
-    // Simulates another writer always winning — update always returns 0 rows
-    const updateFn = vi.fn().mockReturnValue({
-      eq: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          select: vi.fn().mockResolvedValue({ data: [], error: null }), // 0 rows = version mismatch
-        }),
-      }),
-    });
-    mockedCreateAdminClient.mockReturnValue({
-      from: vi.fn().mockImplementation(() => ({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({ data: { version: 1 }, error: null }),
-          }),
-        }),
-        update: updateFn,
-      })),
-    } as unknown as ReturnType<typeof createAdminClient>);
-
-    await expect(updateFeatureFlags('user-1', {})).rejects.toThrow('persistent conflict');
+    await expect(updateFeatureFlags('user-1', {})).rejects.toThrow('upsert failed');
   });
 
   it('no-ops when userId is empty', async () => {
     await updateFeatureFlags('', {});
     expect(mockedCreateAdminClient).not.toHaveBeenCalled();
+  });
+
+  it('passes through unknown passthrough keys in flags', async () => {
+    const upsertFn = vi.fn().mockResolvedValue({ error: null });
+    mockedCreateAdminClient.mockReturnValue({
+      from: vi.fn().mockReturnValue({ upsert: upsertFn }),
+    } as unknown as ReturnType<typeof createAdminClient>);
+
+    const flags = { trade_badge: { id: 'rookie_trader', totalTrades: 100, achievedAt: '2026-01-01' }, future_feature: true } as never;
+    await updateFeatureFlags('user-1', flags);
+
+    expect(upsertFn).toHaveBeenCalledWith(
+      expect.objectContaining({ feature_flags: flags }),
+      { onConflict: 'user_id' },
+    );
   });
 });

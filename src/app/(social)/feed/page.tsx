@@ -4,7 +4,8 @@ import { getPublicFeed, getTimeline } from '@/lib/server/feedPosts';
 import { resolveSubscription } from '@/lib/server/subscription';
 import { getMyChannels } from '@/lib/server/feedChannels';
 import { getUserActivityCount } from '@/lib/server/feedActivity';
-import { getFeatureFlags } from '@/lib/server/settings';
+import { getDiscountByTypeAndMilestone } from '@/lib/server/discounts';
+import { NO_MILESTONE } from '@/types/userDiscount';
 import FeedClient from './FeedClient';
 
 export const dynamic = 'force-dynamic';
@@ -26,14 +27,13 @@ export default async function FeedPage() {
     user ? getTimeline(undefined, 20) : null,
   ]);
 
-  const [initialActivityCount, flags] = await Promise.all([
+  const [initialActivityCount, activityDiscount] = await Promise.all([
     profile ? getUserActivityCount(profile.id) : null,
-    user ? getFeatureFlags(user.id) : null,
+    user ? getDiscountByTypeAndMilestone(user.id, 'activity', NO_MILESTONE) : null,
   ]);
 
-  const initialActivityDiscount = (flags?.activity_rank_up_discount as { used: boolean; couponCode?: string; expiresAt?: string } | undefined) ?? null;
-  const pendingRevert = flags?.pending_variant_revert as { discountId?: string } | undefined;
-  const initialActivityApplied = pendingRevert?.discountId === 'activity';
+  // The activity discount is "applied" when it has a pending variant revert attached.
+  const initialActivityApplied = activityDiscount?.revertSubscriptionId != null;
 
   return (
     <FeedClient
@@ -44,7 +44,7 @@ export default async function FeedPage() {
       initialMyChannels={initialMyChannels ?? []}
       initialFollowingFeedData={initialFollowingFeedData ?? undefined}
       initialActivityCount={initialActivityCount ?? undefined}
-      initialActivityDiscount={initialActivityDiscount}
+      initialActivityDiscount={activityDiscount}
       initialActivityApplied={initialActivityApplied}
     />
   );

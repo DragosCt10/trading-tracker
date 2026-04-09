@@ -1,29 +1,34 @@
 /**
- * Tests for revertDiscountedVariantIfNeeded in webhook-handler.ts
+ * Tests for revertDiscountedVariantIfNeeded in webhook-handler.ts (post-SC3).
  *
  * Key behaviors:
- * - Flag cleared only AFTER switchSubscriptionVariant succeeds (not before)
- * - revertAttempts incremented on each call (failure or success)
- * - Bails at 3 attempts (leaves flag for page-load safety check)
+ * - revertAttempts incremented BEFORE the API call (pre-fail tracking)
+ * - markDiscountUsed called AFTER switchSubscriptionVariant succeeds (not before)
+ * - Bails at 3 attempts (leaves row for page-load safety check)
  * - Discount marked as used only on success
  */
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-vi.mock('@/lib/server/settings');
+vi.mock('@/lib/server/discounts');
 vi.mock('@/lib/billing');
 
-import { getFeatureFlags, updateFeatureFlags } from '@/lib/server/settings';
+import {
+  getPendingRevertBySubscription,
+  incrementRevertAttempts,
+  markDiscountUsed,
+} from '@/lib/server/discounts';
 import { getPaymentProvider } from '@/lib/billing';
+import type { UserDiscount } from '@/types/userDiscount';
 
-const mockedGetFlags    = vi.mocked(getFeatureFlags);
-const mockedUpdateFlags = vi.mocked(updateFeatureFlags);
+const mockedGetPendingRevert = vi.mocked(getPendingRevertBySubscription);
+const mockedIncrementAttempts = vi.mocked(incrementRevertAttempts);
+const mockedMarkUsed = vi.mocked(markDiscountUsed);
 const mockedGetProvider = vi.mocked(getPaymentProvider);
 
 // We test the internal function by exercising it through processWebhookAction
-// with a subscription_payment_success event that matches a pending_variant_revert
 import { processWebhookAction } from '@/lib/billing/webhook-handler';
 
-// We also need to mock supabase for the subscription upsert path
+// Mock supabase for the subscription upsert path
 vi.mock('@/utils/supabase/service-role', () => ({
   createServiceRoleClient: vi.fn(() => ({
     from: vi.fn().mockReturnValue({
@@ -63,69 +68,61 @@ function makeWebhookAction(userId: string, subscriptionId: string) {
       periodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       cancelAtPeriodEnd: false,
       customerEmail: null,
+      priceAmount: 1199,
+      currency: 'USD',
     },
-  };
+  } as Parameters<typeof processWebhookAction>[0];
 }
 
-const PENDING_REVERT = {
-  subscriptionId: 'sub-test',
-  normalVariantId: 'NORMAL-VARIANT',
-  discountedVariantId: 'DISC-VARIANT',
-  discountPct: 5,
-  discountId: 'rookie_trader',
-  appliedAt: new Date().toISOString(),
-};
+function makePendingRevert(overrides: Partial<UserDiscount> = {}): UserDiscount {
+  return {
+    id: 'discount-row-1',
+    userId: 'user-1',
+    discountType: 'milestone',
+    milestoneId: 'rookie_trader',
+    discountPct: 5,
+    used: false,
+    couponCode: 'ROOKIE-CODE',
+    generatedAt: new Date().toISOString(),
+    expiresAt: null,
+    achievedAt: null,
+    revertSubscriptionId: 'sub-test',
+    revertNormalVariantId: 'NORMAL-VARIANT',
+    revertDiscountedVariantId: 'DISC-VARIANT',
+    revertAppliedAt: new Date().toISOString(),
+    revertAttempts: 0,
+    ...overrides,
+  };
+}
 
 describe('revertDiscountedVariantIfNeeded (via processWebhookAction)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedUpdateFlags.mockResolvedValue(undefined);
+    mockedIncrementAttempts.mockResolvedValue(1);
+    mockedMarkUsed.mockResolvedValue(undefined);
   });
 
-  it('does nothing when pending_variant_revert is absent', async () => {
-    mockedGetFlags.mockResolvedValue({});
+  it('does nothing when no pending revert exists', async () => {
+    mockedGetPendingRevert.mockResolvedValue(null);
     mockedGetProvider.mockReturnValue({
       switchSubscriptionVariant: vi.fn(),
     } as unknown as ReturnType<typeof getPaymentProvider>);
 
     await processWebhookAction(makeWebhookAction('user-1', 'sub-test'), 'lemonsqueezy');
 
-    expect(mockedUpdateFlags).not.toHaveBeenCalled();
+    expect(mockedIncrementAttempts).not.toHaveBeenCalled();
+    expect(mockedMarkUsed).not.toHaveBeenCalled();
   });
 
-  it('does nothing when subscriptionId does not match', async () => {
-    mockedGetFlags.mockResolvedValue({
-      pending_variant_revert: { ...PENDING_REVERT, subscriptionId: 'sub-different' },
+  it('increments revertAttempts BEFORE calling the provider API', async () => {
+    const callOrder: string[] = [];
+    mockedGetPendingRevert.mockResolvedValue(makePendingRevert());
+    mockedIncrementAttempts.mockImplementation(async () => {
+      callOrder.push('increment');
+      return 1;
     });
-
-    await processWebhookAction(makeWebhookAction('user-1', 'sub-test'), 'lemonsqueezy');
-
-    expect(mockedUpdateFlags).not.toHaveBeenCalled();
-  });
-
-  it('increments revertAttempts and writes to DB before API call', async () => {
-    const switchVariant = vi.fn().mockResolvedValue(undefined);
-    mockedGetFlags.mockResolvedValue({ pending_variant_revert: PENDING_REVERT });
-    mockedGetProvider.mockReturnValue({
-      switchSubscriptionVariant: switchVariant,
-    } as unknown as ReturnType<typeof getPaymentProvider>);
-
-    await processWebhookAction(makeWebhookAction('user-1', 'sub-test'), 'lemonsqueezy');
-
-    // First updateFeatureFlags call increments attempts (before API)
-    const firstCall = mockedUpdateFlags.mock.calls[0][1] as Record<string, unknown>;
-    const firstPending = firstCall.pending_variant_revert as Record<string, unknown>;
-    expect(firstPending.revertAttempts).toBe(1);
-    expect(firstPending.subscriptionId).toBe('sub-test'); // flag not cleared yet
-  });
-
-  it('clears pending_variant_revert and marks discount used AFTER successful API call', async () => {
-    const switchVariant = vi.fn().mockResolvedValue(undefined);
-    mockedGetFlags.mockResolvedValue({
-      pending_variant_revert: PENDING_REVERT,
-      available_discounts: [
-        { milestoneId: 'rookie_trader', discountPct: 5, used: false, couponCode: 'ROOKIE-CODE' },
-      ],
+    const switchVariant = vi.fn().mockImplementation(async () => {
+      callOrder.push('switch');
     });
     mockedGetProvider.mockReturnValue({
       switchSubscriptionVariant: switchVariant,
@@ -133,42 +130,49 @@ describe('revertDiscountedVariantIfNeeded (via processWebhookAction)', () => {
 
     await processWebhookAction(makeWebhookAction('user-1', 'sub-test'), 'lemonsqueezy');
 
-    // Should have 2 updateFeatureFlags calls: one to increment attempts, one to clear on success
-    expect(mockedUpdateFlags).toHaveBeenCalledTimes(2);
-    const successCall = mockedUpdateFlags.mock.calls[1][1] as Record<string, unknown>;
-
-    // Flag cleared
-    expect(successCall.pending_variant_revert).toBeNull();
-
-    // Discount marked used
-    const discounts = successCall.available_discounts as Array<Record<string, unknown>>;
-    expect(discounts.find((d) => d.milestoneId === 'rookie_trader')?.used).toBe(true);
+    expect(callOrder).toEqual(['increment', 'switch']);
   });
 
-  it('does NOT clear the flag when API call fails — flag preserved for retry', async () => {
+  it('marks discount as used AFTER successful API call', async () => {
+    const callOrder: string[] = [];
+    mockedGetPendingRevert.mockResolvedValue(makePendingRevert());
+    mockedIncrementAttempts.mockImplementation(async () => {
+      callOrder.push('increment');
+      return 1;
+    });
+    const switchVariant = vi.fn().mockImplementation(async () => {
+      callOrder.push('switch');
+    });
+    mockedMarkUsed.mockImplementation(async () => {
+      callOrder.push('mark-used');
+    });
+    mockedGetProvider.mockReturnValue({
+      switchSubscriptionVariant: switchVariant,
+    } as unknown as ReturnType<typeof getPaymentProvider>);
+
+    await processWebhookAction(makeWebhookAction('user-1', 'sub-test'), 'lemonsqueezy');
+
+    expect(callOrder).toEqual(['increment', 'switch', 'mark-used']);
+    expect(mockedMarkUsed).toHaveBeenCalledWith('discount-row-1');
+  });
+
+  it('does NOT mark used when provider API fails (leaves row for retry)', async () => {
+    mockedGetPendingRevert.mockResolvedValue(makePendingRevert({ revertAttempts: 1 }));
     const switchVariant = vi.fn().mockRejectedValue(new Error('LS API down'));
-    mockedGetFlags.mockResolvedValue({
-      pending_variant_revert: { ...PENDING_REVERT, revertAttempts: 1 },
-    });
     mockedGetProvider.mockReturnValue({
       switchSubscriptionVariant: switchVariant,
     } as unknown as ReturnType<typeof getPaymentProvider>);
 
     await processWebhookAction(makeWebhookAction('user-1', 'sub-test'), 'lemonsqueezy');
 
-    // Only one updateFeatureFlags call (increment attempts) — no second call to clear
-    expect(mockedUpdateFlags).toHaveBeenCalledOnce();
-    const written = mockedUpdateFlags.mock.calls[0][1] as Record<string, unknown>;
-    const pending = written.pending_variant_revert as Record<string, unknown>;
-    expect(pending.revertAttempts).toBe(2); // incremented from 1
-    expect(pending.subscriptionId).toBe('sub-test'); // flag still present
+    // Attempts incremented (pre-API), but markDiscountUsed never called
+    expect(mockedIncrementAttempts).toHaveBeenCalledOnce();
+    expect(mockedMarkUsed).not.toHaveBeenCalled();
   });
 
   it('bails without calling API when revertAttempts >= 3', async () => {
+    mockedGetPendingRevert.mockResolvedValue(makePendingRevert({ revertAttempts: 3 }));
     const switchVariant = vi.fn();
-    mockedGetFlags.mockResolvedValue({
-      pending_variant_revert: { ...PENDING_REVERT, revertAttempts: 3 },
-    });
     mockedGetProvider.mockReturnValue({
       switchSubscriptionVariant: switchVariant,
     } as unknown as ReturnType<typeof getPaymentProvider>);
@@ -176,6 +180,21 @@ describe('revertDiscountedVariantIfNeeded (via processWebhookAction)', () => {
     await processWebhookAction(makeWebhookAction('user-1', 'sub-test'), 'lemonsqueezy');
 
     expect(switchVariant).not.toHaveBeenCalled();
-    expect(mockedUpdateFlags).not.toHaveBeenCalled();
+    expect(mockedIncrementAttempts).not.toHaveBeenCalled();
+    expect(mockedMarkUsed).not.toHaveBeenCalled();
+  });
+
+  it('uses the correct variant ID (from the DB row, not feature flags)', async () => {
+    mockedGetPendingRevert.mockResolvedValue(
+      makePendingRevert({ revertNormalVariantId: 'CUSTOM-NORMAL-ID' }),
+    );
+    const switchVariant = vi.fn().mockResolvedValue(undefined);
+    mockedGetProvider.mockReturnValue({
+      switchSubscriptionVariant: switchVariant,
+    } as unknown as ReturnType<typeof getPaymentProvider>);
+
+    await processWebhookAction(makeWebhookAction('user-1', 'sub-test'), 'lemonsqueezy');
+
+    expect(switchVariant).toHaveBeenCalledWith('sub-test', 'CUSTOM-NORMAL-ID');
   });
 });

@@ -15,11 +15,13 @@ import { redeemMilestoneDiscount, redeemProRetentionDiscount, applyDiscountToSub
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { monthsSince } from '@/utils/helpers/dateHelpers';
-import type { FeatureFlags, DiscountEntry, CouponDiscount } from '@/types/featureFlags';
+import type { UserDiscount } from '@/types/userDiscount';
 
 interface RewardsClientProps {
   totalTrades: number;
-  featureFlags: FeatureFlags;
+  milestoneDiscounts: UserDiscount[];
+  retentionDiscount: UserDiscount | null;
+  pendingRevertDiscountId: string | null;
   isPro: boolean;
   proSinceDate: string | null;
   showBackToSettings?: boolean;
@@ -66,12 +68,18 @@ function CouponCodeDisplay({
   );
 }
 
-export default function RewardsClient({ totalTrades, featureFlags, isPro, proSinceDate, showBackToSettings }: RewardsClientProps) {
+export default function RewardsClient({
+  totalTrades,
+  milestoneDiscounts,
+  retentionDiscount: initialRetentionDiscount,
+  pendingRevertDiscountId,
+  isPro,
+  proSinceDate,
+  showBackToSettings,
+}: RewardsClientProps) {
   const currentMilestone = getMilestoneForCount(totalTrades);
   const nextMilestone = getNextMilestone(totalTrades);
-  const [discounts, setDiscounts] = useState<DiscountEntry[]>(
-    featureFlags.available_discounts ?? [],
-  );
+  const [discounts, setDiscounts] = useState<UserDiscount[]>(milestoneDiscounts);
   const [claimErrors, setClaimErrors] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
@@ -79,15 +87,15 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, proSin
   // Apply-to-subscription state (keyed by discountId: milestoneId or 'retention')
   const [applyLoading, setApplyLoading] = useState<string | null>(null);
   const [applyErrors, setApplyErrors] = useState<Record<string, string>>({});
-  // Seed from feature_flags so "Discount applied" persists across page refreshes
-  const pendingRevert = featureFlags.pending_variant_revert;
+  // Seed from the pending revert so "Discount applied" persists across page refreshes
   const [applySuccess, setApplySuccess] = useState<Set<string>>(
-    pendingRevert?.discountId ? new Set([pendingRevert.discountId]) : new Set(),
+    pendingRevertDiscountId ? new Set([pendingRevertDiscountId]) : new Set(),
   );
 
   // PRO retention discount state
-  const initialRetention = featureFlags.pro_retention_discount;
-  const [retentionDiscount, setRetentionDiscount] = useState<CouponDiscount | null>(initialRetention ?? null);
+  const [retentionDiscount, setRetentionDiscount] = useState<UserDiscount | null>(
+    initialRetentionDiscount,
+  );
   const [retentionClaiming, setRetentionClaiming] = useState(false);
   const [retentionError, setRetentionError] = useState<string | null>(null);
   const [retentionCopied, setRetentionCopied] = useState(false);
@@ -100,7 +108,29 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, proSin
     setRetentionError(null);
     const result = await redeemProRetentionDiscount();
     if ('couponCode' in result) {
-      setRetentionDiscount({ used: false, couponCode: result.couponCode, expiresAt: result.expiresAt });
+      // Merge the new coupon into the existing row, or build a minimal synthetic row
+      // if this is the first claim (server creates the row on demand).
+      setRetentionDiscount((prev) =>
+        prev
+          ? { ...prev, couponCode: result.couponCode, expiresAt: result.expiresAt }
+          : {
+              id: '',
+              userId: '',
+              discountType: 'retention',
+              milestoneId: '__none__',
+              discountPct: 10,
+              used: false,
+              couponCode: result.couponCode,
+              generatedAt: new Date().toISOString(),
+              expiresAt: result.expiresAt,
+              achievedAt: null,
+              revertSubscriptionId: null,
+              revertNormalVariantId: null,
+              revertDiscountedVariantId: null,
+              revertAppliedAt: null,
+              revertAttempts: 0,
+            },
+      );
     } else {
       setRetentionError(result.error);
     }
