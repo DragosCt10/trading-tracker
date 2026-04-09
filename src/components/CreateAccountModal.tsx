@@ -4,10 +4,10 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useQueryClient } from '@tanstack/react-query';
-import { createAccount, setActiveAccount, type AccountRow } from '@/lib/server/accounts';
+import { createAccount, setActiveAccount } from '@/lib/server/accounts';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useAllAccounts } from '@/hooks/useAllAccounts';
+import { useAllAccounts, patchAllAccounts } from '@/hooks/useAllAccounts';
 import { setSelectionFor } from '@/hooks/useActionBarSelection';
 import { queryKeys } from '@/lib/queryKeys';
 import { Loader2, UserPlus } from 'lucide-react';
@@ -148,14 +148,43 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
 
       const createdAccount = data as AccountSettings;
 
-      await setActiveAccount(createdAccount.mode, createdAccount.id);
+      // Mark the new row active. Use the RETURN VALUE as the canonical row —
+      // `data` from createAccount has is_active=false (the insert default),
+      // whereas setActiveAccount's return is the row after the UPDATE + the
+      // BEFORE UPDATE trigger fired, so is_active=true and any sibling in the
+      // same mode has been cleared. Using the stale createAccount row here
+      // would leak is_active=false into the selection store and break the
+      // PERF-1 short-circuit in ActionBar's applyWith on the next switch.
+      const { data: activatedRow, error: activationError } = await setActiveAccount(
+        createdAccount.mode,
+        createdAccount.id
+      );
+      if (activationError || !activatedRow) {
+        setError(activationError?.message ?? 'Failed to activate new account. Please try again.');
+        setSubmitting(false);
+        return;
+      }
 
-      // Sync ActionBar's in-memory selection to the newly created account.
-      // `data` is the full AccountRow from the server; createdAccount is just a
-      // narrow local view so we pass `data` to the store to preserve the shape.
-      setSelectionFor(userId?.user?.id, {
-        mode: createdAccount.mode,
-        activeAccount: data as AccountRow,
+      const uid = userId?.user?.id;
+
+      // Patch the shared accounts:all cache SYNCHRONOUSLY so every consumer
+      // (ActionBar, AccountModePopover, modals) sees the new account + its
+      // is_active flag immediately, without waiting on the async refetch.
+      // The BEFORE UPDATE trigger already cleared is_active on any sibling in
+      // the same mode in the DB — mirror that here so the cache stays in sync.
+      patchAllAccounts(queryClient, uid, (rows) => {
+        const withoutDup = rows.filter((a) => a.id !== activatedRow.id);
+        const reconciled = withoutDup.map((a) =>
+          a.mode === activatedRow.mode ? { ...a, is_active: false } : a
+        );
+        return [...reconciled, activatedRow];
+      });
+
+      // Sync ActionBar's in-memory selection to the newly created (and now
+      // canonically active) account.
+      setSelectionFor(uid, {
+        mode: activatedRow.mode,
+        activeAccount: activatedRow,
       });
 
       onCreated?.(createdAccount);
@@ -165,7 +194,9 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
       setOpen(false);
       setSubmitting(false);
 
-      // Refresh account-list queries in the background (new account must appear in dropdowns)
+      // Refresh account-list queries in the background (new account must appear in dropdowns).
+      // The cache patch above means this is a no-op for steady-state UI; the
+      // invalidation is a safety net in case the server returns richer data.
       queryClient.invalidateQueries({
         predicate: (q) => {
           const key = q.queryKey?.[0] as string;
