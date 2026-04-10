@@ -9,7 +9,7 @@ const SURFACE =
 
 export function AiVisionPatternsSkeleton() {
   return (
-    <section>
+    <section aria-label="AI Detected Patterns">
       {/* Filter pills */}
       <div className="flex items-center gap-1.5 mt-4 mb-4 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 p-1 w-fit">
         {[0, 1, 2, 3, 4].map((i) => (
