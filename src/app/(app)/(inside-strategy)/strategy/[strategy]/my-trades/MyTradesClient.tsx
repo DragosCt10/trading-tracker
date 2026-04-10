@@ -40,6 +40,19 @@ import { CARD_BASE_CLASSES } from '@/constants/styles';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const ChartLoader = () => <div className="w-full h-full flex items-center justify-center"><BouncePulse size="md" /></div>;
+const CardChartLoader = () => (
+  <div className="relative overflow-hidden rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+    <div className="p-6 pb-2">
+      <h3 className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+        Future Equity
+      </h3>
+      <p className="text-base text-slate-500 dark:text-slate-400">Loading simulation...</p>
+    </div>
+    <div className="flex items-center justify-center min-h-[200px]">
+      <BouncePulse size="md" />
+    </div>
+  </div>
+);
 
 const EquityCurveChart = dynamic(
   () => import('@/components/dashboard/analytics/EquityCurveChart').then(m => ({ default: m.EquityCurveChart })),
@@ -55,7 +68,7 @@ const SummaryHalfGauge = dynamic(
 );
 const MonteCarloCard = dynamic(
   () => import('@/components/trades/MonteCarloCard').then(m => ({ default: m.MonteCarloCard })),
-  { ssr: false, loading: ChartLoader }
+  { ssr: false, loading: CardChartLoader }
 );
 import { useSubscription } from '@/hooks/useSubscription';
 import { MyTradesSkeleton } from './MyTradesSkeleton';
