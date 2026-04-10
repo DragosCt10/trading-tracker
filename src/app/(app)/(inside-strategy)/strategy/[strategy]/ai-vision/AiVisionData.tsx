@@ -3,11 +3,15 @@ import { Suspense } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { resolveActiveAccountFromCookies } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
+import { resolveSubscription } from '@/lib/server/subscription';
 import { AiVisionSkeleton } from '@/components/dashboard/ai-vision/AiVisionSkeleton';
 import AiVisionClient from './AiVisionClient';
 
 async function AiVisionDataFetcher({ user, strategySlug }: { user: User; strategySlug: string }) {
-  const { mode, activeAccount } = await resolveActiveAccountFromCookies(user.id);
+  const [{ mode, activeAccount }, subscription] = await Promise.all([
+    resolveActiveAccountFromCookies(user.id),
+    resolveSubscription(user.id),
+  ]);
 
   const strategy = strategySlug
     ? await getStrategyBySlug(user.id, strategySlug, activeAccount?.id)
@@ -25,6 +29,7 @@ async function AiVisionDataFetcher({ user, strategySlug }: { user: User; strateg
       mode={mode}
       accountId={activeAccount?.id}
       accountBalance={activeAccount?.account_balance ?? 0}
+      initialSubscription={subscription}
     />
   );
 }
