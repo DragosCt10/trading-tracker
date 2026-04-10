@@ -23,6 +23,7 @@ import { SectionHeading } from '../sections/SectionHeading';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSubscription } from '@/hooks/useSubscription';
+import type { ResolvedSubscription } from '@/types/subscription';
 import { cn } from '@/lib/utils';
 
 // Stable reference for metrics with no trend history — prevents new `[]` per
@@ -36,6 +37,7 @@ interface AiVisionClientProps {
   mode: 'live' | 'backtesting' | 'demo';
   accountId: string | undefined;
   accountBalance: number;
+  initialSubscription?: ResolvedSubscription;
 }
 
 // --- Gauge card configs ---
@@ -210,9 +212,10 @@ export default function AiVisionClient({
   mode,
   accountId,
   accountBalance,
+  initialSubscription,
 }: AiVisionClientProps) {
   // ── Subscription / PRO gate ───────────────────────────────────────────────
-  const { isPro } = useSubscription({ userId });
+  const { isPro } = useSubscription({ userId, initialData: initialSubscription });
   const isLocked = !isPro;
 
   // ── Filter state ─────────────────────────────────────────────────────────
