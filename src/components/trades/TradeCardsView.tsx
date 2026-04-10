@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import type { Trade } from '@/types/trade';
 import type { SavedTag } from '@/types/saved-tag';
 import { cn } from '@/lib/utils';
@@ -165,6 +166,47 @@ export function TradeCardsView({
     [trades, displayedCount, externalPagination]
   );
   const hasMore = externalPagination ? false : displayedCount < trades.length;
+
+  // ── Virtual scrolling for grid views ────────────────────────────────────
+  const gridListRef = useRef<HTMLDivElement>(null);
+  const [gridColumns, setGridColumns] = useState(4);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const isGrid = currentViewMode === 'grid-2' || currentViewMode === 'grid-4';
+    if (!isGrid) return;
+
+    const update = () => {
+      const w = window.innerWidth;
+      if (currentViewMode === 'grid-2') {
+        setGridColumns(w >= 640 ? 2 : 1);
+      } else {
+        setGridColumns(w >= 1280 ? 4 : w >= 1024 ? 3 : w >= 640 ? 2 : 1);
+      }
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [mounted, currentViewMode]);
+
+  const virtualRows = useMemo(() => {
+    const rows: Trade[][] = [];
+    for (let i = 0; i < displayedTrades.length; i += gridColumns) {
+      rows.push(displayedTrades.slice(i, i + gridColumns));
+    }
+    return rows;
+  }, [displayedTrades, gridColumns]);
+
+  const ESTIMATED_ROW_HEIGHT = 380;
+  const isGridMode = currentViewMode === 'grid-2' || currentViewMode === 'grid-4';
+
+  const rowVirtualizer = useWindowVirtualizer({
+    count: virtualRows.length + (hasMore && isGridMode ? 1 : 0),
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    overscan: 3,
+    scrollMargin: gridListRef.current?.offsetTop ?? 0,
+    enabled: isGridMode && displayedTrades.length > 24,
+  });
 
   const selectedTradeId = selectedTrade?.id ?? null;
   const liveSelectedTrade = useMemo(
@@ -779,16 +821,16 @@ export function TradeCardsView({
             )}
           </>
         ) : (
-          <div
-            className={cn(
-              'grid gap-6',
-              currentViewMode === 'grid-2'
-                ? 'grid-cols-1 sm:grid-cols-2'
-                : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-            )}
-          >
+          <div ref={gridListRef}>
             {showSkeletons ? (
-              <>
+              <div
+                className={cn(
+                  'grid gap-6',
+                  currentViewMode === 'grid-2'
+                    ? 'grid-cols-1 sm:grid-cols-2'
+                    : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                )}
+              >
                 {Array.from({ length: 12 }).map((_, index) => (
                   <Card
                     key={`skeleton-${index}`}
@@ -810,13 +852,88 @@ export function TradeCardsView({
                     </CardContent>
                   </Card>
                 ))}
-              </>
+              </div>
             ) : displayedTrades.length === 0 ? (
-              <div className="col-span-full text-center py-12">
+              <div className="text-center py-12">
                 <p className="text-slate-500">{emptyMessage}</p>
               </div>
+            ) : rowVirtualizer.options.enabled ? (
+              /* Virtualized grid: only renders visible rows */
+              <div
+                style={{
+                  height: `${rowVirtualizer.getTotalSize()}px`,
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const isLoaderRow = virtualRow.index >= virtualRows.length;
+                  if (isLoaderRow) {
+                    return (
+                      <div
+                        key="virtual-loader"
+                        ref={observerTarget}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: `${virtualRow.size}px`,
+                          transform: `translateY(${virtualRow.start - rowVirtualizer.options.scrollMargin}px)`,
+                        }}
+                        className="flex justify-center items-center py-4"
+                      >
+                        {isFetching ? (
+                          <div className="flex items-center gap-2 text-slate-500">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm">Loading more trades...</span>
+                          </div>
+                        ) : (
+                          <div className="h-4" />
+                        )}
+                      </div>
+                    );
+                  }
+                  const row = virtualRows[virtualRow.index];
+                  return (
+                    <div
+                      key={virtualRow.index}
+                      ref={rowVirtualizer.measureElement}
+                      data-index={virtualRow.index}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${virtualRow.start - rowVirtualizer.options.scrollMargin}px)`,
+                      }}
+                    >
+                      <div
+                        className={cn(
+                          'grid gap-6 pb-6',
+                          currentViewMode === 'grid-2'
+                            ? 'grid-cols-1 sm:grid-cols-2'
+                            : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                        )}
+                      >
+                        {row.map((trade) => (
+                          <TradeCard key={trade.id} trade={trade} onOpenModal={openModal} savedTags={savedTags} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
-              <>
+              /* Non-virtualized grid: fewer than 24 items, render directly */
+              <div
+                className={cn(
+                  'grid gap-6',
+                  currentViewMode === 'grid-2'
+                    ? 'grid-cols-1 sm:grid-cols-2'
+                    : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                )}
+              >
                 {displayedTrades.map((trade) => (
                   <TradeCard key={trade.id} trade={trade} onOpenModal={openModal} savedTags={savedTags} />
                 ))}
@@ -833,7 +950,7 @@ export function TradeCardsView({
                     )}
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
         )}

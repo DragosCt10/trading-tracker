@@ -35,6 +35,21 @@ export function MyTradesSkeleton() {
         showAllTradesOption={true}
       />
 
+      {/* Summary cards skeleton — matches MyTradesClient summary row */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card
+            key={`summary-skeleton-${i}`}
+            className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm"
+          >
+            <CardContent className="p-4 flex flex-col h-full">
+              <Skeleton className="h-3 w-20 mb-3" aria-hidden />
+              <Skeleton className="h-32 w-full rounded-lg" aria-hidden />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       <div className="mt-6 flex flex-col gap-4">
         {/* Cards per row toolbar - skeleton for consistency with TradeCardsView */}
         <div className="flex flex-wrap items-center justify-end gap-3">

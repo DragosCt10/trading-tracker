@@ -28,19 +28,35 @@ import { Columns2, LayoutGrid, PanelLeft, Info } from 'lucide-react';
 import { PnLBadge } from '@/components/shared/PnLBadge';
 import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
 import { buildEquityPointsFromTrades } from '@/utils/equityPoints';
-import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
-import { TotalTradesDonut } from '@/components/dashboard/analytics/TotalTradesChartCard';
+import dynamic from 'next/dynamic';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
 import { calculateWinRates } from '@/utils/calculateWinRates';
 import { calculateAverageDrawdown } from '@/utils/analyticsCalculations';
 import { applyTradeClientFilters } from '@/utils/applyTradeClientFilters';
-import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';
 import { cn, formatPercent, roundToCents } from '@/lib/utils';
 import { CARD_BASE_CLASSES } from '@/constants/styles';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { MonteCarloCard } from '@/components/trades/MonteCarloCard';
+
+const ChartLoader = () => <div className="w-full h-full flex items-center justify-center"><BouncePulse size="md" /></div>;
+
+const EquityCurveChart = dynamic(
+  () => import('@/components/dashboard/analytics/EquityCurveChart').then(m => ({ default: m.EquityCurveChart })),
+  { ssr: false, loading: ChartLoader }
+);
+const TotalTradesDonut = dynamic(
+  () => import('@/components/dashboard/analytics/TotalTradesChartCard').then(m => ({ default: m.TotalTradesDonut })),
+  { ssr: false, loading: ChartLoader }
+);
+const SummaryHalfGauge = dynamic(
+  () => import('@/components/dashboard/analytics/SummaryHalfGauge').then(m => ({ default: m.SummaryHalfGauge })),
+  { ssr: false, loading: ChartLoader }
+);
+const MonteCarloCard = dynamic(
+  () => import('@/components/trades/MonteCarloCard').then(m => ({ default: m.MonteCarloCard })),
+  { ssr: false, loading: ChartLoader }
+);
 import { useSubscription } from '@/hooks/useSubscription';
 import { MyTradesSkeleton } from './MyTradesSkeleton';
 
@@ -380,9 +396,6 @@ export default function MyTradesClient({
     [averageDrawdown]
   );
 
-  // TradeDetailsPanel.invalidateAndRefetchTradeQueries already handles scoped cache invalidation
-  const handleTradeUpdated = useCallback(() => {}, []);
-
   const handleOpenExportModal = useCallback(() => {
     setExportModalOpen(true);
   }, []);
@@ -472,6 +485,7 @@ export default function MyTradesClient({
           <Button
             onClick={handleOpenExportModal}
             disabled={baseList.length === 0}
+            aria-label={baseList.length === 0 ? 'Export Trades (no trades available)' : 'Export Trades'}
             className="cursor-pointer relative overflow-hidden rounded-xl themed-btn-primary text-white font-semibold px-4 py-2 group border-0 [&_svg]:text-white disabled:opacity-60"
           >
             <span className="relative z-10">Export Trades</span>
@@ -524,14 +538,15 @@ export default function MyTradesClient({
       )}
 
       {/* Summary row: P&L + equity chart + total trades + win rate + avg drawdown (tied to current filters) */}
+      <h2 className="sr-only">Strategy Summary</h2>
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   Net P&amp;L
-                </p>
+                </h3>
                 <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">
                   {currencySymbol}
                   {roundToCents(displayCumulativePnl).toFixed(2)}
@@ -567,9 +582,9 @@ export default function MyTradesClient({
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   Total Trades
-                </p>
+                </h3>
               </div>
             </div>
             <div className="flex-1 h-32 min-h-[7rem] w-full">
@@ -593,9 +608,9 @@ export default function MyTradesClient({
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   Win Rate
-                </p>
+                </h3>
               </div>
             </div>
             <div className="flex-1 h-32 min-h-[7rem] relative w-full">
@@ -625,9 +640,9 @@ export default function MyTradesClient({
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="flex items-center gap-1.5">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   Avg Drawdown
-                </p>
+                </h3>
                 <TooltipProvider>
                   <UITooltip delayDuration={150}>
                     <TooltipTrigger asChild>
@@ -703,9 +718,9 @@ export default function MyTradesClient({
           </div>
           <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
+              <label htmlFor="sort-by" className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
                 Sort by:
-              </span>
+              </label>
               <Select
                 value={sortField}
                 onValueChange={(value) => {
@@ -737,10 +752,10 @@ export default function MyTradesClient({
                 </SelectContent>
               </Select>
             </div>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
+            <span id="view-mode-label" className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
               View:
             </span>
-            <div className="inline-flex h-8 items-center rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none p-0.5">
+            <div role="group" aria-labelledby="view-mode-label" className="inline-flex h-8 items-center rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none p-0.5">
               <button
                 type="button"
                 onClick={() => setCardViewMode('grid-2')}
@@ -805,7 +820,6 @@ export default function MyTradesClient({
           isLoading={tradesLoading}
           isFetching={tradesFetching}
           resetKey={`${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${executionFilter}-${sortField}-${showPartialTrades}`}
-          onTradeUpdated={handleTradeUpdated}
           enableBulkDeleteInTableView
           onBulkDelete={handleBulkDelete}
           onBulkTag={handleBulkTag}

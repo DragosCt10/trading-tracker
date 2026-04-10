@@ -81,6 +81,8 @@ export function TradeCard({
                 <img
                   src={activeScreen}
                   alt={`${trade.market} trade screen ${activeIdx + 1}`}
+                  width={360}
+                  height={202}
                   className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-300"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
