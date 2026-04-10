@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import { format, getDaysInMonth, parse } from 'date-fns';
 import { Crown } from 'lucide-react';
 import type { Trade } from '@/types/trade';
@@ -361,14 +361,22 @@ export default function AiVisionClient({
     return [...merged, ...trendPatterns].sort((a, b) => a.priority - b.priority);
   }, [isLocked, tradesA, tradesB, tradesC, metricsA, metricsB, metricsC, accountBalance, keyA, keyB, keyC]);
 
+  // Guard against hydration mismatch: during SSR, TanStack Query has no cache
+  // so `isInitialLoading` is true, but on the client cached data from prior
+  // navigation can make it false immediately. Force the first render to match
+  // the server (skeleton for PRO) then flip after mount.
+  const emptySubscribe = (cb: () => void) => () => {};
+  const hasMounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+
   const allEmpty =
     !isLocked &&
+    hasMounted &&
     !isInitialLoading &&
     metricsA.tradeCount === 0 &&
     metricsB.tradeCount === 0 &&
     metricsC.tradeCount === 0;
 
-  const isLoading = !isLocked && isInitialLoading;
+  const isLoading = !isLocked && (!hasMounted || isInitialLoading);
 
   return (
     <div className="relative min-h-screen">
