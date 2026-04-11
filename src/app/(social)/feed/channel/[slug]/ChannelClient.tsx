@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Hash, Lock, Globe, ArrowLeft, Users } from 'lucide-react';
 import { useFeed } from '@/hooks/useFeed';
 import { usePostActions } from '@/hooks/usePostActions';
@@ -32,20 +33,24 @@ export default function ChannelClient({ channel, initialFeed, initialMembership,
   const [membersOpen, setMembersOpen] = useState(false);
 
   const { subscription } = useSubscription({ userId, initialData: initialSubscription });
-  const { data: membership, isLoading: isMemberIsLoading } = useChannelMembershipFlags(channel.id, initialMembership);
+  const { data: membership, isLoading: isMemberLoading } = useChannelMembershipFlags(channel.id, initialMembership);
   const isMember = membership?.isMember ?? false;
   const removedByOwner = membership?.removedByOwner ?? false;
-  const isMemberLoading = isMemberIsLoading;
   const { join, leave } = useChannelActions(userId);
 
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(
+  const { data, isLoading, isError: isFeedError, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(
     userId,
     initialFeed,
     channel.id
   );
   const { like, create, edit, remove, report } = usePostActions(userId, channel.id);
 
-  const posts = data?.pages.flatMap((p) => p.items) ?? [];
+  const seenPostIds = new Set<string>();
+  const posts = data?.pages.flatMap((p) => p.items).filter((p) => {
+    if (seenPostIds.has(p.id)) return false;
+    seenPostIds.add(p.id);
+    return true;
+  }) ?? [];
   const currentProfileId = currentProfile?.id;
 
   const handleLike = useCallback((id: string) => like.mutate(id), [like]);
@@ -82,10 +87,9 @@ export default function ChannelClient({ channel, initialFeed, initialMembership,
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-11 h-11 rounded-xl shadow-sm themed-header-icon-box shrink-0 flex items-center justify-center overflow-hidden">
               {channel.logo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={channel.logo_url} alt={channel.name} className="w-full h-full object-cover" width="44" height="44" />
+                <Image src={channel.logo_url} alt={channel.name} className="w-full h-full object-cover" width={44} height={44} />
               ) : (
-                <Hash className="w-6 h-6" />
+                <Hash className="w-6 h-6" aria-hidden="true" />
               )}
             </div>
             <div className="min-w-0">
@@ -94,9 +98,9 @@ export default function ChannelClient({ channel, initialFeed, initialMembership,
                   {channel.name}
                 </h1>
                 {channel.is_public ? (
-                  <Globe className="w-5 h-5 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden />
+                  <Globe className="w-5 h-5 shrink-0 text-slate-500 dark:text-slate-400" aria-label="Public channel" />
                 ) : (
-                  <Lock className="w-5 h-5 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden />
+                  <Lock className="w-5 h-5 shrink-0 text-slate-500 dark:text-slate-400" aria-label="Private channel" />
                 )}
               </div>
               <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
@@ -190,6 +194,7 @@ export default function ChannelClient({ channel, initialFeed, initialMembership,
       <FeedPostList
         posts={posts}
         isLoading={isLoading}
+        isError={isFeedError}
         isFetchingNextPage={isFetchingNextPage}
         hasNextPage={!!hasNextPage}
         fetchNextPage={fetchNextPage}

@@ -19,17 +19,17 @@ export default async function FeedPage() {
     // unauthenticated
   }
 
-  const [profile, initialFeedData, initialSubscription, initialMyChannels, initialFollowingFeedData] = await Promise.all([
+  const [profile, initialFeedData, initialSubscription, initialMyChannels, initialFollowingFeedData, activityDiscount] = await Promise.all([
     user ? ensureSocialProfile() : null,
     getPublicFeed(undefined, 20),
     user ? resolveSubscription(user.id) : null,
     user ? getMyChannels() : null,
     user ? getTimeline(undefined, 20) : null,
+    user ? getDiscountByTypeAndMilestone(user.id, 'activity', NO_MILESTONE) : null,
   ]);
 
-  const [initialActivityCount, activityDiscount] = await Promise.all([
+  const [initialActivityCount] = await Promise.all([
     profile ? getUserActivityCount(profile.id) : null,
-    user ? getDiscountByTypeAndMilestone(user.id, 'activity', NO_MILESTONE) : null,
   ]);
 
   // The activity discount is "applied" when it has a pending variant revert attached.

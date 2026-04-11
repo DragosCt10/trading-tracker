@@ -36,6 +36,7 @@ export function useFeed(
       : undefined,
     // eslint-disable-next-line react-hooks/purity
     initialDataUpdatedAt: initialData ? Date.now() : undefined,
+    maxPages: 10,
     ...FEED_DATA,
   });
 }

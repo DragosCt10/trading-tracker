@@ -52,6 +52,8 @@ interface PostCardProps {
   showAuthorFollowButton?: boolean;
   initialFollowing?: boolean;
   isFollowStateLoading?: boolean;
+  /** Mark as above-the-fold priority — removes lazy loading and sets fetchpriority="high" on avatar. */
+  priority?: boolean;
 }
 
 function PostCardComponent({
@@ -71,6 +73,7 @@ function PostCardComponent({
   showAuthorFollowButton = false,
   initialFollowing = false,
   isFollowStateLoading = false,
+  priority = false,
 }: PostCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -130,7 +133,7 @@ function PostCardComponent({
           >
             {post.author.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={post.author.avatar_url} alt={displayedAuthorName} className="w-full h-full object-cover" width="36" height="36" loading="lazy" />
+              <img src={post.author.avatar_url} alt={displayedAuthorName} className="w-full h-full object-cover" width="36" height="36" loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'} />
             ) : (
               // Guard against missing author fields from DB joins (deleted profiles).
               String(displayedAuthorName ?? '?').slice(0, 1).toUpperCase()

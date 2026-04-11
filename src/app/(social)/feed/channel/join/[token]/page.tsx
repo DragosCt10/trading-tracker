@@ -2,40 +2,59 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getCachedUserSession } from '@/lib/server/session';
 import { createClient } from '@/utils/supabase/server';
-import JoinChannelSuccess from './JoinChannelSuccess';
+import { isValidInviteToken, isInviteExpired, isInviteAtMaxUses } from '@/lib/server/feedHelpers';
 import JoinChannelButton from './JoinChannelButton';
+
+const NOISE_TEXTURE_STYLE = {
+  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+  backgroundRepeat: 'repeat' as const,
+};
 
 interface Props {
   params: Promise<{ token: string }>;
 }
 
+type InviteRow = {
+  is_active: boolean;
+  expires_at: string | null;
+  max_uses: number | null;
+  use_count: number;
+  channel_name: string | null;
+};
+
 // Fetch a read-only preview of the invite — no DB state is mutated.
 // Actual redemption (use_count increment + join) happens in JoinChannelButton
 // via a Server Action triggered by explicit user click.
-async function getInvitePreview(token: string) {
+async function getInvitePreview(token: string): Promise<InviteRow | null> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('channel_invites')
-    .select('is_active, expires_at, max_uses, use_count, feed_channels(name, slug)')
+    .select('is_active, expires_at, max_uses, use_count, feed_channels(name)')
     .eq('token', token)
     .maybeSingle();
 
   if (error || !data) return null;
 
-  type Row = {
-    is_active: boolean;
-    expires_at: string | null;
-    max_uses: number | null;
-    use_count: number;
-    feed_channels: { name: string; slug: string }[] | null;
-  };
+  const channels = data.feed_channels as { name: string }[] | { name: string } | null;
+  const channelName = Array.isArray(channels) ? (channels[0]?.name ?? null) : (channels?.name ?? null);
 
-  return data as unknown as Row;
+  return {
+    is_active: data.is_active as boolean,
+    expires_at: data.expires_at as string | null,
+    max_uses: data.max_uses as number | null,
+    use_count: data.use_count as number,
+    channel_name: channelName,
+  };
 }
 
 export default async function JoinChannelPage({ params }: Props) {
   const { token } = await params;
+
+  // Reject malformed tokens before hitting the DB (S7 — prevents enumeration/probing)
+  if (!isValidInviteToken(token)) {
+    return <InviteError />;
+  }
 
   const session = await getCachedUserSession();
   if (!session.user) {
@@ -44,32 +63,25 @@ export default async function JoinChannelPage({ params }: Props) {
 
   const invite = await getInvitePreview(token);
 
-  // Invalid, revoked, or token not found
+  // Invalid, revoked, token not found, expired, or maxed — show a generic error (S8)
   if (!invite || !invite.is_active) {
-    return <InviteError message="This invite link is invalid or has been revoked." />;
+    return <InviteError />;
+  }
+  if (isInviteExpired(invite.expires_at)) {
+    return <InviteError />;
+  }
+  if (isInviteAtMaxUses(invite.use_count, invite.max_uses)) {
+    return <InviteError />;
   }
 
-  // Expired
-  if (invite.expires_at !== null && new Date(invite.expires_at) <= new Date()) {
-    return <InviteError message="This invite link has expired." />;
-  }
-
-  // Maxed
-  if (invite.max_uses !== null && invite.use_count >= invite.max_uses) {
-    return <InviteError message="This invite link has reached its maximum number of uses." />;
-  }
-
-  const channelName = invite.feed_channels?.[0]?.name ?? 'a channel';
+  const channelName = invite.channel_name ?? 'a channel';
 
   return (
     <div className="relative overflow-hidden flex items-start justify-center px-4 pb-4 pt-15 transition-colors duration-500">
       {/* Noise texture */}
       <div
         className="absolute inset-0 opacity-[0.015] dark:opacity-0 mix-blend-overlay pointer-events-none"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-          backgroundRepeat: 'repeat',
-        }}
+        style={NOISE_TEXTURE_STYLE}
       />
 
       <div className="relative z-10 w-full max-w-md">
@@ -128,16 +140,13 @@ export default async function JoinChannelPage({ params }: Props) {
   );
 }
 
-function InviteError({ message }: { message: string }) {
+function InviteError() {
   return (
     <div className="relative overflow-hidden flex items-start justify-center px-4 pb-4 pt-15 transition-colors duration-500">
       {/* Noise texture */}
       <div
         className="absolute inset-0 opacity-[0.015] dark:opacity-0 mix-blend-overlay pointer-events-none"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-          backgroundRepeat: 'repeat',
-        }}
+        style={NOISE_TEXTURE_STYLE}
       />
 
       <div className="relative z-10 w-full max-w-md">
@@ -158,7 +167,7 @@ function InviteError({ message }: { message: string }) {
             <h1 className="text-4xl font-bold text-foreground">
               Link unavailable
             </h1>
-            <p className="text-sm text-muted-foreground font-medium">{message}</p>
+            <p className="text-sm text-muted-foreground font-medium">This invite is no longer valid.</p>
           </div>
         </div>
 

@@ -1,3 +1,5 @@
+export const revalidate = 60;
+
 import { notFound } from 'next/navigation';
 import { getCachedUserSession } from '@/lib/server/session';
 import { getCachedSocialProfile } from '@/lib/server/socialProfile';
@@ -29,13 +31,18 @@ export default async function ChannelPage({ params }: Props) {
   ]);
 
   return (
-    <ChannelClient
-      channel={channel}
-      initialFeed={initialFeed}
-      initialMembership={initialMembership}
-      initialSubscription={initialSubscription}
-      userId={session.user.id}
-      currentProfile={profile}
-    />
+    <>
+      {channel.logo_url && (
+        <link rel="preload" as="image" href={channel.logo_url} />
+      )}
+      <ChannelClient
+        channel={channel}
+        initialFeed={initialFeed}
+        initialMembership={initialMembership}
+        initialSubscription={initialSubscription}
+        userId={session.user.id}
+        currentProfile={profile}
+      />
+    </>
   );
 }

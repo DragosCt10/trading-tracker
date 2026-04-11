@@ -2,15 +2,15 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import PostCard from '@/components/feed/PostCard';
 import ProfileSummaryCard from '@/components/feed/ProfileSummaryCard';
 import EditPostModal from '@/components/feed/EditPostModal';
-import { useUserDetails } from '@/hooks/useUserDetails';
-import { useSocialProfile } from '@/hooks/useSocialProfile';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSocialUser } from '@/contexts/SocialUserContext';
 import { usePostActions } from '@/hooks/usePostActions';
+import { getPostsByProfile } from '@/lib/server/feedPosts';
+import { queryKeys } from '@/lib/queryKeys';
 import type { SocialProfile, FeedPost, PaginatedResult } from '@/types/social';
 
 interface ProfileClientProps {
@@ -26,14 +26,11 @@ export default function ProfileClient({
   currentProfileId,
   initialFollowing,
 }: ProfileClientProps) {
-  const router = useRouter();
-  const { data: userData } = useUserDetails();
-  const userId = userData?.user?.id;
-  const { data: ownProfile } = useSocialProfile(userId);
-  const { subscription } = useSubscription({ userId });
+  const queryClient = useQueryClient();
+  const { userId, ownProfile, subscription } = useSocialUser();
   const { like, remove, edit, report } = usePostActions(userId);
   const [followerCount, setFollowerCount] = useState(profile.follower_count);
-  const [followingCount, setFollowingCount] = useState(profile.following_count);
+  const followingCount = profile.following_count;
   const [isFollowing, setIsFollowing] = useState(initialFollowing);
   const [editPost, setEditPost] = useState<FeedPost | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
@@ -41,19 +38,38 @@ export default function ProfileClient({
 
   // Prefer server-provided identity to avoid SSR/client hydration divergence.
   const isOwnProfile = currentProfileId === profile.id;
+
+  const {
+    data: postsData,
+    isError: isPostsError,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: queryKeys.feed.profile(profile.username),
+    queryFn: ({ pageParam }) => getPostsByProfile(profile.id, pageParam as string | undefined, 20),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    initialData: { pages: [initialPosts], pageParams: [undefined] },
+    // eslint-disable-next-line react-hooks/purity
+    initialDataUpdatedAt: Date.now(),
+    staleTime: 60_000,
+  });
+
+  const posts = postsData?.pages.flatMap((p) => p.items) ?? [];
   const effectiveTier = isOwnProfile && subscription?.tier ? subscription.tier : profile.tier;
 
-  const refreshProfile = useCallback(() => {
-    router.refresh();
-  }, [router]);
+  const refreshPosts = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.feed.profile(profile.username) });
+  }, [queryClient, profile.username]);
 
   const handleLike = useCallback(
-    (id: string) => like.mutate(id, { onSettled: refreshProfile }),
-    [like, refreshProfile]
+    (id: string) => { if (!like.isPending) like.mutate(id, { onSettled: refreshPosts }); },
+    [like, refreshPosts]
   );
   const handleDelete = useCallback(
-    (id: string) => remove.mutate(id, { onSettled: refreshProfile }),
-    [remove, refreshProfile]
+    (id: string) => { if (!remove.isPending) remove.mutate(id, { onSettled: refreshPosts }); },
+    [remove, refreshPosts]
   );
   const handleEdit = useCallback((p: FeedPost) => {
     setEditError(null);
@@ -61,8 +77,8 @@ export default function ProfileClient({
   }, []);
   const handleReport = useCallback(
     (id: string, reason: string) =>
-      report.mutate({ postId: id, reason: reason.trim() }, { onSettled: refreshProfile }),
-    [report, refreshProfile]
+      report.mutate({ postId: id, reason: reason.trim() }, { onSettled: refreshPosts }),
+    [report, refreshPosts]
   );
 
   function handleFollowChange(nextFollowing: boolean) {
@@ -71,12 +87,13 @@ export default function ProfileClient({
   }
 
   return (
-    <div suppressHydrationWarning className="mx-auto w-full max-w-5xl px-4 sm:px-0 py-6 space-y-6">
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-0 py-6 space-y-6">
+      <h1 className="sr-only">{profile.display_name} — Profile</h1>
       <Link
         href="/feed"
         className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors"
       >
-        <ArrowLeft className="w-4 h-4" />
+        <ArrowLeft className="w-4 h-4" aria-hidden="true" />
         Back to feed
       </Link>
 
@@ -97,13 +114,17 @@ export default function ProfileClient({
       <div className="space-y-2">
         <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide px-1">Posts</h2>
 
-        {initialPosts.items.length === 0 ? (
+        {isPostsError ? (
+          <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-8 text-center" role="alert">
+            <p className="text-slate-500 text-sm">Unable to load posts. Please try refreshing.</p>
+          </div>
+        ) : posts.length === 0 ? (
           <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-8 text-center">
-            <p className="text-slate-500 text-sm">No posts yet</p>
+            <p role="status" className="text-slate-500 text-sm">No posts yet</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {initialPosts.items.map((post) => (
+            {posts.map((post) => (
               <PostCard
                 key={post.id}
                 post={post}
@@ -116,6 +137,22 @@ export default function ProfileClient({
                 onReport={userId ? handleReport : undefined}
               />
             ))}
+            {hasNextPage && (
+              <div className="flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-300/60 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isFetchingNextPage ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Loading…</>
+                  ) : (
+                    'Load more posts'
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -135,7 +172,7 @@ export default function ProfileClient({
               return;
             }
             setEditPost(null);
-            refreshProfile();
+            refreshPosts();
           }}
           initialContent={editPost.content}
           maxLen={subscription.definition.limits.maxPostContentLength}

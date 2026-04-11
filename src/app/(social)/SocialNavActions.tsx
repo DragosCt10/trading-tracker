@@ -24,6 +24,7 @@ export default function SocialNavActions({ userId, initialUnreadCount }: SocialN
   const { theme, toggleTheme, mounted } = useTheme();
   const [themePickerOpen, setThemePickerOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState(false);
 
   const handleSignOut = useCallback(async () => {
     try {
@@ -46,6 +47,8 @@ export default function SocialNavActions({ userId, initialUnreadCount }: SocialN
       router.replace('/feed');
     } catch {
       setIsSigningOut(false);
+      setSignOutError(true);
+      setTimeout(() => setSignOutError(false), 4000);
     }
   }, [queryClient, router, userId]);
 
@@ -54,6 +57,9 @@ export default function SocialNavActions({ userId, initialUnreadCount }: SocialN
 
   return (
     <>
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {signOutError ? 'Sign out failed. Please try again.' : isSigningOut ? 'Signing out…' : ''}
+      </div>
       <div className="flex items-center gap-2">
         {/* Palette — always visible */}
         <Button

@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
-import { Hash, Plus, PlusCircle, Globe, Lock, UserPlus, Users, Settings2, Ban, Loader2 } from 'lucide-react';
+import { Hash, Plus, PlusCircle, Globe, Lock, UserPlus, Settings2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useFeed } from '@/hooks/useFeed';
 import { usePostActions } from '@/hooks/usePostActions';
@@ -18,12 +17,14 @@ import NewPostsBanner from '@/components/feed/NewPostsBanner';
 import { useNewPostsNotifier } from '@/hooks/useNewPostsNotifier';
 import SearchBar from '@/components/feed/SearchBar';
 import ActivityProgressCard from '@/components/feed/ActivityProgressCard';
+import ChannelListItem from '@/components/feed/ChannelListItem';
+import ChannelActionButton from '@/components/feed/ChannelActionButton';
 
-const EditPostModal      = dynamic(() => import('@/components/feed/EditPostModal'));
-const CreateChannelModal = dynamic(() => import('@/components/feed/CreateChannelModal'));
-const ChannelInviteModal = dynamic(() => import('@/components/feed/ChannelInviteModal'));
-const EditChannelModal   = dynamic(() => import('@/components/feed/EditChannelModal'));
-const ProfilePreviewModal = dynamic(() => import('@/components/feed/ProfilePreviewModal'));
+const EditPostModal      = dynamic(() => import('@/components/feed/EditPostModal'),      { loading: () => null });
+const CreateChannelModal = dynamic(() => import('@/components/feed/CreateChannelModal'), { loading: () => null });
+const ChannelInviteModal = dynamic(() => import('@/components/feed/ChannelInviteModal'), { loading: () => null });
+const EditChannelModal   = dynamic(() => import('@/components/feed/EditChannelModal'),   { loading: () => null });
+const ProfilePreviewModal = dynamic(() => import('@/components/feed/ProfilePreviewModal'), { loading: () => null });
 import { FEED_CARD_SURFACE_CLASS } from '@/components/feed/feedCardStyles';
 import { cn } from '@/lib/utils';
 import type { SocialProfile, FeedPost, FeedChannel, PaginatedResult } from '@/types/social';
@@ -100,7 +101,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
 
   const isChannelsTab = activeTab === 'channels';
   const feedView = activeTab === 'following' ? 'following' : 'public';
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(
+  const { data, isLoading, isError: isFeedError, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(
     uid,
     feedView === 'public' ? initialFeedData : initialFollowingFeedData,
     undefined,
@@ -184,7 +185,11 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 sm:px-0 py-6">
-      <div className="flex gap-6 items-start">
+      <h1 className="sr-only">Feed</h1>
+      <a href="#feed-main" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-slate-900 focus:rounded-xl focus:shadow-lg focus:outline-none">
+        Skip to feed
+      </a>
+      <div id="feed-main" className="flex gap-6 items-start">
         {/* Main feed */}
         <div className="flex-1 min-w-0 flex flex-col gap-6">
           {/* Tab bar — matches AdminClient */}
@@ -213,6 +218,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                     setActiveTab(tab.id);
                     clearCount();
                   }}
+                  aria-current={isActive ? 'page' : undefined}
                   className={cn(
                     'flex-1 rounded-xl px-4 py-2.5 min-h-[2.75rem] text-sm font-semibold transition-colors !shadow-none cursor-pointer flex items-center justify-center gap-1.5',
                     isActive
@@ -220,7 +226,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                       : 'text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 border border-transparent'
                   )}
                 >
-                  <TabIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  <TabIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   {tab.label}
                 </button>
               );
@@ -286,95 +292,65 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                   {myChannels.map((channel) => {
                     const isOwner = channel.owner_id === initialProfile?.id;
                     return (
-                      <div key={channel.id} className="flex items-center gap-3 px-4 py-3.5 hover:bg-slate-100/70 dark:hover:bg-slate-800/40 transition-colors">
-                        <Link href={`/feed/channel/${channel.slug}`} className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/60 overflow-hidden">
-                            {channel.logo_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={channel.logo_url} alt={channel.name} className="w-full h-full object-cover" width="32" height="32" loading="lazy" />
-                            ) : (
-                              <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate leading-5">{channel.name}</p>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <p className="text-xs text-slate-500 dark:text-slate-500 truncate">#{channel.slug}</p>
-                              {channel.member_count != null && (
+                      <ChannelListItem
+                        key={channel.id}
+                        channel={channel}
+                        action={
+                          isOwner ? (
+                            <div className="flex items-center gap-2 shrink-0">
+                              {!channel.is_public && (
                                 <>
-                                  <span className="text-slate-300 dark:text-slate-700 text-xs">·</span>
-                                  <span className="flex items-center gap-1 text-xs text-slate-700 dark:text-slate-200">
-                                    <Users className="w-3 h-3" />
-                                    {channel.member_count}
-                                  </span>
+                                  <button
+                                    type="button"
+                                    aria-label="Invite people"
+                                    onClick={(e) => { e.preventDefault(); setInviteModalChannel(channel); }}
+                                    className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 h-8 rounded-xl text-white text-xs font-medium themed-btn-primary border-0 transition-opacity hover:opacity-90"
+                                  >
+                                    <UserPlus className="w-3.5 h-3.5" />
+                                    Add
+                                  </button>
+                                  <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
                                 </>
                               )}
-                            </div>
-                          </div>
-                        </Link>
-                        {isOwner ? (
-                          <div className="flex items-center gap-2 shrink-0">
-                            {!channel.is_public && (
-                              <>
+                              <div className="flex items-center gap-2">
                                 <button
                                   type="button"
-                                  title="Invite people"
-                                  onClick={(e) => { e.preventDefault(); setInviteModalChannel(channel); }}
-                                  className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 h-8 rounded-xl text-white text-xs font-medium themed-btn-primary border-0 transition-opacity hover:opacity-90"
+                                  aria-label="Edit channel"
+                                  onClick={(e) => { e.preventDefault(); setEditModalChannel(channel); }}
+                                  className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 h-8 rounded-xl text-slate-700 dark:text-slate-200 text-xs font-medium border border-slate-300/90 dark:border-slate-600/70 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
                                 >
-                                  <UserPlus className="w-3.5 h-3.5" />
-                                  Add
+                                  <Settings2 className="w-3.5 h-3.5" />
+                                  Edit
                                 </button>
                                 <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
-                              </>
-                            )}
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                title="Edit channel"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setEditModalChannel(channel);
-                                }}
-                                className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 h-8 rounded-xl text-slate-700 dark:text-slate-200 text-xs font-medium border border-slate-300/90 dark:border-slate-600/70 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
-                              >
-                                <Settings2 className="w-3.5 h-3.5" />
-                                Edit
-                              </button>
-                              <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
-                              <span className="text-[10px] text-slate-500 dark:text-slate-200">
-                                {channel.is_public ? 'Public' : 'Private'}
-                              </span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-200">
+                                  {channel.is_public ? 'Public' : 'Private'}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 shrink-0">
-                            {channel.is_public
-                              ? <Globe className="w-3.5 h-3.5 text-slate-500 dark:text-slate-600" />
-                              : <Lock  className="w-3.5 h-3.5 text-slate-500 dark:text-slate-600" />
-                            }
-                            <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 cursor-pointer rounded-xl text-xs border-slate-300/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/70 dark:border-slate-600/70 dark:bg-slate-800/40 dark:text-rose-300 dark:hover:text-rose-200 dark:hover:border-rose-400/60 dark:hover:bg-rose-500/12"
-                              disabled={pendingChannelId === channel.id}
-                              onClick={async () => {
-                                setPendingChannelId(channel.id);
-                                try {
-                                  await leaveChannel.mutateAsync(channel.id);
-                                } finally {
-                                  setPendingChannelId(null);
-                                }
-                              }}
-                            >
-                              {pendingChannelId === channel.id
-                                ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Leaving…</>
-                                : 'Leave'}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                          ) : (
+                            <div className="flex items-center gap-2 shrink-0">
+                              {channel.is_public
+                                ? <Globe className="w-3.5 h-3.5 text-slate-500 dark:text-slate-600" />
+                                : <Lock  className="w-3.5 h-3.5 text-slate-500 dark:text-slate-600" />
+                              }
+                              <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
+                              <ChannelActionButton
+                                channelId={channel.id}
+                                isMember
+                                isRemoved={false}
+                                isPending={pendingChannelId === channel.id}
+                                onLeave={async () => {
+                                  setPendingChannelId(channel.id);
+                                  try { await leaveChannel.mutateAsync(channel.id); }
+                                  finally { setPendingChannelId(null); }
+                                }}
+                                onJoin={() => {}}
+                              />
+                            </div>
+                          )
+                        }
+                      />
                     );
                   })}
                 </div>
@@ -393,78 +369,22 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                 )}
                 <div className="divide-y divide-slate-200/80 dark:divide-slate-800/60">
                   {discoverChannels.map((channel) => (
-                    <div key={channel.id} className="flex items-center gap-3 px-4 py-3.5 hover:bg-slate-100/70 dark:hover:bg-slate-800/40 transition-colors">
-                      <Link href={`/feed/channel/${channel.slug}`} className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/60 overflow-hidden">
-                          {channel.logo_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={channel.logo_url} alt={channel.name} className="w-full h-full object-cover" width="32" height="32" loading="lazy" />
-                          ) : (
-                            <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate leading-5">{channel.name}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <p className="text-xs text-slate-500 dark:text-slate-500 truncate">#{channel.slug}</p>
-                            {channel.member_count != null && (
-                              <>
-                                <span className="text-slate-300 dark:text-slate-700 text-xs">·</span>
-                                <span className="flex items-center gap-1 text-xs text-slate-700 dark:text-slate-200">
-                                  <Users className="w-3 h-3" />
-                                  {channel.member_count}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </Link>
-                      {uid && channel.owner_id !== initialProfile?.id && (
-                        myChannelIds.has(channel.id) ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="shrink-0 cursor-pointer h-8 rounded-xl text-xs border-slate-300/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/70 dark:border-slate-600/70 dark:bg-slate-800/40 dark:text-rose-300 dark:hover:text-rose-200 dark:hover:border-rose-400/60 dark:hover:bg-rose-500/12"
-                            disabled={pendingChannelId === channel.id}
-                            onClick={async () => {
+                    <ChannelListItem
+                      key={channel.id}
+                      channel={channel}
+                      action={
+                        uid && channel.owner_id !== initialProfile?.id ? (
+                          <ChannelActionButton
+                            channelId={channel.id}
+                            isMember={myChannelIds.has(channel.id)}
+                            isRemoved={removedChannelIds.has(channel.id)}
+                            isPending={pendingChannelId === channel.id}
+                            onLeave={async () => {
                               setPendingChannelId(channel.id);
-                              try {
-                                await leaveChannel.mutateAsync(channel.id);
-                              } finally {
-                                setPendingChannelId(null);
-                              }
+                              try { await leaveChannel.mutateAsync(channel.id); }
+                              finally { setPendingChannelId(null); }
                             }}
-                          >
-                            {pendingChannelId === channel.id
-                              ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Leaving…</>
-                              : 'Leave'}
-                          </Button>
-                        ) : removedChannelIds.has(channel.id) ? (
-                          <TooltipProvider delayDuration={200}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  disabled
-                                  className="shrink-0 h-8 rounded-xl text-xs border-rose-200 dark:border-rose-800/60 text-rose-400 dark:text-rose-500 bg-rose-50/50 dark:bg-rose-950/20 cursor-not-allowed opacity-70"
-                                >
-                                  <Ban className="w-3 h-3 mr-1" />
-                                  Removed by owner
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="left">
-                                You were removed by the owner
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="shrink-0 h-8 rounded-xl text-xs border-slate-300 dark:border-slate-600 cursor-pointer"
-                            disabled={pendingChannelId === channel.id}
-                            onClick={async () => {
+                            onJoin={async () => {
                               setPendingChannelId(channel.id);
                               try {
                                 const result = await joinChannel.mutateAsync(channel.id);
@@ -478,14 +398,10 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                                 setPendingChannelId(null);
                               }
                             }}
-                          >
-                            {pendingChannelId === channel.id
-                              ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Joining…</>
-                              : 'Join'}
-                          </Button>
-                        )
-                      )}
-                    </div>
+                          />
+                        ) : undefined
+                      }
+                    />
                   ))}
                 </div>
               </div>
@@ -495,6 +411,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
             <FeedPostList
               posts={visiblePosts}
               isLoading={isLoading}
+              isError={isFeedError}
               isFetchingNextPage={isFetchingNextPage}
               hasNextPage={!!hasNextPage}
               fetchNextPage={fetchNextPage}
@@ -565,39 +482,11 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                 </div>
               ) : (
                 myChannels.map((channel) => (
-                  <Link
+                  <ChannelListItem
                     key={channel.id}
-                    href={`/feed/channel/${channel.slug}`}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-colors"
-                  >
-                    <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/60 overflow-hidden">
-                      {channel.logo_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={channel.logo_url} alt={channel.name} className="w-full h-full object-cover" width="28" height="28" loading="lazy" />
-                      ) : (
-                        <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate leading-5">{channel.name}</p>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <p className="text-[11px] text-slate-500 dark:text-slate-500 truncate">#{channel.slug}</p>
-                        {channel.member_count != null && (
-                          <>
-                            <span className="text-slate-300 dark:text-slate-700 text-[11px]">·</span>
-                            <span className="flex items-center gap-1 text-[11px] text-slate-700 dark:text-slate-200">
-                              <Users className="w-2.5 h-2.5" />
-                              {channel.member_count}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    {channel.is_public
-                      ? <Globe className="w-3 h-3 text-slate-500 dark:text-slate-600 shrink-0" />
-                      : <Lock  className="w-3 h-3 text-slate-500 dark:text-slate-600 shrink-0" />
-                    }
-                  </Link>
+                    channel={channel}
+                    compact
+                  />
                 ))
               )}
             </div>
@@ -667,8 +556,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
           open={!!editModalChannel}
           onClose={() => {
             setEditModalChannel(null);
-            queryClient.invalidateQueries({ queryKey: queryKeys.feed.channels(uid) });
-            queryClient.invalidateQueries({ queryKey: queryKeys.feed.channels() });
+            queryClient.invalidateQueries({ queryKey: ['feed:channels'] });
           }}
         />
       )}

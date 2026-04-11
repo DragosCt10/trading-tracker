@@ -3,7 +3,7 @@ import { getPost } from '@/lib/server/feedPosts';
 import { getComments } from '@/lib/server/feedInteractions';
 import PostDetailClient from './PostDetailClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 30;
 
 export default async function PostDetailPage({
   params,

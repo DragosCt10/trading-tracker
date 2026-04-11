@@ -6,7 +6,7 @@ import { getCachedSocialProfile } from './socialProfile';
 import { getCachedSubscription } from './subscription';
 import { isPublicChannelReadOnlyForProfile } from './feedChannels';
 import { checkPostMilestones } from './feedNotifications';
-import { mapAuthorRow, isValidCursor, AUTHOR_SELECT_FIELDS } from './feedHelpers';
+import { mapAuthorRow, isValidCursor, AUTHOR_SELECT_FIELDS, nextMondayUtc, currentWeekMondayUtc, todayUtc, normalizeTradeOutcome } from './feedHelpers';
 import { isReadOnlyMode } from './readOnlyMode';
 import type { AuthorRow } from './feedHelpers';
 import type { FeedPost, TradeSnapshot, TradeSelectorItem, PaginatedResult } from '@/types/social';
@@ -16,6 +16,8 @@ import type { FeedPost, TradeSnapshot, TradeSelectorItem, PaginatedResult } from
 type PostResult<T> =
   | { data: T }
   | { error: string; code: 'UNAUTHORIZED' | 'NOT_FOUND' | 'LIMIT_EXCEEDED' | 'DB_ERROR'; resetDate?: Date };
+
+// ─── Post row mapping ─────────────────────────────────────────────────────────
 
 function mapPostRow(row: Record<string, unknown>, isLikedByMe: boolean): FeedPost {
   // The DB function / join can return `author: null` when the referenced profile
@@ -36,35 +38,6 @@ function mapPostRow(row: Record<string, unknown>, isLikedByMe: boolean): FeedPos
     updated_at:     row.updated_at as string,
     is_liked_by_me: isLikedByMe,
   };
-}
-
-/** Next Monday 00:00 UTC — used to tell starter users when their limit resets. */
-function nextMondayUtc(): Date {
-  const now = new Date();
-  const day = now.getUTCDay(); // 0 Sun … 6 Sat
-  const daysUntilMonday = day === 0 ? 1 : 8 - day;
-  const next = new Date(now);
-  next.setUTCDate(now.getUTCDate() + daysUntilMonday);
-  next.setUTCHours(0, 0, 0, 0);
-  return next;
-}
-
-/** Monday 00:00 UTC of the current week. */
-function currentWeekMondayUtc(): Date {
-  const now = new Date();
-  const day = now.getUTCDay();
-  const daysBack = day === 0 ? 6 : day - 1;
-  const monday = new Date(now);
-  monday.setUTCDate(now.getUTCDate() - daysBack);
-  monday.setUTCHours(0, 0, 0, 0);
-  return monday;
-}
-
-/** Today 00:00 UTC. */
-function todayUtc(): Date {
-  const now = new Date();
-  now.setUTCHours(0, 0, 0, 0);
-  return now;
 }
 
 // ─── Base feed query ──────────────────────────────────────────────────────────
@@ -133,7 +106,7 @@ export async function getPublicFeed(
     p_user_id: session.user?.id ?? null,
   });
 
-  if (error) { console.error('[getPublicFeed]', error); return { items: [], nextCursor: null, hasMore: false }; }
+  if (error) { console.error('[getPublicFeed]', error); throw new Error('Failed to load feed'); }
 
   const rows = (data ?? []) as Record<string, unknown>[];
   const items = rows.slice(0, limit).map((r) => mapPostRow(r, (r.is_liked_by_me as boolean) ?? false));
@@ -162,7 +135,7 @@ export async function getTimeline(
     p_limit:   limit,
   });
 
-  if (error) { console.error('[getTimeline]', error); return { items: [], nextCursor: null, hasMore: false }; }
+  if (error) { console.error('[getTimeline]', error); throw new Error('Failed to load timeline'); }
 
   const rows = (data ?? []) as Record<string, unknown>[];
   const items = rows.slice(0, limit).map((r) => mapPostRow(r, (r.is_liked_by_me as boolean) ?? false));
@@ -270,7 +243,7 @@ export async function getPostsByProfile(
 
   const query = buildFeedQuery(supabase, 'profile', { profileId, cursor, limit });
   const { data, error } = await query;
-  if (error) { console.error('[getPostsByProfile]', error); return { items: [], nextCursor: null, hasMore: false }; }
+  if (error) { console.error('[getPostsByProfile]', error); throw new Error('Failed to load profile posts'); }
 
   const rows = (data ?? []) as Record<string, unknown>[];
   const postIds = rows.slice(0, limit).map((r) => r.id as string);
@@ -347,10 +320,7 @@ export async function getUserTradesForPosting(startDate?: string, endDate?: stri
       .map((url: string, i: number) => ({ url, tf: t.trade_screen_timeframes?.[i] }))
       .filter((s) => !!s.url);
 
-    const outcomeRaw = (t.trade_outcome ?? '').toLowerCase();
-    const outcome =
-      outcomeRaw.includes('win') ? 'win' :
-      outcomeRaw.includes('loss') ? 'loss' : 'be';
+    const outcome = normalizeTradeOutcome(t.trade_outcome ?? '');
 
     return {
       id: t.id,
@@ -485,8 +455,7 @@ export async function createPost(input: {
       trade_screens: string[] | null; trade_screen_timeframes: string[] | null;
     };
 
-    const outcomeRaw = (t.trade_outcome ?? '').toLowerCase();
-    const outcome = outcomeRaw.includes('win') ? 'win' : outcomeRaw.includes('loss') ? 'loss' : 'be';
+    const outcome = normalizeTradeOutcome(t.trade_outcome ?? '');
 
     const screens = (t.trade_screens ?? [])
       .map((url: string, i: number) => ({ url, tf: t.trade_screen_timeframes?.[i] }))
@@ -614,7 +583,7 @@ export async function getChannelFeed(
     p_user_id:    session.user?.id ?? null,
   });
 
-  if (error) { console.error('[getChannelFeed]', error); return { items: [], nextCursor: null, hasMore: false }; }
+  if (error) { console.error('[getChannelFeed]', error); throw new Error('Failed to load channel feed'); }
 
   const rows = (data ?? []) as Record<string, unknown>[];
   return {

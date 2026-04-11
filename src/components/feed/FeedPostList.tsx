@@ -39,6 +39,8 @@ interface FeedPostListProps {
   skeletonCount?: number;
   /** Public feed: first loading row matches the create-post composer card. */
   composerSkeletonFirst?: boolean;
+  /** Show error state instead of empty when a fetch failed. */
+  isError?: boolean;
 }
 
 export default function FeedPostList({
@@ -60,6 +62,7 @@ export default function FeedPostList({
   emptySubtext,
   skeletonCount = 3,
   composerSkeletonFirst = false,
+  isError = false,
 }: FeedPostListProps) {
   const { theme, mounted } = useTheme();
   const isLightMode = mounted && theme === 'light';
@@ -85,6 +88,15 @@ export default function FeedPostList({
     );
   }
 
+  if (isError) {
+    return (
+      <div className={`${FEED_SURFACE_CLASS} p-10 text-center`} role="alert">
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Unable to load posts</p>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-500">Something went wrong. Please try refreshing.</p>
+      </div>
+    );
+  }
+
   if (posts.length === 0) {
     return (
       <div className={`${FEED_SURFACE_CLASS} p-10 text-center`}>
@@ -103,7 +115,7 @@ export default function FeedPostList({
       data={posts}
       endReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
       style={hasCustomScrollParent ? { height: '100%' } : undefined}
-      itemContent={(_, post) => (
+      itemContent={(index, post) => (
         <PostCard
           key={post.id}
           post={post}
@@ -120,6 +132,7 @@ export default function FeedPostList({
           showAuthorFollowButton
           initialFollowing={followedProfileIdSet.has(post.author.id)}
           isFollowStateLoading={isFollowingIdsLoading}
+          priority={index === 0}
         />
       )}
       components={{

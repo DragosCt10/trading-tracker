@@ -9,9 +9,7 @@ import CommentSection from '@/components/feed/CommentSection';
 import ProfilePreviewModal from '@/components/feed/ProfilePreviewModal';
 import { usePostActions } from '@/hooks/usePostActions';
 import { useChannelMembershipFlags } from '@/hooks/useChannels';
-import { useSocialProfile } from '@/hooks/useSocialProfile';
-import { useSubscription } from '@/hooks/useSubscription';
-import { useUserDetails } from '@/hooks/useUserDetails';
+import { useSocialUser } from '@/contexts/SocialUserContext';
 import { getPost } from '@/lib/server/feedPosts';
 import { queryKeys } from '@/lib/queryKeys';
 import { formatCompactCount } from '@/lib/utils';
@@ -23,10 +21,7 @@ interface PostDetailClientProps {
 }
 
 export default function PostDetailClient({ post, initialComments }: PostDetailClientProps) {
-  const { data: userData } = useUserDetails();
-  const userId = userData?.user?.id;
-  const { data: ownProfile } = useSocialProfile(userId);
-  const { subscription } = useSubscription({ userId });
+  const { userId, ownProfile, subscription } = useSocialUser();
   const { like, remove } = usePostActions(userId);
   const { data: channelMembership } = useChannelMembershipFlags(post.channel_id ?? '');
   const channelReadOnly = !!post.channel_id && (channelMembership?.removedByOwner ?? false);
@@ -48,11 +43,12 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 sm:px-0 py-6 space-y-4">
+      <h1 className="sr-only">Post</h1>
       <Link
         href="/feed"
         className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors"
       >
-        <ArrowLeft className="w-4 h-4" />
+        <ArrowLeft className="w-4 h-4" aria-hidden="true" />
         Back to feed
       </Link>
 
@@ -61,8 +57,8 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
         currentUserId={userId}
         currentProfileId={ownProfile?.id}
         currentUserTier={subscription?.tier}
-        onLike={(id) => like.mutate(id)}
-        onDelete={(id) => remove.mutate(id)}
+        onLike={(id) => { if (!like.isPending) like.mutate(id); }}
+        onDelete={(id) => { if (!remove.isPending) remove.mutate(id); }}
         onAuthorClick={(username) => setPreviewUsername(username)}
         expanded
       />

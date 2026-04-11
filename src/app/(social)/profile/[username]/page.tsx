@@ -4,7 +4,7 @@ import { getCachedSocialProfile, getSocialProfileByUsername, isFollowingProfile 
 import { getPostsByProfile } from '@/lib/server/feedPosts';
 import ProfileClient from './ProfileClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export default async function ProfilePage({
   params,

@@ -34,11 +34,12 @@ export default function JoinChannelButton({ token }: { token: string }) {
   return (
     <div className="flex flex-col items-center gap-4">
       {error && (
-        <p className="text-sm text-rose-500 text-center">{error}</p>
+        <p id="join-error" role="alert" className="text-sm text-rose-500 text-center">{error}</p>
       )}
       <button
         onClick={handleJoin}
         disabled={pending}
+        aria-describedby={error ? 'join-error' : undefined}
         className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white bg-[var(--tc-primary)] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {pending ? (
