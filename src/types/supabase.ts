@@ -390,6 +390,10 @@ export interface Database {
           current_period_start?: string | null;
           current_period_end?: string | null;
           cancel_at_period_end?: boolean;
+          price_amount?: number | null;
+          tax_amount?: number | null;
+          currency?: string | null;
+          updated_at?: string;
         };
         Update: Partial<{
           id: string; user_id: string; tier: 'starter' | 'pro' | 'elite';
@@ -398,6 +402,7 @@ export interface Database {
           provider_subscription_id: string | null; provider_customer_id: string | null;
           current_period_start: string | null; current_period_end: string | null;
           cancel_at_period_end: boolean; created_at: string; updated_at: string;
+          price_amount: number | null; tax_amount: number | null; currency: string | null;
         }>;
         Relationships: never[];
       };
