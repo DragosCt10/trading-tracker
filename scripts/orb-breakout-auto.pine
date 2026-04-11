@@ -1,0 +1,445 @@
+// This Pine Script™ is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+//@version=5
+strategy("ORB Breakout Auto",
+     overlay                 = true,
+     initial_capital         = 50000,
+     default_qty_type        = strategy.fixed,
+     default_qty_value       = 1,
+     pyramiding              = 0,
+     process_orders_on_close = true,
+     calc_on_every_tick      = false)
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ DAY FILTER ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+grpD     = "Day Filter"
+tradeMon = input.bool(true, "Monday",    group=grpD)
+tradeTue = input.bool(true, "Tuesday",   group=grpD)
+tradeWed = input.bool(true, "Wednesday", group=grpD)
+tradeThu = input.bool(true, "Thursday",  group=grpD)
+tradeFri = input.bool(true, "Friday",    group=grpD)
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ SESSION 1 ════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+grpS1      = "Session 1"
+tz         = input.string("UTC+3", "Timezone",
+     options=["UTC+3","UTC+2","UTC+1","UTC","UTC-4","UTC-5",
+              "Europe/Bucharest","Europe/London","America/New_York"], group=grpS1)
+startHour1 = input.int(16, "Range Start Hour",   minval=0, maxval=23, group=grpS1)
+startMin1  = input.int(30, "Range Start Minute",  minval=0, maxval=59, group=grpS1)
+endHour1   = input.int(16, "Range End Hour",      minval=0, maxval=23, group=grpS1)
+endMin1    = input.int(45, "Range End Minute",     minval=0, maxval=59, group=grpS1)
+sessEndHr1 = input.int(18, "Session End Hour",     minval=0, maxval=23, group=grpS1)
+sessEndMn1 = input.int(00, "Session End Minute",   minval=0, maxval=59, group=grpS1)
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ SESSION 2 ════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+grpS2       = "Session 2"
+useSession2 = input.bool(false, "Enable Session 2", group=grpS2)
+startHour2  = input.int(10, "Range Start Hour",   minval=0, maxval=23, group=grpS2)
+startMin2   = input.int(00, "Range Start Minute",  minval=0, maxval=59, group=grpS2)
+endHour2    = input.int(10, "Range End Hour",      minval=0, maxval=23, group=grpS2)
+endMin2     = input.int(15, "Range End Minute",     minval=0, maxval=59, group=grpS2)
+sessEndHr2  = input.int(12, "Session End Hour",     minval=0, maxval=23, group=grpS2)
+sessEndMn2  = input.int(00, "Session End Minute",   minval=0, maxval=59, group=grpS2)
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ TRADE RULES ══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+grpT     = "Trade Rules"
+buffer   = input.float(5,  "Breakout Buffer (points)", minval=0, group=grpT)
+slPts    = input.float(50, "Stop Loss (points)",       minval=0, group=grpT)
+tradeQty = input.int(3,    "Contracts (single TP mode)", minval=1, group=grpT,
+     tooltip="Position size when Multiple TPs is disabled")
+oneTrade = input.bool(true, "One trade per session per day", group=grpT)
+closeEOD = input.bool(true, "Flat at session end",          group=grpT)
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ TAKE PROFITS ═════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+grpTP      = "Take Profits"
+tpPts      = input.float(45, "Take Profit (points)", minval=0, group=grpTP,
+     tooltip="Used when Multiple TPs is disabled")
+useMultiTP = input.bool(false, "Enable Multiple Take Profits", group=grpTP)
+tp1Pts     = input.float(30,  "TP1 (points)",    minval=0, group=grpTP)
+tp1Qty     = input.int(1,     "TP1 Contracts",   minval=1, group=grpTP)
+tp2Pts     = input.float(60,  "TP2 (points)",    minval=0, group=grpTP)
+tp2Qty     = input.int(1,     "TP2 Contracts",   minval=1, group=grpTP)
+tp3Pts     = input.float(100, "TP3 (points)",    minval=0, group=grpTP)
+tp3Qty     = input.int(1,     "TP3 Contracts",   minval=1, group=grpTP)
+
+entryQty = useMultiTP ? (tp1Qty + tp2Qty + tp3Qty) : tradeQty
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ BREAK-EVEN (POSITIVE) ════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+grpBE     = "Break-Even (Positive)"
+useBE     = input.bool(true,  "Enable BE Positive",              group=grpBE)
+beTrigger = input.float(25,   "BE Trigger (points in profit)",   minval=0, group=grpBE)
+beOffset  = input.float(0,    "BE Offset (points)",              minval=0, group=grpBE)
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ BREAK-EVEN (RESCUE) ══════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+grpNBE       = "Break-Even (Rescue)"
+useNegBE     = input.bool(false, "Enable BE Negative (Rescue)",         group=grpNBE)
+negBETrigger = input.float(30,   "NegBE Trigger (points against you)",  minval=0, group=grpNBE)
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ RANGE MODE — SL/TP from Range Size ═══════════════════════
+// ═══════════════════════════════════════════════════════════════
+grpRM          = "Range Mode (SL/TP from Range)"
+useRangeMode   = input.bool(false, "Enable Range Mode",     group=grpRM,
+     tooltip="When ON, SL and TP are calculated as multiples of the opening range, clamped to min/max bounds. Overrides fixed SL/TP values.")
+slMult         = input.float(1.0,  "SL Multiplier (× range)", minval=0.1, step=0.1, group=grpRM)
+tpMult         = input.float(2.0,  "TP Multiplier (× range)", minval=0.1, step=0.1, group=grpRM)
+minSL          = input.float(5,    "Min SL (points)",         minval=0,  group=grpRM)
+maxSL          = input.float(500,  "Max SL (points)",         minval=0,  group=grpRM)
+minTP          = input.float(5,    "Min TP (points)",         minval=0,  group=grpRM)
+maxTP          = input.float(500,  "Max TP (points)",         minval=0,  group=grpRM)
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ RANGE FILTER ═════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+grpRF          = "Range Filter"
+useRangeFilter = input.bool(false, "Enable Range Filter", group=grpRF)
+minRange       = input.float(10,   "Min Range (points)",  minval=0, group=grpRF)
+maxRange       = input.float(100,  "Max Range (points)",  minval=0, group=grpRF)
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ TIME HELPERS ═════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+cH     = hour(time_close, tz)
+cM     = minute(time_close, tz)
+curMin = cH * 60 + cM
+
+// Session 1 time boundaries
+startT1 = startHour1 * 60 + startMin1
+endT1   = endHour1   * 60 + endMin1
+sessT1  = sessEndHr1 * 60 + sessEndMn1
+
+inRange_s1    = curMin > startT1 and curMin <= endT1
+afterRange_s1 = curMin > endT1   and curMin <= sessT1
+
+// Session 2 time boundaries
+startT2 = startHour2 * 60 + startMin2
+endT2   = endHour2   * 60 + endMin2
+sessT2  = sessEndHr2 * 60 + sessEndMn2
+
+inRange_s2    = useSession2 and curMin > startT2 and curMin <= endT2
+afterRange_s2 = useSession2 and curMin > endT2   and curMin <= sessT2
+
+// Day filter
+curDow     = dayofweek(time_close, tz)
+dayAllowed = (curDow == dayofweek.monday    and tradeMon) or
+             (curDow == dayofweek.tuesday   and tradeTue) or
+             (curDow == dayofweek.wednesday and tradeWed) or
+             (curDow == dayofweek.thursday  and tradeThu) or
+             (curDow == dayofweek.friday    and tradeFri)
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ RANGE TRACKING ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// Session 1
+var float rangeHigh_s1     = na
+var float rangeLow_s1      = na
+var bool  rangeComplete_s1 = false
+var int   tradedDay_s1     = -1
+
+// Session 2
+var float rangeHigh_s2     = na
+var float rangeLow_s2      = na
+var bool  rangeComplete_s2 = false
+var int   tradedDay_s2     = -1
+
+// Shared
+var int lastDay = -1
+curDay     = dayofmonth(time_close, tz)
+newSession = curDay != lastDay
+
+if newSession
+    rangeHigh_s1     := na
+    rangeLow_s1      := na
+    rangeComplete_s1 := false
+    rangeHigh_s2     := na
+    rangeLow_s2      := na
+    rangeComplete_s2 := false
+    lastDay          := curDay
+
+// Session 1 range building
+if inRange_s1
+    rangeHigh_s1 := na(rangeHigh_s1) ? high : math.max(rangeHigh_s1, high)
+    rangeLow_s1  := na(rangeLow_s1)  ? low  : math.min(rangeLow_s1,  low)
+
+// Session 2 range building
+if inRange_s2
+    rangeHigh_s2 := na(rangeHigh_s2) ? high : math.max(rangeHigh_s2, high)
+    rangeLow_s2  := na(rangeLow_s2)  ? low  : math.min(rangeLow_s2,  low)
+
+// Mark range complete on the first bar AFTER the range window
+// (works on any timeframe — no need for bar to close exactly at endT)
+if not rangeComplete_s1 and curMin > endT1 and not na(rangeHigh_s1)
+    rangeComplete_s1 := true
+
+if not rangeComplete_s2 and curMin > endT2 and not na(rangeHigh_s2)
+    rangeComplete_s2 := true
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ RANGE FILTER CHECK ═══════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+rangeSize_s1  = rangeHigh_s1 - rangeLow_s1
+rangeSize_s2  = rangeHigh_s2 - rangeLow_s2
+rangeValid_s1 = not useRangeFilter or (not na(rangeSize_s1) and rangeSize_s1 >= minRange and rangeSize_s1 <= maxRange)
+rangeValid_s2 = not useRangeFilter or (not na(rangeSize_s2) and rangeSize_s2 >= minRange and rangeSize_s2 <= maxRange)
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ EFFECTIVE SL / TP (fixed or range-derived) ═══════════════
+// ═══════════════════════════════════════════════════════════════
+// Per-session effective values — used by exit orders
+// When Range Mode is ON:  SL/TP = rangeSize × multiplier, clamped to [min, max]
+// When Range Mode is OFF: SL/TP = the fixed values from Trade Rules / Take Profits
+
+// Session 1
+float effSL_s1  = slPts
+float effTP_s1  = tpPts
+float effTP1_s1 = tp1Pts
+float effTP2_s1 = tp2Pts
+float effTP3_s1 = tp3Pts
+
+if useRangeMode and not na(rangeSize_s1)
+    effSL_s1  := math.max(minSL, math.min(maxSL, rangeSize_s1 * slMult))
+    effTP_s1  := math.max(minTP, math.min(maxTP, rangeSize_s1 * tpMult))
+    // Multi-TP: scale each TP proportionally (TP1 = 1×, TP2 = 2×, TP3 = 3.33× base)
+    // so the relative ratios from fixed inputs are preserved
+    float baseTP  = tpPts > 0 ? tpPts : 1
+    effTP1_s1 := math.max(minTP, math.min(maxTP, rangeSize_s1 * tpMult * (tp1Pts / baseTP)))
+    effTP2_s1 := math.max(minTP, math.min(maxTP, rangeSize_s1 * tpMult * (tp2Pts / baseTP)))
+    effTP3_s1 := math.max(minTP, math.min(maxTP, rangeSize_s1 * tpMult * (tp3Pts / baseTP)))
+
+// Session 2
+float effSL_s2  = slPts
+float effTP_s2  = tpPts
+float effTP1_s2 = tp1Pts
+float effTP2_s2 = tp2Pts
+float effTP3_s2 = tp3Pts
+
+if useRangeMode and not na(rangeSize_s2)
+    effSL_s2  := math.max(minSL, math.min(maxSL, rangeSize_s2 * slMult))
+    effTP_s2  := math.max(minTP, math.min(maxTP, rangeSize_s2 * tpMult))
+    float baseTP2 = tpPts > 0 ? tpPts : 1
+    effTP1_s2 := math.max(minTP, math.min(maxTP, rangeSize_s2 * tpMult * (tp1Pts / baseTP2)))
+    effTP2_s2 := math.max(minTP, math.min(maxTP, rangeSize_s2 * tpMult * (tp2Pts / baseTP2)))
+    effTP3_s2 := math.max(minTP, math.min(maxTP, rangeSize_s2 * tpMult * (tp3Pts / baseTP2)))
+
+// Store per-position effective values (locked at entry time)
+var float posEffSL  = na
+var float posEffTP  = na
+var float posEffTP1 = na
+var float posEffTP2 = na
+var float posEffTP3 = na
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ VISUAL — RANGE PLOTS ═════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+plot(rangeHigh_s1,                     "S1 High", color=color.orange, linewidth=2, style=plot.style_linebr)
+plot(rangeLow_s1,                      "S1 Low",  color=color.orange, linewidth=2, style=plot.style_linebr)
+plot(useSession2 ? rangeHigh_s2 : na,  "S2 High", color=color.teal,   linewidth=2, style=plot.style_linebr)
+plot(useSession2 ? rangeLow_s2  : na,  "S2 Low",  color=color.teal,   linewidth=2, style=plot.style_linebr)
+
+// Buffer level lines (dashed) — only shown when buffer > 0 and range is complete
+bufferHighS1 = (buffer > 0 and rangeComplete_s1) ? rangeHigh_s1 + buffer : na
+bufferLowS1  = (buffer > 0 and rangeComplete_s1) ? rangeLow_s1  - buffer : na
+bufferHighS2 = (buffer > 0 and rangeComplete_s2 and useSession2) ? rangeHigh_s2 + buffer : na
+bufferLowS2  = (buffer > 0 and rangeComplete_s2 and useSession2) ? rangeLow_s2  - buffer : na
+
+plot(bufferHighS1, "S1 Buffer High", color=color.new(color.orange, 40), linewidth=1, style=plot.style_cross)
+plot(bufferLowS1,  "S1 Buffer Low",  color=color.new(color.orange, 40), linewidth=1, style=plot.style_cross)
+plot(bufferHighS2, "S2 Buffer High", color=color.new(color.teal, 40),   linewidth=1, style=plot.style_cross)
+plot(bufferLowS2,  "S2 Buffer Low",  color=color.new(color.teal, 40),   linewidth=1, style=plot.style_cross)
+
+bgcolor(inRange_s1 ? color.new(color.aqua, 85) : na, title="S1 Range Window")
+bgcolor(inRange_s2 ? color.new(color.teal, 85) : na, title="S2 Range Window")
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ ENTRY (close-based: bar must CLOSE beyond buffer level) ═
+// ═══════════════════════════════════════════════════════════════
+// Track which session opened the current position (for EOD close)
+var int activeSession  = 0   // 0 = none, 1 = session 1, 2 = session 2
+var int pendingSession = 0   // tracks session on entry bar (before fill)
+
+// — Session 1 —
+canTrade_s1 = rangeComplete_s1 and afterRange_s1 and strategy.position_size == 0 and dayAllowed and rangeValid_s1
+if oneTrade
+    canTrade_s1 := canTrade_s1 and (tradedDay_s1 != curDay)
+
+if canTrade_s1 and close >= rangeHigh_s1 + buffer
+    strategy.entry("Long_S1", strategy.long, qty=entryQty)
+    tradedDay_s1   := curDay
+    pendingSession := 1
+    posEffSL  := effSL_s1
+    posEffTP  := effTP_s1
+    posEffTP1 := effTP1_s1
+    posEffTP2 := effTP2_s1
+    posEffTP3 := effTP3_s1
+
+if canTrade_s1 and close <= rangeLow_s1 - buffer
+    strategy.entry("Short_S1", strategy.short, qty=entryQty)
+    tradedDay_s1   := curDay
+    pendingSession := 1
+    posEffSL  := effSL_s1
+    posEffTP  := effTP_s1
+    posEffTP1 := effTP1_s1
+    posEffTP2 := effTP2_s1
+    posEffTP3 := effTP3_s1
+
+// — Session 2 —
+canTrade_s2 = useSession2 and rangeComplete_s2 and afterRange_s2 and strategy.position_size == 0 and dayAllowed and rangeValid_s2
+if oneTrade
+    canTrade_s2 := canTrade_s2 and (tradedDay_s2 != curDay)
+
+if canTrade_s2 and close >= rangeHigh_s2 + buffer
+    strategy.entry("Long_S2", strategy.long, qty=entryQty)
+    tradedDay_s2   := curDay
+    pendingSession := 2
+    posEffSL  := effSL_s2
+    posEffTP  := effTP_s2
+    posEffTP1 := effTP1_s2
+    posEffTP2 := effTP2_s2
+    posEffTP3 := effTP3_s2
+
+if canTrade_s2 and close <= rangeLow_s2 - buffer
+    strategy.entry("Short_S2", strategy.short, qty=entryQty)
+    tradedDay_s2   := curDay
+    pendingSession := 2
+    posEffSL  := effSL_s2
+    posEffTP  := effTP_s2
+    posEffTP1 := effTP1_s2
+    posEffTP2 := effTP2_s2
+    posEffTP3 := effTP3_s2
+
+// — Detect fill: set activeSession from pending —
+if strategy.position_size != 0 and strategy.position_size[1] == 0
+    activeSession := pendingSession
+    pendingSession := 0
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ EXIT MANAGEMENT ══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+var float activeStop = na
+var bool  beMoved    = false
+var bool  negBEArmed = false
+var bool  negBEMoved = false
+
+entryPrice = strategy.position_avg_price
+
+// — Detect new LONG position —
+if strategy.position_size > 0 and strategy.position_size[1] <= 0
+    activeStop := entryPrice - posEffSL
+    beMoved    := false
+    negBEArmed := false
+    negBEMoved := false
+
+// — Detect new SHORT position —
+if strategy.position_size < 0 and strategy.position_size[1] >= 0
+    activeStop := entryPrice + posEffSL
+    beMoved    := false
+    negBEArmed := false
+    negBEMoved := false
+
+// ─── BE Positive ──────────────────────────────────────────────
+// When price moves beTrigger points in your favor, lock stop at entry +/- offset
+if useBE and strategy.position_size > 0 and not beMoved and high >= entryPrice + beTrigger
+    activeStop := entryPrice + beOffset
+    beMoved    := true
+
+if useBE and strategy.position_size < 0 and not beMoved and low <= entryPrice - beTrigger
+    activeStop := entryPrice - beOffset
+    beMoved    := true
+
+// ─── BE Negative (Rescue) ─────────────────────────────────────
+// Step 1: Arm when price goes negBETrigger points against you
+if useNegBE and strategy.position_size > 0 and not negBEArmed and not negBEMoved
+    if low <= entryPrice - negBETrigger
+        negBEArmed := true
+
+if useNegBE and strategy.position_size < 0 and not negBEArmed and not negBEMoved
+    if high >= entryPrice + negBETrigger
+        negBEArmed := true
+
+// Step 2: Once armed, if price recovers back to entry → move stop to BE
+if useNegBE and strategy.position_size > 0 and negBEArmed and not negBEMoved
+    if high >= entryPrice
+        activeStop := entryPrice
+        negBEMoved := true
+
+if useNegBE and strategy.position_size < 0 and negBEArmed and not negBEMoved
+    if low <= entryPrice
+        activeStop := entryPrice
+        negBEMoved := true
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ EXIT ORDERS ══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+if strategy.position_size > 0
+    if useMultiTP
+        // — Multiple TPs: partial exits at each level —
+        strategy.exit("TP1_L1", from_entry="Long_S1", qty=tp1Qty, stop=activeStop, limit=entryPrice + posEffTP1)
+        strategy.exit("TP2_L1", from_entry="Long_S1", qty=tp2Qty, stop=activeStop, limit=entryPrice + posEffTP2)
+        strategy.exit("TP3_L1", from_entry="Long_S1", qty=tp3Qty, stop=activeStop, limit=entryPrice + posEffTP3)
+        strategy.exit("TP1_L2", from_entry="Long_S2", qty=tp1Qty, stop=activeStop, limit=entryPrice + posEffTP1)
+        strategy.exit("TP2_L2", from_entry="Long_S2", qty=tp2Qty, stop=activeStop, limit=entryPrice + posEffTP2)
+        strategy.exit("TP3_L2", from_entry="Long_S2", qty=tp3Qty, stop=activeStop, limit=entryPrice + posEffTP3)
+    else
+        // — Single TP: full position exit —
+        strategy.exit("XLong",  from_entry="Long_S1", stop=activeStop, limit=entryPrice + posEffTP)
+        strategy.exit("XLong2", from_entry="Long_S2", stop=activeStop, limit=entryPrice + posEffTP)
+
+if strategy.position_size < 0
+    if useMultiTP
+        // — Multiple TPs: partial exits at each level —
+        strategy.exit("TP1_S1", from_entry="Short_S1", qty=tp1Qty, stop=activeStop, limit=entryPrice - posEffTP1)
+        strategy.exit("TP2_S1", from_entry="Short_S1", qty=tp2Qty, stop=activeStop, limit=entryPrice - posEffTP2)
+        strategy.exit("TP3_S1", from_entry="Short_S1", qty=tp3Qty, stop=activeStop, limit=entryPrice - posEffTP3)
+        strategy.exit("TP1_S2", from_entry="Short_S2", qty=tp1Qty, stop=activeStop, limit=entryPrice - posEffTP1)
+        strategy.exit("TP2_S2", from_entry="Short_S2", qty=tp2Qty, stop=activeStop, limit=entryPrice - posEffTP2)
+        strategy.exit("TP3_S2", from_entry="Short_S2", qty=tp3Qty, stop=activeStop, limit=entryPrice - posEffTP3)
+    else
+        // — Single TP: full position exit —
+        strategy.exit("XShort",  from_entry="Short_S1", stop=activeStop, limit=entryPrice - posEffTP)
+        strategy.exit("XShort2", from_entry="Short_S2", stop=activeStop, limit=entryPrice - posEffTP)
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ EOD — FLAT AT SESSION END ════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+if closeEOD and strategy.position_size != 0
+    sessEnd = activeSession == 2 ? sessT2 : sessT1
+    if curMin > sessEnd
+        strategy.close_all(comment="EOD")
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ RESET ON FLAT ════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+if strategy.position_size == 0 and pendingSession == 0
+    activeStop    := na
+    beMoved       := false
+    negBEArmed    := false
+    negBEMoved    := false
+    activeSession := 0
+    posEffSL      := na
+    posEffTP      := na
+    posEffTP1     := na
+    posEffTP2     := na
+    posEffTP3     := na
+
+// ═══════════════════════════════════════════════════════════════
+// ═══ DEBUG — show when entry conditions are met ═══════════════
+// ═══════════════════════════════════════════════════════════════
+// Green triangle below bar = canTrade_s1 is true (waiting for close beyond buffer)
+plotshape(canTrade_s1, title="S1 Ready", style=shape.triangleup, location=location.belowbar,
+     color=color.new(color.green, 60), size=size.tiny)
+// Red triangle above bar = afterRange but close didn't exceed buffer
+plotshape(canTrade_s1 and close < rangeHigh_s1 + buffer and close > rangeLow_s1 - buffer,
+     title="S1 No Break", style=shape.triangledown, location=location.abovebar,
+     color=color.new(color.red, 60), size=size.tiny)

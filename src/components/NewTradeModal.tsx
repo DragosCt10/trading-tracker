@@ -42,9 +42,8 @@ import {
   AlertDialogTitle,
   AlertDialogDescription,
 } from '@/components/ui/alert-dialog';
-import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarket';
+import { normalizeMarket } from '@/utils/validateMarket';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
-import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
 import { getDayOfWeekFromTradeDate } from '@/utils/dateRangeHelpers';
 import { MarketCombobox } from '@/components/MarketCombobox';
 import { NewsCombobox } from '@/components/NewsCombobox';
@@ -60,23 +59,18 @@ import {
   POTENTIAL_RR_OPTIONS,
   SESSION_OPTIONS,
 } from '@/constants/tradeFormOptions';
-import {
-  mergeLiquidityTypeIntoSaved,
-  mergeMarketIntoSaved,
-  mergeNewsIntoSaved,
-  mergeSetupTypeIntoSaved,
-  normalizeNewsName,
-} from '@/utils/savedFeatures';
 import { queryKeys } from '@/lib/queryKeys';
-import { invalidateAndRefetchTradeQueries as invalidateTradeQueries } from '@/lib/tradeQueryInvalidation';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
-import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyFavourites, syncStrategyTags, renameStrategyTag, deleteStrategyTag, updateTagColor } from '@/lib/server/strategies';
+import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyFavourites, renameStrategyTag, deleteStrategyTag, updateTagColor } from '@/lib/server/strategies';
 import { TagInput } from '@/components/ui/TagInput';
 import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
 import type { SavedTag, TagColor } from '@/types/saved-tag';
 import { snapToHalfStep } from '@/utils/tradeFormHelpers';
+import { validateTrade } from '@/utils/validateTrade';
+import { constructCreateTradePayload } from '@/utils/constructTradePayload';
+import { useTradeSaveFlow } from '@/hooks/useTradeSaveFlow';
 
 // FVG Size: preset list 0.5, 1, 1.5, 2, 2.5, 3 (0.5 steps). Custom (3+) for 3.5, 4, 4.5, ...
 const FVG_SIZE_OPTIONS: { value: number; label: string }[] = [
@@ -131,13 +125,21 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   const { settings } = useSettings({ userId });
   const { strategies } = useStrategies({ userId, accountId });
   const queryClient = useQueryClient();
-  
+
   // Get strategy slug from URL params and derive extra_cards from the strategy object
   const strategySlug = params?.strategy as string | undefined;
   const currentStrategy = strategies.find((s) => s.slug === strategySlug);
+
+  const { runPostSaveSync } = useTradeSaveFlow({
+    userId,
+    accountId,
+    mode: selection.mode,
+    settings,
+    currentStrategy,
+  });
   const strategyExtraCards = useMemo(() => currentStrategy?.extra_cards ?? [], [currentStrategy?.extra_cards]);
   const hasCard = useCallback(
-    (key: string) => strategyExtraCards.includes(key as any),
+    (key: string) => (strategyExtraCards as readonly string[]).includes(key),
     [strategyExtraCards],
   );
   // Backward compat: treat any extra card being enabled as "institutional" for layout/validation
@@ -160,7 +162,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     market: '',
     setup_type: '',
     liquidity: '',
-    sl_size: undefined as any,
+    sl_size: undefined,
     direction: '' as 'Long' | 'Short',
     trade_outcome: '' as 'Win' | 'Lose',
     session: '',
@@ -171,9 +173,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     news_name: null as string | null,
     news_intensity: null as number | null,
     mss: '',
-    risk_per_trade: undefined as any,
-    risk_reward_ratio: undefined as any,
-    risk_reward_ratio_long: undefined as any,
+    risk_per_trade: undefined,
+    risk_reward_ratio: undefined,
+    risk_reward_ratio_long: undefined,
     local_high_low: false,
     mode: selection.mode,
     notes: NOTES_TEMPLATE,
@@ -182,10 +184,10 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     partials_taken: false,
     executed: true,
     launch_hour: false,
-    displacement_size: undefined as any,
+    displacement_size: undefined,
     strategy_id: null,
     trend: '',
-    fvg_size: undefined as any,
+    fvg_size: undefined,
     confidence_at_entry: null as number | null,
     mind_state_at_entry: 3, // Preselect Neutral so user sees the scale (1–5) like Confidence
     tags: [],
@@ -217,13 +219,23 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     }
   }, [isOpen, strategySlug, strategies]);
 
-  const notesRef = useRef<HTMLTextAreaElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const customTfInputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const tradeRef = useRef<Trade>(initialTradeState);
 
   useEffect(() => {
     tradeRef.current = trade;
   }, [trade]);
+
+  // Focus management: save previous focus on open, restore on close
+  useEffect(() => {
+    if (isOpen) {
+      previousFocusRef.current = document.activeElement as HTMLElement | null;
+    } else if (previousFocusRef.current) {
+      previousFocusRef.current.focus();
+      previousFocusRef.current = null;
+    }
+  }, [isOpen]);
 
   const updateTrade = useCallback(<K extends keyof Trade>(key: K, value: Trade[K]) => {
     setTrade((prev) => (prev[key] === value ? prev : { ...prev, [key]: value }));
@@ -237,22 +249,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       be_final_result: v === 'BE' ? prev.be_final_result : null,
     }));
   }, []);
-
-  // Helper function to invalidate and refetch trade queries (ensures analytics updates)
-  const invalidateAndRefetchTradeQueries = useCallback(async (params?: {
-    mode?: typeof selection.mode;
-    accountId?: string | undefined;
-    userId?: string | undefined;
-    strategyId?: string | null;
-  }) => {
-    await invalidateTradeQueries({
-      queryClient,
-      strategyIds: [params?.strategyId ?? null],
-      mode: params?.mode ?? selection.mode,
-      accountId: params?.accountId ?? selection.activeAccount?.id,
-      userId: params?.userId ?? userId,
-    });
-  }, [selection, userId, queryClient]);
 
   // keep weekday + quarter in sync when the committed date changes (use local date to avoid timezone shifting day)
   useEffect(() => {
@@ -268,7 +264,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   // When outcome is Lose or BE, set Potential R:R to 0 (not editable)
   useEffect(() => {
     if ((trade.trade_outcome === 'Lose' || trade.trade_outcome === 'BE') && trade.risk_reward_ratio_long !== 0) {
-      setTrade((prev) => ({ ...prev, risk_reward_ratio_long: 0 as any }));
+      setTrade((prev) => ({ ...prev, risk_reward_ratio_long: 0 }));
     }
   }, [trade.trade_outcome, trade.risk_reward_ratio_long]);
 
@@ -281,7 +277,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       Number(trade.risk_reward_ratio_long) > 0 &&
       Number(trade.risk_reward_ratio_long) <= Number(trade.risk_reward_ratio ?? 0)
     ) {
-      setTrade((prev) => ({ ...prev, risk_reward_ratio_long: undefined as any }));
+      setTrade((prev) => ({ ...prev, risk_reward_ratio_long: undefined }));
     }
   }, [trade.risk_reward_ratio, trade.trade_outcome, trade.risk_reward_ratio_long]);
 
@@ -508,58 +504,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
     const currentTrade = tradeRef.current;
 
-    const marketError = getMarketValidationError(currentTrade.market);
-    if (marketError) {
-      setError(marketError);
-      return;
-    }
-    if (!currentTrade.direction || !currentTrade.trade_outcome) {
-      setError('Please select Direction and Trade Outcome.');
-      return;
-    }
-    if (!currentTrade.session || currentTrade.session.trim() === '') {
-      setError('Please select Session.');
-      return;
-    }
-    if (!currentTrade.trade_time || currentTrade.trade_time.trim() === '') {
-      setError('Please select Trade Time (interval).');
-      return;
-    }
-    if (hasCard('setup_stats') && !currentTrade.setup_type) {
-      setError('Please fill in the Pattern / Setup field.');
-      return;
-    }
-    if (hasCard('liquidity_stats') && !currentTrade.liquidity) {
-      setError('Please fill in the Conditions / Liquidity field.');
-      return;
-    }
-    if (hasCard('mss_stats') && !currentTrade.mss) {
-      setError('Please fill in the MSS field.');
-      return;
-    }
-    if (hasCard('evaluation_stats') && !currentTrade.evaluation?.trim()) {
-      setError('Please select Evaluation Grade.');
-      return;
-    }
-    if (hasCard('trend_stats') && !currentTrade.trend?.trim()) {
-      setError('Please select Trend.');
-      return;
-    }
-    if (hasCard('fvg_size') && (currentTrade.fvg_size == null || currentTrade.fvg_size === undefined)) {
-      setError('Please fill in the FVG Size field.');
-      return;
-    }
-    if ((hasCard('displacement_size') || hasCard('avg_displacement')) && (currentTrade.displacement_size == null || currentTrade.displacement_size === undefined)) {
-      setError('Please fill in the Displacement Size (Points) field.');
-      return;
-    }
-    if (hasCard('sl_size_stats') && (currentTrade.sl_size == null || currentTrade.sl_size === undefined)) {
-      setError('Please fill in the SL Size field.');
-      return;
-    }
-
-    if (!currentTrade.strategy_id) {
-      setError('Strategy not found. Please navigate to a valid strategy page.');
+    const validationError = validateTrade(currentTrade, hasCard);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -572,32 +519,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
     try {
       const tradeSnapshot = currentTrade;
-      const currentStrategySnapshot = currentStrategy;
-      const settingsSnapshot = settings;
-      const userIdSnapshot = userId;
-      const accountIdSnapshot = accountId;
       const pendingTagColorsSnapshot = pendingTagColors;
 
-      const notes = notesRef.current ? notesRef.current.value : currentTrade.notes;
-
-      const normalizedMarket = normalizeMarket(currentTrade.market);
-      // When outcome is Win and user did not select Potential R:R, use the exact Risk:Reward Ratio
-      const riskRewardRatioLong =
-        currentTrade.trade_outcome === 'Win' && (currentTrade.risk_reward_ratio_long == null || currentTrade.risk_reward_ratio_long === undefined)
-          ? (Number(currentTrade.risk_reward_ratio) || 0)
-          : currentTrade.risk_reward_ratio_long;
-      const payload = {
-        ...currentTrade,
-        notes,
-        market: normalizedMarket,
-        risk_reward_ratio_long: riskRewardRatioLong,
-        trade_executed_at: tradeDateAndTimeToUtcISO(currentTrade.trade_date, currentTrade.trade_time) ?? undefined,
-      } as Trade & { user_id?: string; account_id?: string };
-      const { id, user_id, account_id, calculated_profit, pnl_percentage, ...tradePayload } = payload;
-
-      const accountBalanceForSubmit = selection.activeAccount.account_balance ?? 0;
-      const { pnl_percentage: submitPnlPercentage, calculated_profit: submitCalculatedProfit } =
-        calculateTradePnl(currentTrade, accountBalanceForSubmit);
+      const accountBalanceForSubmit = selection.activeAccount?.account_balance ?? 0;
+      const { tradePayload, pnl_percentage: submitPnlPercentage, calculated_profit: submitCalculatedProfit } =
+        constructCreateTradePayload(currentTrade, accountBalanceForSubmit);
 
       const { error } = await createTrade({
         mode: selection.mode,
@@ -617,119 +543,22 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       onClose();
 
       // Background: invalidate queries + sync saved lists + update cache
-      void (async () => {
-        try {
-          await invalidateAndRefetchTradeQueries({
-            mode: selection.mode,
-            accountId: selection.activeAccount?.id,
-            userId: userId ?? undefined,
-            strategyId: tradeSnapshot.strategy_id ?? null,
-          });
-          // Compute updated lists and persist to DB; then update React Query cache so suggestion lists show new data without page refresh
-          let updatedNews: SavedNewsItem[] | undefined;
-          let updatedSetups: string[] | undefined;
-          let updatedLiquidity: string[] | undefined;
-          let updatedMarkets: string[] | undefined;
-
-          const savePromises: Promise<unknown>[] = [];
-
-          if (tradeSnapshot.news_related && tradeSnapshot.news_name?.trim() && userIdSnapshot) {
-            const savedNews = Array.isArray(settingsSnapshot.saved_news) ? settingsSnapshot.saved_news : [];
-            updatedNews = mergeNewsIntoSaved(
-              normalizeNewsName(tradeSnapshot.news_name),
-              tradeSnapshot.news_intensity ?? null,
-              savedNews,
-            );
-            savePromises.push(updateSavedNews(updatedNews));
-          }
-
-          if (tradeSnapshot.setup_type?.trim() && userIdSnapshot && currentStrategySnapshot) {
-            updatedSetups = mergeSetupTypeIntoSaved(
-              tradeSnapshot.setup_type,
-              currentStrategySnapshot.saved_setup_types ?? [],
-            );
-            savePromises.push(updateStrategySetupTypes(currentStrategySnapshot.id, userIdSnapshot, updatedSetups));
-          }
-
-          if (tradeSnapshot.liquidity?.trim() && userIdSnapshot && currentStrategySnapshot) {
-            updatedLiquidity = mergeLiquidityTypeIntoSaved(
-              tradeSnapshot.liquidity,
-              currentStrategySnapshot.saved_liquidity_types ?? [],
-            );
-            savePromises.push(updateStrategyLiquidityTypes(currentStrategySnapshot.id, userIdSnapshot, updatedLiquidity));
-          }
-
-          if (tradeSnapshot.market?.trim() && userIdSnapshot) {
-            const savedMarkets = Array.isArray(settingsSnapshot.saved_markets) ? settingsSnapshot.saved_markets : [];
-            updatedMarkets = mergeMarketIntoSaved(tradeSnapshot.market, savedMarkets);
-            savePromises.push(updateSavedMarkets(updatedMarkets));
-          }
-
-          const tradeTags = (tradeSnapshot.tags ?? []).map((t: string) => t.toLowerCase().trim()).filter(Boolean);
-          let updatedTags: SavedTag[] | undefined;
-          if (tradeTags.length > 0 && userIdSnapshot && currentStrategySnapshot) {
-            const tagsWithColors: SavedTag[] = tradeTags.map(name => ({
-              name,
-              color: pendingTagColorsSnapshot[name],
-            }));
-            updatedTags = tagsWithColors;
-            savePromises.push(syncStrategyTags(currentStrategySnapshot.id, userIdSnapshot, tagsWithColors));
-          }
-
-          await Promise.all(savePromises);
-
-          // Update cache immediately so next time modal opens, useSettings/useStrategies see fresh data (refetch alone doesn't work because those queries use enabled: !cached)
-          if (userIdSnapshot) {
-            const settingsKey = queryKeys.settings(userIdSnapshot);
-            queryClient.setQueryData(
-              settingsKey,
-              (prev: { saved_news?: unknown; saved_markets?: string[] } | undefined) => ({
-                ...prev,
-                saved_news: updatedNews ?? prev?.saved_news ?? [],
-                saved_markets: updatedMarkets ?? prev?.saved_markets ?? [],
-              }),
-            );
-
-            if (currentStrategySnapshot && (updatedSetups !== undefined || updatedLiquidity !== undefined || updatedTags !== undefined)) {
-              const strategiesKey = queryKeys.strategies(userIdSnapshot, accountIdSnapshot);
-              queryClient.setQueryData(
-                strategiesKey,
-                (prev:
-                  | { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[]; saved_tags?: SavedTag[] }[]
-                  | undefined) => {
-                  if (!prev) return prev;
-                  return prev.map((s) =>
-                    s.id === currentStrategySnapshot.id
-                      ? {
-                          ...s,
-                          saved_setup_types: updatedSetups ?? s.saved_setup_types ?? [],
-                          saved_liquidity_types: updatedLiquidity ?? s.saved_liquidity_types ?? [],
-                          saved_tags: updatedTags ?? s.saved_tags ?? [],
-                        }
-                      : s,
-                  );
-                },
-              );
-            }
-
-            // Keep existing behavior: mark cached settings/strategies stale so any consumers refetch if needed.
-            await queryClient.invalidateQueries({ queryKey: queryKeys.settings(userIdSnapshot) });
-            await queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userIdSnapshot, accountIdSnapshot) });
-          }
-        } catch (syncErr) {
-          console.error('Post-create trade sync failed:', syncErr);
-          // Do not surface UI error here — trade was created successfully.
-        }
-      })();
-    } catch (err: any) {
+      void runPostSaveSync({
+        trade: tradeSnapshot,
+        strategyIds: [tradeSnapshot.strategy_id ?? null],
+        pendingTagColors: pendingTagColorsSnapshot,
+        onSyncError: (msg) => setError(msg),
+      });
+    } catch (err: unknown) {
       console.error('Trade creation failed:', err);
-      const msg = err?.message && err.message !== 'undefined'
-        ? err.message
-        : 'Failed to create trade. Please try again.';
+      const msg =
+        err instanceof Error && err.message && err.message !== 'undefined'
+          ? err.message
+          : 'Failed to create trade. Please try again.';
       setError(msg);
       setIsSubmitting(false);
     }
-  }, [hasCard, selection, userId, accountId, settings, currentStrategy, pendingTagColors, queryClient, invalidateAndRefetchTradeQueries, initialTradeState, onTradeCreated, onClose, setError]);
+  }, [hasCard, selection, pendingTagColors, runPostSaveSync, initialTradeState, onTradeCreated, onClose, setError]);
 
   if (!mounted || !isOpen) return null;
 
@@ -1030,6 +859,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                             : 'text-slate-300 dark:text-slate-600 hover:text-amber-300'
                         }`}
                         title={['Low', 'Medium', 'High'][star - 1]}
+                        aria-label={`Set news intensity to ${['Low', 'Medium', 'High'][star - 1]}`}
                         aria-pressed={trade.news_intensity != null && star <= trade.news_intensity}
                       >
                         ★
@@ -1120,9 +950,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             <div className="space-y-3">
               <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Notes & Confidence</Label>
               <Textarea
-                ref={notesRef}
-                defaultValue={trade.notes}
-                onBlur={(e) => updateTrade('notes', e.target.value)}
+                value={trade.notes ?? ''}
+                onChange={(e) => updateTrade('notes', e.target.value)}
                 className="min-h-[280px] backdrop-blur-sm shadow-sm bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-slate-200/60 dark:border-slate-800 themed-focus transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100"
                 placeholder="Add your trade notes here..."
               />
@@ -1156,6 +985,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                             : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                         }`}
                         title={['Very low', 'Low', 'Neutral', 'Good', 'Very confident'][value - 1]}
+                        aria-label={`Set confidence to ${['Very low', 'Low', 'Neutral', 'Good', 'Very confident'][value - 1]}`}
                       >
                         {value}
                       </button>
@@ -1196,6 +1026,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                             : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                         }`}
                         title={['Very poor', 'Poor', 'Neutral', 'Good', 'Very good'][value - 1]}
+                        aria-label={`Set mind state to ${['Very poor', 'Poor', 'Neutral', 'Good', 'Very good'][value - 1]}`}
                       >
                         {value}
                       </button>
@@ -1407,7 +1238,7 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
           </Label>
           <Select
             value={session ?? ''}
-            onValueChange={(v) => updateTrade('session', v as any)}
+            onValueChange={(v) => updateTrade('session', v)}
           >
             <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
               <SelectValue placeholder="Select session" />
@@ -1431,7 +1262,7 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
             <CommonCombobox
               id="setup-type"
               value={setupType ?? ''}
-              onChange={(v) => updateTrade('setup_type', v as any)}
+              onChange={(v) => updateTrade('setup_type', v)}
               options={setupOptions}
               customValueLabel="pattern / setup"
               placeholder="Select or type pattern / setup"
@@ -1480,7 +1311,7 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
                 if (v === 'custom') {
                   updateTrade('fvg_size', FVG_SIZE_CUSTOM_MIN);
                 } else if (v === '') {
-                  updateTrade('fvg_size', undefined as any);
+                  updateTrade('fvg_size', undefined);
                 } else {
                   updateTrade('fvg_size', Number(v));
                 }
@@ -1615,7 +1446,7 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
                 onValueChange={(v) =>
                   updateTrade(
                     'risk_reward_ratio_long',
-                    v === '' || v === '__none__' ? (undefined as any) : Number(v),
+                    v === '' || v === '__none__' ? undefined : Number(v),
                   )
                 }
               >

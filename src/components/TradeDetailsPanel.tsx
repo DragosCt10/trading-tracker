@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { isSafeUrl } from '@/utils/isSafeUrl';
 import { SESSION_PALETTE } from '@/constants/sessionPalette';
 import { useProgressDialog } from '@/hooks/useProgressDialog';
@@ -36,6 +36,10 @@ const labelClass = 'block text-sm font-semibold text-slate-700 dark:text-slate-3
 const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const TREND_OPTIONS = ['Trend-following', 'Counter-trend', 'Consolidation'];
 
+const CONFIDENCE_LABELS: Record<number, string> = { 1: 'Very low', 2: 'Low', 3: 'Neutral', 4: 'Good', 5: 'Very confident' };
+const MIND_STATE_LABELS: Record<number, string> = { 1: 'Very poor', 2: 'Poor', 3: 'Neutral', 4: 'Good', 5: 'Very good' };
+const NEWS_INTENSITY_LABELS: Record<number, string> = { 1: 'Low', 2: 'Medium', 3: 'High' };
+
 // shadcn UI components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,23 +73,15 @@ import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarke
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { MarketCombobox } from '@/components/MarketCombobox';
 import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
-import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
 import { NewsCombobox } from '@/components/NewsCombobox';
 import { CommonCombobox } from '@/components/CommonCombobox';
-import {
-  mergeLiquidityTypeIntoSaved,
-  mergeMarketIntoSaved,
-  mergeNewsIntoSaved,
-  mergeSetupTypeIntoSaved,
-  normalizeNewsName,
-} from '@/utils/savedFeatures';
+import { constructUpdateTradePayload } from '@/utils/constructTradePayload';
+import { useTradeSaveFlow } from '@/hooks/useTradeSaveFlow';
 import { formatPotentialRR, snapToHalfStep } from '@/utils/tradeFormHelpers';
-import { invalidateAndRefetchTradeQueries as invalidateTradeQueries } from '@/lib/tradeQueryInvalidation';
 import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
-import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
-import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyFavourites, syncStrategyTags, updateTagColor } from '@/lib/server/strategies';
+import { updateStrategyFavourites, updateTagColor } from '@/lib/server/strategies';
 import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
 import { TagInput } from '@/components/ui/TagInput';
 import type { SavedTag, TagColor } from '@/types/saved-tag';
@@ -127,7 +123,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     [readOnly, extraCardsProp, currentStrategy?.extra_cards]
   );
   const hasCard = useCallback(
-    (key: string) => strategyExtraCards.includes(key as any),
+    (key: string) => (strategyExtraCards as readonly string[]).includes(key),
     [strategyExtraCards]
   );
   const { settings } = useSettings({ userId });
@@ -141,12 +137,19 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const queryClient = useQueryClient();
 
   const accountBalanceRef = useRef(selection.activeAccount?.account_balance || 0);
-  const editedTradeRef = useRef(editedTrade);
   const customTfInputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const panelContentRef = useRef<HTMLDivElement | null>(null);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     accountBalanceRef.current = selection.activeAccount?.account_balance || 0;
-    editedTradeRef.current = editedTrade;
+  }, [selection.activeAccount?.account_balance]);
+
+  const { runPostSaveSync, invalidateTradeCache } = useTradeSaveFlow({
+    userId,
+    accountId,
+    mode: selection.mode,
+    settings,
+    currentStrategy,
   });
 
   // Auto-reveal extra screens if trade has slots 3 or 4 filled
@@ -165,20 +168,6 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     }
   }, [trade, isEditing, editedTrade]);
 
-  // Helper: invalidate trade queries — scoped to the affected strategy only
-  const invalidateAndRefetchTradeQueries = useCallback(async () => {
-    const affectedStrategyIds = new Set([
-      trade?.strategy_id ?? null,
-      editedTradeRef.current?.strategy_id ?? null,
-    ]);
-    await invalidateTradeQueries({
-      queryClient,
-      strategyIds: Array.from(affectedStrategyIds),
-      mode: selection.mode,
-      accountId: selection.activeAccount?.id,
-      userId,      
-    });
-  }, [queryClient, trade?.strategy_id, selection.activeAccount?.id, selection.mode, userId]);
 
   const setupOptions = useMemo(() => currentStrategy?.saved_setup_types ?? [], [currentStrategy?.saved_setup_types]);
   const liquidityOptions = useMemo(
@@ -194,14 +183,14 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
 
   const effectiveIsEditing = readOnly ? false : isEditing;
 
-  const handleInputChange = (field: keyof Trade, value: any) => {
+  const handleInputChange = (field: keyof Trade, value: string | number | boolean | string[] | null | undefined) => {
     setEditedTrade((prev) => {
       if (!prev) return prev;
 
       if (field === 'risk_per_trade' || field === 'risk_reward_ratio' || field === 'trade_outcome') {
         const newRisk = field === 'risk_per_trade' ? value : prev.risk_per_trade;
         const newRR = field === 'risk_reward_ratio' ? value : prev.risk_reward_ratio;
-        const newOutcome = field === 'trade_outcome' ? value : prev.trade_outcome;
+        const newOutcome = field === 'trade_outcome' ? String(value) : prev.trade_outcome;
         const nextBreakEven = field === 'trade_outcome' ? value === 'BE' : prev.break_even;
 
         const { pnl_percentage, calculated_profit } = calculateTradePnl(
@@ -227,7 +216,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         if (field === 'risk_reward_ratio' && prev.trade_outcome === 'Win') {
           const newRRValue = Number(value);
           if (prev.risk_reward_ratio_long != null && Number(prev.risk_reward_ratio_long) <= newRRValue) {
-            nextState.risk_reward_ratio_long = undefined as any;
+            nextState.risk_reward_ratio_long = undefined;
           }
         }
         if (field === 'trade_outcome') {
@@ -242,7 +231,6 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   };
 
   const handleSave = async () => {
-    const editedTrade = editedTradeRef.current;
     if (!editedTrade || !editedTrade.id) return;
     setError(null);
 
@@ -256,48 +244,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
 
     try {
       const tradingMode = (editedTrade.mode || selection.mode) as 'live' | 'backtesting' | 'demo';
-      const normalizedTradeTime = getIntervalForTime(editedTrade.trade_time || '')?.start ?? editedTrade.trade_time ?? '';
-      const updateData = {
-        trade_date: editedTrade.trade_date,
-        trade_time: normalizedTradeTime,
-        trade_executed_at: tradeDateAndTimeToUtcISO(editedTrade.trade_date, normalizedTradeTime) ?? null,
-        day_of_week: editedTrade.day_of_week || '',
-        quarter: editedTrade.quarter || '',
-        market: normalizeMarket(editedTrade.market),
-        direction: editedTrade.direction,
-        setup_type: editedTrade.setup_type,
-        liquidity: editedTrade.liquidity,
-        sl_size: editedTrade.sl_size,
-        displacement_size: editedTrade.displacement_size,
-        risk_per_trade: editedTrade.risk_per_trade,
-        trade_outcome: editedTrade.trade_outcome,
-        session: editedTrade.session ?? '',
-        risk_reward_ratio: editedTrade.risk_reward_ratio,
-        risk_reward_ratio_long: (editedTrade.trade_outcome === 'Lose' || editedTrade.trade_outcome === 'BE') ? 0 : editedTrade.risk_reward_ratio_long,
-        trade_screens: editedTrade.trade_screens,
-        trade_screen_timeframes: editedTrade.trade_screen_timeframes,
-        mss: editedTrade.mss,
-        break_even: editedTrade.break_even,
-        be_final_result: editedTrade.be_final_result,
-        reentry: editedTrade.reentry,
-        news_related: editedTrade.news_related,
-        news_name: editedTrade.news_related ? (editedTrade.news_name ?? null) : null,
-        news_intensity: editedTrade.news_related ? (editedTrade.news_intensity ?? null) : null,
-        local_high_low: editedTrade.local_high_low,
-        notes: editedTrade.notes,
-        pnl_percentage: editedTrade.pnl_percentage,
-        calculated_profit: editedTrade.calculated_profit,
-        evaluation: editedTrade.evaluation,
-        partials_taken: editedTrade.partials_taken,
-        executed: editedTrade.executed,
-        launch_hour: editedTrade.launch_hour,
-        strategy_id: editedTrade.strategy_id,
-        trend: editedTrade.trend ?? null,
-        fvg_size: editedTrade.fvg_size ?? null,
-        confidence_at_entry: editedTrade.confidence_at_entry ?? null,
-        mind_state_at_entry: editedTrade.mind_state_at_entry ?? null,
-        tags: (editedTrade.tags ?? []).map((t: string) => t.toLowerCase().trim()).filter(Boolean),
-      };
+      const updateData = constructUpdateTradePayload(editedTrade);
 
       const { error: updateError } = await updateTrade(editedTrade.id, tradingMode, updateData);
 
@@ -317,86 +264,11 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       if (!inlineMode) onClose();
 
       // Refetch + sync saved lists + cache in background
-      void (async () => {
-        try {
-          await invalidateAndRefetchTradeQueries();
-
-          let updatedNews: SavedNewsItem[] | undefined;
-          let updatedSetups: string[] | undefined;
-          let updatedLiquidity: string[] | undefined;
-          let updatedMarkets: string[] | undefined;
-
-          const savePromises: Promise<unknown>[] = [];
-          if (editedTrade.news_related && editedTrade.news_name?.trim() && userId) {
-            const savedNews = Array.isArray(settings.saved_news) ? settings.saved_news : [];
-            updatedNews = mergeNewsIntoSaved(
-              normalizeNewsName(editedTrade.news_name),
-              editedTrade.news_intensity ?? null,
-              savedNews
-            );
-            savePromises.push(updateSavedNews(updatedNews));
-          }
-          if (editedTrade.setup_type?.trim() && userId && currentStrategy) {
-            updatedSetups = mergeSetupTypeIntoSaved(
-              editedTrade.setup_type,
-              currentStrategy.saved_setup_types ?? []
-            );
-            savePromises.push(updateStrategySetupTypes(currentStrategy.id, userId, updatedSetups));
-          }
-          if (editedTrade.liquidity?.trim() && userId && currentStrategy) {
-            updatedLiquidity = mergeLiquidityTypeIntoSaved(
-              editedTrade.liquidity,
-              currentStrategy.saved_liquidity_types ?? []
-            );
-            savePromises.push(updateStrategyLiquidityTypes(currentStrategy.id, userId, updatedLiquidity));
-          }
-          if (editedTrade.market?.trim() && userId) {
-            const savedMarkets = Array.isArray(settings.saved_markets) ? settings.saved_markets : [];
-            updatedMarkets = mergeMarketIntoSaved(editedTrade.market, savedMarkets);
-            savePromises.push(updateSavedMarkets(updatedMarkets));
-          }
-
-          const tradeTags = (editedTrade.tags ?? []).map((t: string) => t.toLowerCase().trim()).filter(Boolean);
-          let updatedTags: SavedTag[] | undefined;
-          if (tradeTags.length > 0 && userId && currentStrategy) {
-            const tagsWithColors: SavedTag[] = tradeTags.map(name => ({
-              name,
-              color: (currentStrategy.saved_tags ?? []).find(t => t.name === name)?.color,
-            }));
-            updatedTags = tagsWithColors;
-            savePromises.push(syncStrategyTags(currentStrategy.id, userId, tagsWithColors));
-          }
-
-          await Promise.all(savePromises);
-
-          if (userId) {
-            const settingsKey = queryKeys.settings(userId);
-            queryClient.setQueryData(settingsKey, (prev: { saved_news?: unknown; saved_markets?: string[] } | undefined) => ({
-              ...prev,
-              saved_news: updatedNews ?? prev?.saved_news ?? [],
-              saved_markets: updatedMarkets ?? prev?.saved_markets ?? [],
-            }));
-            if (currentStrategy && (updatedSetups !== undefined || updatedLiquidity !== undefined || updatedTags !== undefined)) {
-              const strategiesKey = queryKeys.strategies(userId, accountId);
-              queryClient.setQueryData(strategiesKey, (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[]; saved_tags?: SavedTag[] }[] | undefined) => {
-                if (!prev) return prev;
-                return prev.map((s) =>
-                  s.id === currentStrategy.id
-                    ? {
-                        ...s,
-                        saved_setup_types: updatedSetups ?? s.saved_setup_types ?? [],
-                        saved_liquidity_types: updatedLiquidity ?? s.saved_liquidity_types ?? [],
-                        saved_tags: updatedTags ?? s.saved_tags ?? [],
-                      }
-                    : s
-                );
-              });
-            }
-          }
-        } catch (syncErr) {
-          console.error('Post-save trade sync failed:', syncErr);
-        }
-      })();
+      void runPostSaveSync({
+        trade: editedTrade,
+        strategyIds: [trade?.strategy_id ?? null, editedTrade.strategy_id ?? null],
+        onSyncError: (msg) => setError(msg),
+      });
     } catch (err: unknown) {
       setError('Failed to save trade. Please try again.');
       setIsSaving(false);
@@ -440,7 +312,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       onClose();
 
       // Refetch in background
-      void invalidateAndRefetchTradeQueries();
+      void invalidateTradeCache([trade?.strategy_id ?? null]);
     } catch (err: unknown) {
       setShowDeleteConfirm(false);
       setError('Failed to delete trade. Please try again.');
@@ -782,7 +654,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             onChange={e => {
               const val = e.target.value;
               if (val === '') {
-                handleInputChange(field, undefined as any);
+                handleInputChange(field, undefined);
                 return;
               }
               const parsed = parseFloat(val);
@@ -1000,7 +872,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       </div>
 
       {/* Scrollable content */}
-      <div className="relative overflow-y-auto flex-1 px-6 py-5">
+      <div ref={panelContentRef} className="relative overflow-y-auto flex-1 px-6 py-5">
         <TooltipProvider>
         <div className="space-y-6">
           {/* Trade Outcome Card - Prominent Display */}
@@ -1282,7 +1154,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                                   ? 'text-amber-400'
                                   : 'text-slate-300 dark:text-slate-600 hover:text-amber-300'
                               }`}
-                              title={['Low', 'Medium', 'High'][star - 1]}
+                              title={NEWS_INTENSITY_LABELS[star] ?? 'Unknown'}
+                              aria-label={`News intensity ${NEWS_INTENSITY_LABELS[star] ?? star}`}
                               aria-pressed={editedTrade.news_intensity != null && star <= editedTrade.news_intensity}
                             >
                               ★
@@ -1290,7 +1163,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                           ))}
                           {editedTrade.news_intensity != null && (
                             <span className="text-xs text-slate-500 dark:text-slate-400 ml-1">
-                              {['Low', 'Medium', 'High'][editedTrade.news_intensity - 1]}
+                              {NEWS_INTENSITY_LABELS[editedTrade.news_intensity] ?? 'Unknown'}
                             </span>
                           )}
                         </div>
@@ -1363,7 +1236,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[320px]">
                 {(editedTrade?.trade_screens ?? []).map((url, i) =>
                   url && isSafeUrl(url) ? (
-                    <div key={i} className="flex flex-col min-h-0">
+                    <div key={`screen-${i}`} className="flex flex-col min-h-0">
                       <div className="flex items-center justify-between mb-2 block shrink-0">
                         <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           Trade Screen {i + 1}
@@ -1403,7 +1276,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                   {[0, 1].map((i) => {
                     return (
                       <TradeScreenSlotEditor
-                        key={i}
+                        key={`screen-${i}`}
                         index={i}
                         label={`Trade Screen ${i + 1}`}
                         timeframe={editedTrade?.trade_screen_timeframes?.[i] ?? ''}
@@ -1437,7 +1310,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                     {[2, 3].map((i) => {
                       return (
                         <TradeScreenSlotEditor
-                          key={i}
+                          key={`screen-${i}`}
                           index={i}
                           label={`Trade Screen ${i + 1}`}
                           timeframe={editedTrade?.trade_screen_timeframes?.[i] ?? ''}
@@ -1525,7 +1398,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                           ? 'themed-rating-active'
                           : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                       }`}
-                      title={['Very low', 'Low', 'Neutral', 'Good', 'Very confident'][value - 1]}
+                      title={CONFIDENCE_LABELS[value] ?? 'Unknown'}
+                      aria-label={`Confidence ${CONFIDENCE_LABELS[value] ?? value} of 5`}
                     >
                       {value}
                     </button>
@@ -1533,7 +1407,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 </div>
                 {editedTrade?.confidence_at_entry != null && (
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Selected: {[null, 'Very low', 'Low', 'Neutral', 'Good', 'Very confident'][editedTrade.confidence_at_entry]}
+                    Selected: {CONFIDENCE_LABELS[editedTrade.confidence_at_entry] ?? 'Unknown'}
                   </p>
                 )}
               </div>
@@ -1564,7 +1438,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                           ? 'themed-rating-active'
                           : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                       }`}
-                      title={['Very poor', 'Poor', 'Neutral', 'Good', 'Very good'][value - 1]}
+                      title={MIND_STATE_LABELS[value] ?? 'Unknown'}
+                      aria-label={`Mind state ${MIND_STATE_LABELS[value] ?? value} of 5`}
                     >
                       {value}
                     </button>
@@ -1572,7 +1447,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 </div>
                 {editedTrade?.mind_state_at_entry != null && (
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Selected: {['Very poor', 'Poor', 'Neutral', 'Good', 'Very good'][editedTrade.mind_state_at_entry - 1]}
+                    Selected: {MIND_STATE_LABELS[editedTrade.mind_state_at_entry] ?? 'Unknown'}
                   </p>
                 )}
               </div>
@@ -1628,7 +1503,16 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             {!effectiveIsEditing ? (
               <>
                 <Button
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => {
+                    setIsEditing(true);
+                    // Focus first editable field after React re-renders with edit mode
+                    requestAnimationFrame(() => {
+                      const firstInput = panelContentRef.current?.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+                        'input:not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])'
+                      );
+                      firstInput?.focus();
+                    });
+                  }}
                   className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-5 py-2 group border-0 disabled:opacity-60 flex items-center gap-2"
                 >
                   <span className="relative z-10">Edit Trade</span>

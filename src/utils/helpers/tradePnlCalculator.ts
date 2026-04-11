@@ -5,8 +5,8 @@
 export function calculateTradePnl(
   trade: {
     trade_outcome: string;
-    risk_per_trade: number;
-    risk_reward_ratio: number;
+    risk_per_trade?: number;
+    risk_reward_ratio?: number;
     break_even: boolean;
   },
   accountBalance: number

@@ -303,7 +303,7 @@ function detectDisplacementPatterns(trades: Trade[]): DetectedPattern[] {
     return 'Large (>2)';
   };
 
-  const stats = calculateGroupedStats(withDisp, (t) => bucketLabel(t.displacement_size));
+  const stats = calculateGroupedStats(withDisp, (t) => bucketLabel(t.displacement_size!));
   return emitBestWorst(stats, {
     category: 'displacement',
     idPrefix: 'displacement',
@@ -421,7 +421,7 @@ function detectRiskPatterns(trades: Trade[], metrics: PeriodMetrics): DetectedPa
   // Average risk per trade
   const risksValid = trades.filter((t) => typeof t.risk_per_trade === 'number' && t.risk_per_trade > 0);
   if (risksValid.length >= MIN_TRADES_RISK) {
-    const avgRisk = risksValid.reduce((sum, t) => sum + t.risk_per_trade, 0) / risksValid.length;
+    const avgRisk = risksValid.reduce((sum, t) => sum + t.risk_per_trade!, 0) / risksValid.length;
     if (avgRisk > 3) {
       patterns.push({
         id: 'risk-high',
@@ -438,7 +438,7 @@ function detectRiskPatterns(trades: Trade[], metrics: PeriodMetrics): DetectedPa
     (t) => !t.break_even && t.trade_outcome === 'Win' && typeof t.risk_reward_ratio === 'number' && t.risk_reward_ratio > 0,
   );
   if (winningTrades.length >= MIN_TRADES_DEFAULT) {
-    const avgRR = winningTrades.reduce((sum, t) => sum + t.risk_reward_ratio, 0) / winningTrades.length;
+    const avgRR = winningTrades.reduce((sum, t) => sum + t.risk_reward_ratio!, 0) / winningTrades.length;
     if (avgRR >= 2) {
       patterns.push({
         id: 'risk-good-rr',
@@ -901,7 +901,7 @@ export function detectMultiPeriodTrends(
     const avgRisk = (trades: Trade[]): number => {
       const valid = trades.filter((t) => typeof t.risk_per_trade === 'number' && t.risk_per_trade > 0);
       if (valid.length === 0) return 0;
-      return valid.reduce((sum, t) => sum + t.risk_per_trade, 0) / valid.length;
+      return valid.reduce((sum, t) => sum + t.risk_per_trade!, 0) / valid.length;
     };
 
     const riskA = avgRisk(tradesA);

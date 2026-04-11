@@ -4,7 +4,7 @@ import { Trade } from "@/types/trade";
 export interface RRStatsTrade {
   break_even: boolean | null;
   trade_outcome: string;
-  risk_reward_ratio: number | null;
+  risk_reward_ratio?: number | null;
 }
 
 export function calculateRRStats(trades: RRStatsTrade[]): number {

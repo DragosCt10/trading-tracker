@@ -14,7 +14,7 @@ export interface Trade {
   market: string;
   setup_type: string;
   liquidity: string;
-  sl_size: number;
+  sl_size?: number;
   direction: string;
   trade_outcome: string;
   /** Manual market session tag (Sydney/Tokyo/London/New York). */
@@ -29,10 +29,10 @@ export interface Trade {
   /** News impact rating: 1 = Low, 2 = Medium, 3 = High. Set when news_related is true. */
   news_intensity?: number | null;
   mss: string;
-  risk_reward_ratio: number;
-  risk_reward_ratio_long: number;
+  risk_reward_ratio?: number;
+  risk_reward_ratio_long?: number;
   local_high_low: boolean;
-  risk_per_trade: number;
+  risk_per_trade?: number;
   calculated_profit?: number;
   notes?: string;  // New field for trade notes
   pnl_percentage?: number;
@@ -41,7 +41,7 @@ export interface Trade {
   partials_taken: boolean;  // New field to track if partials were taken at 1.4RR
   executed: boolean;
   launch_hour: boolean;  // Indicates if the trade was executed during the launch hour
-  displacement_size: number;
+  displacement_size?: number;
   strategy_id?: string | null;
   trend: string | null;
   fvg_size?: number | null;  // e.g. 1, 1.5, 2, 2.5

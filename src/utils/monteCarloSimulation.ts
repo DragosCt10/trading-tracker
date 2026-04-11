@@ -39,7 +39,7 @@ export function runMonteCarloSimulation(
       t.break_even || t.trade_outcome === 'BE'
         ? 0
         : t.trade_outcome === 'Win'
-          ? t.risk_reward_ratio > 0 ? t.risk_reward_ratio : 2
+          ? (t.risk_reward_ratio ?? 0) > 0 ? t.risk_reward_ratio! : 2
           : -1,
     dollar: t.calculated_profit ?? 0,
   }));
