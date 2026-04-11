@@ -8,7 +8,6 @@
 /.pnp
 .pnp.js
 .env
-package-lock.json
 
 # testing
 /coverage
