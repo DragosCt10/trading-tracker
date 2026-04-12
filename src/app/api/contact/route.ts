@@ -85,23 +85,6 @@ export async function POST(req: NextRequest) {
     errors.subject = 'Please select a valid subject';
   }
 
-  if (subject === 'Affiliates') {
-    if (!screenshotUrl || typeof screenshotUrl !== 'string' || screenshotUrl.trim().length === 0) {
-      errors.screenshotUrl = 'Screenshot URL is required';
-    } else if (screenshotUrl.trim().length > 2048) {
-      errors.screenshotUrl = 'URL is too long';
-    } else {
-      try {
-        const parsed = new URL(screenshotUrl.trim());
-        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-          errors.screenshotUrl = 'Please enter a valid URL (must start with http:// or https://)';
-        }
-      } catch {
-        errors.screenshotUrl = 'Please enter a valid URL (must start with http:// or https://)';
-      }
-    }
-  }
-
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
     errors.message = 'Message is required';
   } else if (message.trim().length < 10) {
