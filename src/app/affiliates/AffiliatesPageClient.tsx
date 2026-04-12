@@ -1,14 +1,17 @@
 'use client';
 
+import { useState } from 'react';
 import {
   ArrowRight,
   ExternalLink,
   Handshake,
   Percent,
   Timer,
+  TrendingUp,
   Wallet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { TIER_DEFINITIONS } from '@/constants/tiers';
 
 // Source of truth for the public numbers displayed on the page.
 // These MUST match what is configured inside the Lemon Squeezy affiliate program
@@ -99,6 +102,11 @@ export function AffiliatesPageClient() {
             detail="Created on the 1st &amp; 15th, paid on the 14th &amp; 28th. 30-day holding period."
           />
         </div>
+      </div>
+
+      {/* ── Earnings Calculator ──────────────────────────────────────────── */}
+      <div className="relative mx-auto max-w-4xl px-4 sm:px-6 pb-12 sm:pb-16">
+        <EarningsCalculator />
       </div>
 
       {/* ── Apply section ────────────────────────────────────────────────── */}
@@ -248,6 +256,130 @@ function ProgramStat({ icon, value, label, detail }: ProgramStatProps) {
         {label}
       </div>
       <p className="text-xs leading-relaxed text-muted-foreground">{detail}</p>
+    </div>
+  );
+}
+
+const MONTHLY_PRICE = TIER_DEFINITIONS.pro.pricing.monthly?.usd ?? 11.99;
+const ANNUAL_PRICE = TIER_DEFINITIONS.pro.pricing.annual?.usd ?? 114.99;
+
+function EarningsCalculator() {
+  const [referrals, setReferrals] = useState(10);
+  const [plan, setPlan] = useState<'monthly' | 'annual'>('monthly');
+
+  const rate = AFFILIATE_PROGRAM.commissionPercent / 100;
+  const monthlyEarnings = plan === 'monthly'
+    ? referrals * MONTHLY_PRICE * rate
+    : referrals * (ANNUAL_PRICE * rate) / 12;
+  const yearlyEarnings = plan === 'monthly'
+    ? referrals * MONTHLY_PRICE * rate * 12
+    : referrals * ANNUAL_PRICE * rate;
+
+  const trackPct = ((referrals - 1) / 199) * 100;
+
+  const fmt = (n: number) =>
+    n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+
+  return (
+    <div className="rounded-2xl border border-black/[0.07] dark:border-white/[0.12] bg-transparent p-6 sm:p-8 transition-colors duration-200 hover:border-black/[0.12] dark:hover:border-white/[0.18]">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div
+          className="flex h-10 w-10 items-center justify-center rounded-xl flex-shrink-0"
+          style={{
+            backgroundColor: 'color-mix(in oklab, var(--tc-primary) 12%, transparent)',
+            color: 'var(--tc-primary)',
+          }}
+        >
+          <TrendingUp className="h-4 w-4" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-foreground tracking-[-0.02em]">Earnings calculator</h2>
+          <p className="text-xs text-muted-foreground">Estimate your monthly and yearly commission</p>
+        </div>
+      </div>
+
+      {/* Plan toggle */}
+      <div className="mb-6">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Subscriber plan</p>
+        <div className="inline-flex rounded-xl border border-black/[0.07] dark:border-white/[0.12] p-1 gap-1">
+          {(['monthly', 'annual'] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPlan(p)}
+              className="relative px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer"
+              style={plan === p ? {
+                background: 'color-mix(in oklab, var(--tc-primary) 15%, transparent)',
+                color: 'var(--tc-primary)',
+              } : {
+                color: 'var(--muted-foreground)',
+              }}
+            >
+              {p === 'monthly' ? 'Monthly' : 'Annual'}
+              {p === 'annual' && (
+                <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                  style={{ background: 'color-mix(in oklab, var(--tc-primary) 12%, transparent)', color: 'var(--tc-primary)' }}>
+                  -20%
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Slider */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Referrals</p>
+          <span className="text-2xl font-semibold text-foreground tracking-[-0.03em]">{referrals}</span>
+        </div>
+        <input
+          type="range"
+          min={1}
+          max={200}
+          step={1}
+          value={referrals}
+          onChange={(e) => setReferrals(Number(e.target.value))}
+          className="w-full h-5 appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-[0_2px_6px_rgba(0,0,0,0.4)] [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-[0_2px_6px_rgba(0,0,0,0.4)]"
+          style={{
+            background: `linear-gradient(to right, white 0%, white ${trackPct}%, rgb(100 116 139 / 0.35) ${trackPct}%, rgb(100 116 139 / 0.35) 100%) center / 100% 6px no-repeat`,
+          }}
+        />
+        <div className="flex justify-between text-[11px] text-muted-foreground mt-1.5">
+          <span>1</span>
+          <span>200</span>
+        </div>
+      </div>
+
+      {/* Results */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="rounded-xl p-5 border border-black/[0.07] dark:border-white/[0.12]">
+          <p className="text-xs text-muted-foreground mb-1">Monthly earnings</p>
+          <p className="text-2xl sm:text-3xl font-semibold text-foreground tracking-[-0.03em]">
+            {fmt(monthlyEarnings)}
+          </p>
+          {plan === 'annual' && (
+            <p className="text-[11px] text-muted-foreground mt-1">Commission paid annually</p>
+          )}
+        </div>
+        <div
+          className="rounded-xl p-5 border"
+          style={{
+            background: 'color-mix(in oklab, var(--tc-primary) 8%, transparent)',
+            borderColor: 'color-mix(in oklab, var(--tc-primary) 25%, transparent)',
+          }}
+        >
+          <p className="text-xs text-muted-foreground mb-1">Yearly earnings</p>
+          <p className="text-2xl sm:text-3xl font-semibold tracking-[-0.03em]" style={{ color: 'var(--tc-primary)' }}>
+            {fmt(yearlyEarnings)}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">{AFFILIATE_PROGRAM.commissionPercent}% of {plan === 'monthly' ? `$${MONTHLY_PRICE}/mo` : `$${ANNUAL_PRICE}/yr`} × {referrals}</p>
+        </div>
+      </div>
+
+      <p className="mt-4 text-[11px] text-muted-foreground text-center">
+        Estimates only. Actual earnings depend on active subscriptions and Lemon Squeezy fee deductions.
+      </p>
     </div>
   );
 }
