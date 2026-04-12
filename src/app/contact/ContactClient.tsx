@@ -32,6 +32,7 @@ const SUBJECTS = [
   'Feature Request',
   'Billing',
   'Partnership',
+  'Affiliates',
 ] as const;
 
 type FormStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -40,6 +41,7 @@ interface FieldErrors {
   name?: string;
   email?: string;
   subject?: string;
+  screenshotUrl?: string;
   message?: string;
 }
 
@@ -48,6 +50,7 @@ export function ContactClient() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
+  const [screenshotUrl, setScreenshotUrl] = useState('');
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState<FormStatus>('idle');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -59,6 +62,10 @@ export function ContactClient() {
     if (!email.trim()) errors.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Please enter a valid email';
     if (!subject) errors.subject = 'Please select a subject';
+    if (subject === 'Affiliates') {
+      if (!screenshotUrl.trim()) errors.screenshotUrl = 'Screenshot URL is required';
+      else if (!/^https?:\/\/.+/.test(screenshotUrl.trim())) errors.screenshotUrl = 'Please enter a valid URL (must start with http:// or https://)';
+    }
     if (!message.trim()) errors.message = 'Message is required';
     else if (message.trim().length < 10) errors.message = 'Message must be at least 10 characters';
     return errors;
@@ -82,6 +89,7 @@ export function ContactClient() {
           name: name.trim(),
           email: email.trim(),
           subject,
+          screenshotUrl: screenshotUrl.trim(),
           message: message.trim(),
           website: websiteRef.current?.value || '',
         }),
@@ -108,6 +116,7 @@ export function ContactClient() {
       setName('');
       setEmail('');
       setSubject('');
+      setScreenshotUrl('');
       setMessage('');
       setFieldErrors({});
     } catch {
@@ -242,6 +251,31 @@ export function ContactClient() {
                     </p>
                   )}
                 </div>
+
+                {/* Affiliates: Screenshot URL */}
+                {subject === 'Affiliates' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="screenshotUrl" className={LABEL_CLASS}>
+                      Referrals Proof Screenshot <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="screenshotUrl"
+                      type="url"
+                      value={screenshotUrl}
+                      onChange={(e) => { setScreenshotUrl(e.target.value); setFieldErrors((p) => ({ ...p, screenshotUrl: undefined })); }}
+                      placeholder="https://..."
+                      className={`${INPUT_BASE} ${fieldErrors.screenshotUrl ? INPUT_ERROR : INPUT_NEUTRAL}`}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Paste a screenshot URL showing the users you referred who became active subscribers on AlphaStats.
+                    </p>
+                    {fieldErrors.screenshotUrl && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" /> {fieldErrors.screenshotUrl}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Message */}
                 <div className="space-y-2">
