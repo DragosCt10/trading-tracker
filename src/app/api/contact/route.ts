@@ -7,6 +7,7 @@ const ALLOWED_SUBJECTS = [
   'Feature Request',
   'Billing',
   'Partnership',
+  'Affiliates',
 ] as const;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -37,10 +38,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { name, email, subject, message, website } = body as {
+  const { name, email, subject, screenshotUrl, message, website } = body as {
     name: string;
     email: string;
     subject: string;
+    screenshotUrl?: string;
     message: string;
     website?: string; // honeypot
   };
@@ -83,6 +85,23 @@ export async function POST(req: NextRequest) {
     errors.subject = 'Please select a valid subject';
   }
 
+  if (subject === 'Affiliates') {
+    if (!screenshotUrl || typeof screenshotUrl !== 'string' || screenshotUrl.trim().length === 0) {
+      errors.screenshotUrl = 'Screenshot URL is required';
+    } else if (screenshotUrl.trim().length > 2048) {
+      errors.screenshotUrl = 'URL is too long';
+    } else {
+      try {
+        const parsed = new URL(screenshotUrl.trim());
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          errors.screenshotUrl = 'Please enter a valid URL (must start with http:// or https://)';
+        }
+      } catch {
+        errors.screenshotUrl = 'Please enter a valid URL (must start with http:// or https://)';
+      }
+    }
+  }
+
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
     errors.message = 'Message is required';
   } else if (message.trim().length < 10) {
@@ -106,6 +125,16 @@ export async function POST(req: NextRequest) {
   const safeEmail = sanitizeForDiscord(email.trim());
   const safeSubject = sanitizeForDiscord(subject);
   const safeMessage = sanitizeForDiscord(message);
+  const safeScreenshotUrl = (() => {
+    if (!screenshotUrl?.trim()) return null;
+    try {
+      const parsed = new URL(screenshotUrl.trim());
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+      return sanitizeForDiscord(parsed.href);
+    } catch {
+      return null;
+    }
+  })();
 
   const truncatedMessage = safeMessage.length > 4096
     ? safeMessage.slice(0, 4090) + '... (truncated)'
@@ -124,6 +153,7 @@ export async function POST(req: NextRequest) {
             { name: 'Name', value: safeName, inline: true },
             { name: 'Email', value: safeEmail, inline: true },
             { name: 'Subject', value: safeSubject, inline: true },
+            ...(safeScreenshotUrl ? [{ name: 'Screenshot URL', value: safeScreenshotUrl, inline: false }] : []),
           ],
           timestamp: new Date().toISOString(),
           footer: { text: 'AlphaStats Contact Form' },
