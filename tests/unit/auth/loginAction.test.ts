@@ -70,14 +70,21 @@ describe('loginAction', () => {
   it('returns validation error when email is missing', async () => {
     const result = await loginAction(null, makeFormData('', 'secret'));
 
-    expect(result).toEqual({ error: 'Email and password are required' });
+    expect(result).toEqual({ error: 'Please enter a valid email address' });
     expect(mockSignInWithPassword).not.toHaveBeenCalled();
   });
 
   it('returns validation error when password is missing', async () => {
     const result = await loginAction(null, makeFormData('user@example.com', ''));
 
-    expect(result).toEqual({ error: 'Email and password are required' });
+    expect(result).toEqual({ error: 'Password is required' });
+    expect(mockSignInWithPassword).not.toHaveBeenCalled();
+  });
+
+  it('returns validation error when email format is malformed', async () => {
+    const result = await loginAction(null, makeFormData('not-an-email', 'secret'));
+
+    expect(result).toEqual({ error: 'Please enter a valid email address' });
     expect(mockSignInWithPassword).not.toHaveBeenCalled();
   });
 

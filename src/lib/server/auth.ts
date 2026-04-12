@@ -1,9 +1,26 @@
 'use server';
 
 import { type SupabaseClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 import { createClient } from '@/utils/supabase/server';
 import { ensureDefaultAccount } from '@/lib/server/accounts';
 import { isPasswordStrong } from '@/utils/passwordValidation';
+
+// Schemas at the server-action trust boundary. Explicit per-action shapes
+// are simpler and more type-safe than a single picked schema under Zod 4.
+const EmailField = z.string().trim().email('Please enter a valid email address');
+const PasswordField = z.string().min(1, 'Password is required');
+const RedirectToField = z.string().url('Invalid redirect URL');
+
+const LoginSchema = z.object({ email: EmailField, password: PasswordField });
+const SignupSchema = z.object({ email: EmailField, password: PasswordField, redirectTo: RedirectToField });
+const ResetPasswordSchema = z.object({ email: EmailField, redirectTo: RedirectToField });
+const UpdatePasswordSchema = z.object({ password: PasswordField });
+const UpdateEmailSchema = z.object({ email: EmailField });
+
+function firstZodError(result: { success: false; error: z.ZodError }): string {
+  return result.error.issues[0]?.message ?? 'Invalid form submission';
+}
 
 export async function revokeOtherSessions(supabase: SupabaseClient): Promise<void> {
   try {
@@ -38,22 +55,23 @@ function sanitizeAuthError(error: { message: string }): string {
   return 'Something went wrong. Please try again.';
 }
 
-/** Validate that redirectTo is a relative path on the same origin. */
+/** Validate that redirectTo points at this app's origin (not a foreign host). */
 function isValidRedirectTo(redirectTo: string): boolean {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-  return redirectTo.startsWith(appUrl + '/');
+  try {
+    return new URL(redirectTo).origin === new URL(appUrl).origin;
+  } catch {
+    return false;
+  }
 }
 
 export async function loginAction(
   _prev: AuthResult | null,
   formData: FormData
 ): Promise<AuthResult> {
-  const email = (formData.get('email') as string).trim();
-  const password = formData.get('password') as string;
-
-  if (!email || !password) {
-    return { error: 'Email and password are required' };
-  }
+  const parsed = LoginSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: firstZodError(parsed) };
+  const { email, password } = parsed.data;
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -63,7 +81,14 @@ export async function loginAction(
     return { error: sanitizeAuthError(error) };
   }
   await revokeOtherSessions(supabase);
-  await ensureDefaultAccount();
+  // ensureDefaultAccount is best-effort — a failure here must not report
+  // the login as failed. The user is already authenticated; the next request
+  // can retry account creation.
+  try {
+    await ensureDefaultAccount();
+  } catch (err) {
+    console.error('[auth] ensureDefaultAccount (post-login) failed:', err);
+  }
   return {};
 }
 
@@ -71,17 +96,9 @@ export async function signupAction(
   _prev: AuthResult | null,
   formData: FormData
 ): Promise<AuthResult> {
-  const email = (formData.get('email') as string).trim();
-  const password = formData.get('password') as string;
-  const redirectTo = formData.get('redirectTo') as string;
-
-  if (!email || !password) {
-    return { error: 'Email and password are required' };
-  }
-
-  if (!redirectTo) {
-    return { error: 'Redirect URL is required' };
-  }
+  const parsed = SignupSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: firstZodError(parsed) };
+  const { email, password, redirectTo } = parsed.data;
 
   if (!isValidRedirectTo(redirectTo)) {
     return { error: 'Invalid redirect URL' };
@@ -109,7 +126,11 @@ export async function signupAction(
     return { requiresEmailConfirmation: true };
   }
 
-  await ensureDefaultAccount();
+  try {
+    await ensureDefaultAccount();
+  } catch (err) {
+    console.error('[auth] ensureDefaultAccount (post-signup) failed:', err);
+  }
   return {};
 }
 
@@ -117,16 +138,9 @@ export async function resetPasswordAction(
   _prev: AuthResult | null,
   formData: FormData
 ): Promise<AuthResult> {
-  const email = (formData.get('email') as string).trim();
-  const redirectTo = formData.get('redirectTo') as string;
-
-  if (!email) {
-    return { error: 'Email is required' };
-  }
-
-  if (!redirectTo) {
-    return { error: 'Redirect URL is required' };
-  }
+  const parsed = ResetPasswordSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: firstZodError(parsed) };
+  const { email, redirectTo } = parsed.data;
 
   if (!isValidRedirectTo(redirectTo)) {
     return { error: 'Invalid redirect URL' };
@@ -148,9 +162,11 @@ export async function updatePasswordAction(
   _prev: AuthResult | null,
   formData: FormData
 ): Promise<AuthResult> {
-  const password = formData.get('password') as string;
+  const parsed = UpdatePasswordSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: firstZodError(parsed) };
+  const { password } = parsed.data;
 
-  if (!password || !isPasswordStrong(password)) {
+  if (!isPasswordStrong(password)) {
     return { error: 'Password does not meet strength requirements' };
   }
 
@@ -169,11 +185,9 @@ export async function updateEmailAction(
   _prev: AuthResult | null,
   formData: FormData
 ): Promise<AuthResult> {
-  const email = (formData.get('email') as string).trim();
-
-  if (!email) {
-    return { error: 'Email is required' };
-  }
+  const parsed = UpdateEmailSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: firstZodError(parsed) };
+  const { email } = parsed.data;
 
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ email });

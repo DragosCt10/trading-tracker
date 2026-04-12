@@ -13,6 +13,7 @@ import {
   Settings,
   Crown,
   Sparkles,
+  Handshake,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -113,6 +114,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
 
   const isStrategiesActive = useMemo(() => isActive('/stats'), [isActive]);
   const isInsightVaultActive = useMemo(() => isActive('/insight-vault'), [isActive]);
+  const isAffiliatesActive = useMemo(() => isActive('/affiliates'), [isActive]);
   const isSettingsActive = useMemo(
     () => pathname.startsWith('/settings') || pathname.startsWith('/billing'),
     [pathname]
@@ -177,6 +179,14 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   <span>Insight Vault</span>
                 </NavPillLink>
               </li>
+              {userId ? (
+                <li>
+                  <NavPillLink href="/affiliates#apply" active={isAffiliatesActive}>
+                    <Handshake className="h-4 w-4" />
+                    <span>Affiliates</span>
+                  </NavPillLink>
+                </li>
+              ) : null}
             </ul>
           </div>
 
@@ -366,6 +376,18 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   <Lightbulb className="h-4 w-4" />
                   Insight Vault
                 </NavPillLink>
+
+                {userId ? (
+                  <NavPillLink
+                    href="/affiliates#apply"
+                    active={isAffiliatesActive}
+                    className="h-auto min-h-8 w-full justify-start py-2"
+                    onClick={closeMobileMenu}
+                  >
+                    <Handshake className="h-4 w-4" />
+                    Affiliates
+                  </NavPillLink>
+                ) : null}
 
                 {mobileMenuExtra ? (
                   <div className="w-full">{mobileMenuExtra}</div>

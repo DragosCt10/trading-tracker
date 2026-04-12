@@ -10,6 +10,7 @@ const footerLinks = {
     { label: "Features", href: "/#features" },
     { label: "Dashboard", href: "/" },
     { label: "Rewards", href: "/rewards" },
+    { label: "Affiliates", href: "/affiliates" },
   ],
   feed: [
     { label: "Posts", href: "/feed" },
