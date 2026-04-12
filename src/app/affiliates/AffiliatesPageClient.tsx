@@ -166,7 +166,7 @@ export function AffiliatesPageClient() {
             answer={
               <>
                 Everything lives in your Lemon Squeezy Affiliate Hub — clicks, referrals,
-                earnings, payout history, and creatives. We don't duplicate that dashboard
+                earnings, payout history, and creatives. We don&apos;t duplicate that dashboard
                 inside AlphaStats.{' '}
                 <a
                   href="https://docs.lemonsqueezy.com/help/affiliates/affiliate-hub"
