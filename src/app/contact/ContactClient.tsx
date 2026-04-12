@@ -62,10 +62,6 @@ export function ContactClient() {
     if (!email.trim()) errors.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Please enter a valid email';
     if (!subject) errors.subject = 'Please select a subject';
-    if (subject === 'Affiliates') {
-      if (!screenshotUrl.trim()) errors.screenshotUrl = 'Screenshot URL is required';
-      else if (!/^https?:\/\/.+/.test(screenshotUrl.trim())) errors.screenshotUrl = 'Please enter a valid URL (must start with http:// or https://)';
-    }
     if (!message.trim()) errors.message = 'Message is required';
     else if (message.trim().length < 10) errors.message = 'Message must be at least 10 characters';
     return errors;
@@ -252,8 +248,8 @@ export function ContactClient() {
                   )}
                 </div>
 
-                {/* Affiliates: Screenshot URL */}
-                {subject === 'Affiliates' && (
+                {/* Affiliates: Screenshot URL — temporarily disabled */}
+                {/* {subject === 'Affiliates' && (
                   <div className="space-y-2">
                     <Label htmlFor="screenshotUrl" className={LABEL_CLASS}>
                       Referrals Proof Screenshot <span className="text-destructive">*</span>
@@ -275,7 +271,7 @@ export function ContactClient() {
                       </p>
                     )}
                   </div>
-                )}
+                )} */}
 
                 {/* Message */}
                 <div className="space-y-2">
