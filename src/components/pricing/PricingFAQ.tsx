@@ -70,7 +70,7 @@ interface FAQItemProps {
 function FAQItem({ question, answer, isOpen, onToggle }: FAQItemProps) {
   return (
     <div
-      className="group rounded-xl border border-border/40 bg-transparent transition-colors duration-200 hover:border-border/60"
+      className="group rounded-xl border border-black/[0.07] dark:border-white/[0.12] bg-transparent transition-colors duration-200 hover:border-black/[0.12] dark:hover:border-white/[0.18]"
     >
       <button
         onClick={onToggle}
@@ -159,7 +159,7 @@ export function PricingFAQ({ className }: PricingFAQProps) {
       {/* Still have questions CTA */}
       <div className="mt-10 sm:mt-12">
         <div
-          className="rounded-2xl border border-border/40 bg-transparent p-8 text-center sm:p-10"
+          className="rounded-2xl border border-black/[0.07] dark:border-white/[0.12] bg-transparent p-8 text-center sm:p-10 transition-colors duration-200 hover:border-black/[0.12] dark:hover:border-white/[0.18]"
         >
 
           <div>

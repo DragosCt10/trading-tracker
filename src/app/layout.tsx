@@ -125,6 +125,15 @@ export default async function RootLayout({
         />
       </head>
       {process.env.NODE_ENV === 'production' && <GoogleTagManager gtmId="GTM-NXXDR5MM" nonce={nonce} />}
+      {/* Lemon Squeezy affiliate tracking — production only */}
+      {process.env.NODE_ENV === 'production' && (
+        <>
+          <Script id="ls-affiliate-config" strategy="afterInteractive" nonce={nonce}>
+            {`window.lemonSqueezyAffiliateConfig = { store: "alpha-stats" };`}
+          </Script>
+          <Script src="https://lmsqueezy.com/affiliate.js" strategy="afterInteractive" />
+        </>
+      )}
       <body className={`${inter.className} app-gradient min-h-screen relative`}>
         {/* Theme-aware gradient orbs (use --orb-1 / --orb-2 from color theme) — static, no animation */}
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden>

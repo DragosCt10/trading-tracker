@@ -23,6 +23,7 @@ const BASE_NAV_LINKS = [
   { label: 'Features', href: '#stats-board' },
   { label: 'Pricing', href: '/pricing' },
   { label: 'Testimonials', href: '#testimonials' },
+  { label: 'Earn with us', href: '/affiliates' },
 ] as const;
 
 interface LandingNavbarProps {
@@ -31,11 +32,11 @@ interface LandingNavbarProps {
 
 export function LandingNavbar({ isLoggedIn: isLoggedInProp }: LandingNavbarProps) {
   const pathname = usePathname();
-  const navLinks = BASE_NAV_LINKS.map((link) =>
-    link.href === '/pricing' && pathname === '/pricing'
-      ? { label: 'Home', href: '/' }
-      : link,
-  );
+  const navLinks = BASE_NAV_LINKS.map((link) => {
+    if (link.href === '/pricing' && pathname === '/pricing') return { label: 'Home', href: '/' };
+    if (link.href === '/affiliates' && pathname === '/affiliates') return { label: 'Home', href: '/' };
+    return link;
+  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);

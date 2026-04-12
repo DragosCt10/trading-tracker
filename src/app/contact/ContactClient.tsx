@@ -15,6 +15,17 @@ import {
 } from '@/components/ui/select';
 import { PublicPageShell } from '@/components/shared/PublicPageShell';
 
+// Auth-style input tokens — mirrors AffiliatesPageClient / login page.
+const INPUT_BASE =
+  'h-12 rounded-2xl border backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-300';
+const INPUT_NEUTRAL =
+  'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30';
+const INPUT_ERROR =
+  'border-red-500/60 bg-red-500/5 focus-visible:ring-red-500/40';
+const TEXTAREA_BASE =
+  'rounded-2xl border backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-300';
+const LABEL_CLASS = 'block text-sm font-semibold text-foreground';
+
 const SUBJECTS = [
   'General Inquiry',
   'Bug Report',
@@ -120,12 +131,7 @@ export function ContactClient() {
 
           {/* Form card */}
           <div
-            className="rounded-2xl border border-white/10 p-6 sm:p-8"
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-            }}
+            className="rounded-2xl border border-black/[0.07] dark:border-white/[0.12] bg-transparent p-6 sm:p-8 transition-colors duration-200 hover:border-black/[0.12] dark:hover:border-white/[0.18]"
           >
             {status === 'success' ? (
               <div className="flex flex-col items-center py-8 text-center gap-4" aria-live="polite">
@@ -138,7 +144,7 @@ export function ContactClient() {
                 >
                   <CheckCircle2 className="h-7 w-7 text-emerald-400" />
                 </div>
-                <h2 className="text-xl font-semibold text-white">Message sent!</h2>
+                <h2 className="text-xl font-semibold text-foreground">Message sent!</h2>
                 <p className="text-muted-foreground max-w-sm">
                   Thanks for reaching out. We&apos;ll reply to your email as soon as possible.
                 </p>
@@ -168,8 +174,8 @@ export function ContactClient() {
                 {/* Name + Email row */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-sm text-slate-300">
-                      Name <span className="text-red-400">*</span>
+                    <Label htmlFor="name" className={LABEL_CLASS}>
+                      Name <span className="text-destructive">*</span>
                     </Label>
                     <Input
                       id="name"
@@ -177,21 +183,18 @@ export function ContactClient() {
                       onChange={(e) => { setName(e.target.value); setFieldErrors((p) => ({ ...p, name: undefined })); }}
                       maxLength={100}
                       placeholder="Your name"
-                      className={fieldErrors.name
-                        ? 'border-red-500/60 focus:ring-red-500/40'
-                        : 'border-white/10 bg-white/5 focus:border-white/20'
-                      }
+                      className={`${INPUT_BASE} ${fieldErrors.name ? INPUT_ERROR : INPUT_NEUTRAL}`}
                     />
                     {fieldErrors.name && (
-                      <p className="text-xs text-red-400 flex items-center gap-1">
+                      <p className="text-xs text-destructive flex items-center gap-1">
                         <AlertCircle className="h-3 w-3" /> {fieldErrors.name}
                       </p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm text-slate-300">
-                      Email <span className="text-red-400">*</span>
+                    <Label htmlFor="email" className={LABEL_CLASS}>
+                      Email <span className="text-destructive">*</span>
                     </Label>
                     <Input
                       id="email"
@@ -200,13 +203,10 @@ export function ContactClient() {
                       onChange={(e) => { setEmail(e.target.value); setFieldErrors((p) => ({ ...p, email: undefined })); }}
                       maxLength={254}
                       placeholder="you@example.com"
-                      className={fieldErrors.email
-                        ? 'border-red-500/60 focus:ring-red-500/40'
-                        : 'border-white/10 bg-white/5 focus:border-white/20'
-                      }
+                      className={`${INPUT_BASE} ${fieldErrors.email ? INPUT_ERROR : INPUT_NEUTRAL}`}
                     />
                     {fieldErrors.email && (
-                      <p className="text-xs text-red-400 flex items-center gap-1">
+                      <p className="text-xs text-destructive flex items-center gap-1">
                         <AlertCircle className="h-3 w-3" /> {fieldErrors.email}
                       </p>
                     )}
@@ -215,8 +215,8 @@ export function ContactClient() {
 
                 {/* Subject */}
                 <div className="space-y-2">
-                  <Label htmlFor="subject" className="text-sm text-slate-300">
-                    Subject <span className="text-red-400">*</span>
+                  <Label htmlFor="subject" className={LABEL_CLASS}>
+                    Subject <span className="text-destructive">*</span>
                   </Label>
                   <Select
                     value={subject}
@@ -224,10 +224,7 @@ export function ContactClient() {
                   >
                     <SelectTrigger
                       id="subject"
-                      className={fieldErrors.subject
-                        ? 'border-red-500/60 focus:ring-red-500/40'
-                        : 'border-white/10 bg-white/5 focus:border-white/20'
-                      }
+                      className={`${INPUT_BASE} ${fieldErrors.subject ? INPUT_ERROR : INPUT_NEUTRAL}`}
                     >
                       <SelectValue placeholder="Select a topic" />
                     </SelectTrigger>
@@ -240,7 +237,7 @@ export function ContactClient() {
                     </SelectContent>
                   </Select>
                   {fieldErrors.subject && (
-                    <p className="text-xs text-red-400 flex items-center gap-1">
+                    <p className="text-xs text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" /> {fieldErrors.subject}
                     </p>
                   )}
@@ -248,8 +245,8 @@ export function ContactClient() {
 
                 {/* Message */}
                 <div className="space-y-2">
-                  <Label htmlFor="message" className="text-sm text-slate-300">
-                    Message <span className="text-red-400">*</span>
+                  <Label htmlFor="message" className={LABEL_CLASS}>
+                    Message <span className="text-destructive">*</span>
                   </Label>
                   <Textarea
                     id="message"
@@ -258,14 +255,11 @@ export function ContactClient() {
                     maxLength={5000}
                     rows={5}
                     placeholder="Tell us what's on your mind..."
-                    className={fieldErrors.message
-                      ? 'border-red-500/60 focus:ring-red-500/40'
-                      : 'border-white/10 bg-white/5 focus:border-white/20'
-                    }
+                    className={`${TEXTAREA_BASE} ${fieldErrors.message ? INPUT_ERROR : INPUT_NEUTRAL}`}
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
                     {fieldErrors.message ? (
-                      <p className="text-red-400 flex items-center gap-1">
+                      <p className="text-destructive flex items-center gap-1">
                         <AlertCircle className="h-3 w-3" /> {fieldErrors.message}
                       </p>
                     ) : <span />}
@@ -275,7 +269,7 @@ export function ContactClient() {
 
                 {/* General error */}
                 {generalError && (
-                  <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400 flex items-center gap-2" aria-live="polite">
+                  <div className="rounded-lg border border-destructive/20 bg-destructive/10 backdrop-blur-sm px-4 py-3 text-sm text-destructive flex items-center gap-2" aria-live="polite">
                     <AlertCircle className="h-4 w-4 flex-shrink-0" />
                     {generalError}
                   </div>

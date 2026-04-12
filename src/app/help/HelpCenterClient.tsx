@@ -196,7 +196,7 @@ function FAQAccordionItem({
   onToggle: () => void;
 }) {
   return (
-    <div className="group rounded-xl border border-border/40 bg-transparent transition-colors duration-200 hover:border-border/60">
+    <div className="group rounded-xl border border-black/[0.07] dark:border-white/[0.12] bg-transparent transition-colors duration-200 hover:border-black/[0.12] dark:hover:border-white/[0.18]">
       <button
         onClick={onToggle}
         className="flex w-full items-start justify-between gap-4 p-5 text-left sm:p-6"
@@ -251,7 +251,7 @@ function CategoryCard({
   return (
     <button
       onClick={onClick}
-      className="group flex flex-col items-center gap-3 rounded-xl border border-border/40 bg-transparent p-6 text-center transition-colors duration-200 hover:border-border/60"
+      className="group flex flex-col items-center gap-3 rounded-xl border border-black/[0.07] dark:border-white/[0.12] bg-transparent p-6 text-center transition-colors duration-200 hover:border-black/[0.12] dark:hover:border-white/[0.18]"
     >
       <div
         className="flex h-12 w-12 items-center justify-center rounded-xl"
@@ -438,7 +438,7 @@ export function HelpCenterClient() {
 
           {/* ---- Contact CTA ---- */}
           <div className="mt-16 sm:mt-20">
-            <div className="rounded-2xl border border-border/40 bg-transparent p-8 text-center sm:p-10">
+            <div className="rounded-2xl border border-black/[0.07] dark:border-white/[0.12] bg-transparent p-8 text-center sm:p-10 transition-colors duration-200 hover:border-black/[0.12] dark:hover:border-white/[0.18]">
               <div>
                 <div className="mx-auto mb-4 inline-flex items-center gap-2.5 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none px-4 py-1.5 backdrop-blur-sm">
                   <MessageCircle
