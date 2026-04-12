@@ -316,12 +316,6 @@ function EarningsCalculator() {
               }}
             >
               {p === 'monthly' ? 'Monthly' : 'Annual'}
-              {p === 'annual' && (
-                <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                  style={{ background: 'color-mix(in oklab, var(--tc-primary) 12%, transparent)', color: 'var(--tc-primary)' }}>
-                  -20%
-                </span>
-              )}
             </button>
           ))}
         </div>
@@ -340,7 +334,7 @@ function EarningsCalculator() {
           step={1}
           value={referrals}
           onChange={(e) => setReferrals(Number(e.target.value))}
-          className="w-full h-5 appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-[0_2px_6px_rgba(0,0,0,0.4)] [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-[0_2px_6px_rgba(0,0,0,0.4)]"
+          className="w-full h-5 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-[0_2px_6px_rgba(0,0,0,0.4)] [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-[0_2px_6px_rgba(0,0,0,0.4)]"
           style={{
             background: `linear-gradient(to right, white 0%, white ${trackPct}%, rgb(100 116 139 / 0.35) ${trackPct}%, rgb(100 116 139 / 0.35) 100%) center / 100% 6px no-repeat`,
           }}
