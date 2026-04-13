@@ -6,6 +6,10 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { TIER_DEFINITIONS } from '@/constants/tiers';
 import { PRICING_FEATURES } from '@/constants/pricingFeatures';
+import {
+  EARLY_BIRD_MONTHLY_PRICE,
+  EARLY_BIRD_ANNUAL_PRICE,
+} from '@/constants/earlyBird';
 import type { BillingPeriod } from '@/types/subscription';
 import {
   PricingTable,
@@ -22,6 +26,7 @@ const MONTHLY_PRICE = proDef.pricing.monthly?.usd ?? 11.99;
 const ANNUAL_PRICE = proDef.pricing.annual?.usd ?? 114.99;
 const SAVINGS_PCT = proDef.pricing.annual?.savingsPct ?? 20;
 const ANNUAL_MONTHLY_EQUIV = Math.floor(ANNUAL_PRICE / 12);
+const EARLY_ANNUAL_MONTHLY_EQUIV = Math.floor(EARLY_BIRD_ANNUAL_PRICE / 12);
 
 const themedGradientStyle = {
   background: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))',
@@ -124,6 +129,12 @@ interface PricingComparisonProps {
   hideStarterCTA?: boolean;
   /** Hide the built-in billing toggle (caller renders it externally). */
   hideToggle?: boolean;
+  /**
+   * When true, render the Pro card with launch-offer pricing
+   * ($9.99/mo monthly or $95.90/yr annual) and strike-through the regular
+   * price as compareAt. Caller owns the "slots remaining" decision.
+   */
+  useEarlyBird?: boolean;
   className?: string;
 }
 
@@ -134,12 +145,31 @@ export function PricingComparison({
   onCheckout,
   hideStarterCTA = false,
   hideToggle = false,
+  useEarlyBird = false,
   className,
 }: PricingComparisonProps) {
   const isAnnual = billingPeriod === 'annual';
-  const proPrice = isAnnual ? `$${ANNUAL_MONTHLY_EQUIV}/mo` : `$${MONTHLY_PRICE}/mo`;
-  const proCompareAt = isAnnual ? `$${MONTHLY_PRICE}/mo` : undefined;
-  const proBillingNote = isAnnual ? `$${ANNUAL_PRICE} billed annually` : undefined;
+  const proPrice = useEarlyBird
+    ? isAnnual
+      ? `$${EARLY_ANNUAL_MONTHLY_EQUIV}/mo`
+      : `$${EARLY_BIRD_MONTHLY_PRICE}/mo`
+    : isAnnual
+      ? `$${ANNUAL_MONTHLY_EQUIV}/mo`
+      : `$${MONTHLY_PRICE}/mo`;
+  const proCompareAt = useEarlyBird
+    ? isAnnual
+      ? `$${ANNUAL_MONTHLY_EQUIV}/mo`
+      : `$${MONTHLY_PRICE}/mo`
+    : isAnnual
+      ? `$${MONTHLY_PRICE}/mo`
+      : undefined;
+  const proBillingNote = useEarlyBird
+    ? isAnnual
+      ? `$${EARLY_BIRD_ANNUAL_PRICE} billed annually`
+      : undefined
+    : isAnnual
+      ? `$${ANNUAL_PRICE} billed annually`
+      : undefined;
 
   return (
     <div className={className}>

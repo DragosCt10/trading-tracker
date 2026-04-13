@@ -9,17 +9,24 @@ import type { BillingPeriod } from '@/types/subscription';
 import { PricingFAQ } from '@/components/pricing/PricingFAQ';
 import { PricingComparison } from '@/components/pricing/PricingComparison';
 import { PaymentSecuredInfo } from '@/components/pricing/PaymentSecuredInfo';
+import { EarlyBirdBanner } from '@/components/pricing/EarlyBirdBanner';
+import { EARLY_BIRD_LIMIT } from '@/constants/earlyBird';
 
-export function PricingPageClient() {
+interface PricingPageClientProps {
+  earlyBirdSlotsUsed: number;
+}
+
+export function PricingPageClient({ earlyBirdSlotsUsed }: PricingPageClientProps) {
   const sectionRef = useParallax();
   const router = useRouter();
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('annual');
   const [isCheckoutPending, startCheckoutTransition] = useTransition();
+  const earlyBirdAvailable = earlyBirdSlotsUsed < EARLY_BIRD_LIMIT;
 
   function handleCheckout() {
     startCheckoutTransition(async () => {
       try {
-        const url = await createPublicCheckoutUrl(billingPeriod);
+        const url = await createPublicCheckoutUrl(billingPeriod, earlyBirdAvailable);
         router.push(url);
       } catch {
         router.push('/signup');
@@ -57,11 +64,16 @@ export function PricingPageClient() {
 
         {/* Pricing cards + table */}
         <div className="relative mx-auto max-w-5xl px-2 sm:px-4 pb-12 sm:pb-20">
+          {earlyBirdAvailable && (
+            <EarlyBirdBanner slotsUsed={earlyBirdSlotsUsed} className="mb-6" />
+          )}
+
           <PricingComparison
             billingPeriod={billingPeriod}
             setBillingPeriod={setBillingPeriod}
             isCheckoutPending={isCheckoutPending}
             onCheckout={handleCheckout}
+            useEarlyBird={earlyBirdAvailable}
           />
 
           {/* Secured payment info */}

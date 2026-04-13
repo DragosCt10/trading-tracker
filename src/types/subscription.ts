@@ -60,6 +60,15 @@ export interface TierDefinition {
   pricing: {
     monthly: TierPricingOption | null;
     annual: (TierPricingOption & { savingsPct: number }) | null;
+    /**
+     * Launch-offer variants — served to the first N paying subscribers while
+     * slots remain. Checkout routes here when the server-side slot check
+     * confirms availability; otherwise falls back to the regular variants.
+     */
+    earlyBird?: {
+      monthly: TierPricingOption;
+      annual: TierPricingOption & { savingsPct: number };
+    };
   };
   limits: TierLimits;
   features: TierFeatureFlags;

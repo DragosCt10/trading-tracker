@@ -7,6 +7,8 @@ import { getCachedUserSession } from './session';
 import { TIER_DEFINITIONS, TIER_ORDER } from '@/constants/tiers';
 import type { TierId, BillingPeriod, ResolvedSubscription, SubscriptionRow } from '@/types/subscription';
 import { getPaymentProvider } from '@/lib/billing';
+import { EARLY_BIRD_LIMIT } from '@/constants/earlyBird';
+import { getEarlyBirdSlotsUsed } from './earlyBird';
 
 const STARTER_SUBSCRIPTION: ResolvedSubscription = {
   tier: 'starter',
@@ -207,21 +209,48 @@ export async function verifyAndActivateSubscription(userId: string): Promise<Res
 }
 
 /**
+ * Resolve the Lemon Squeezy variant ID for a given billing period, preferring
+ * the early-bird variant when the caller requests it AND seats remain. The
+ * slot count is re-checked against the live DB inside this function so the
+ * client never controls whether the discount applies.
+ */
+async function resolveProVariantId(
+  billingPeriod: BillingPeriod,
+  preferEarlyBird: boolean,
+): Promise<string> {
+  if (preferEarlyBird) {
+    const earlyBird = TIER_DEFINITIONS.pro.pricing.earlyBird;
+    const used = await getEarlyBirdSlotsUsed();
+    if (earlyBird && used < EARLY_BIRD_LIMIT) {
+      const earlyId =
+        billingPeriod === 'monthly'
+          ? earlyBird.monthly.productId
+          : earlyBird.annual.productId;
+      if (earlyId) return earlyId;
+      console.warn(`[billing] Early-bird variant ID not configured for ${billingPeriod} — falling back to regular variant`);
+    }
+  }
+  const regularId =
+    billingPeriod === 'monthly'
+      ? (TIER_DEFINITIONS.pro.pricing.monthly?.productId ?? '')
+      : (TIER_DEFINITIONS.pro.pricing.annual?.productId ?? '');
+  if (!regularId) {
+    throw new Error(`[billing] Missing Lemon Squeezy variant ID for ${billingPeriod} checkout.`);
+  }
+  return regularId;
+}
+
+/**
  * Server action: create a Lemon Squeezy checkout URL.
  * Returns the URL; client then does router.push(url).
  */
 export async function createCheckoutUrl(
-  billingPeriod: BillingPeriod
+  billingPeriod: BillingPeriod,
+  useEarlyBird = false,
 ): Promise<string> {
   const session = await getCachedUserSession();
   if (!session.user) throw new Error('Not authenticated');
-  const productId =
-    billingPeriod === 'monthly'
-      ? (TIER_DEFINITIONS.pro.pricing.monthly?.productId ?? '')
-      : (TIER_DEFINITIONS.pro.pricing.annual?.productId ?? '');
-  if (!productId) {
-    throw new Error(`[billing] Missing Lemon Squeezy variant ID for ${billingPeriod} checkout.`);
-  }
+  const productId = await resolveProVariantId(billingPeriod, useEarlyBird);
 
   const provider = getPaymentProvider();
   const appUrl = getAppUrl();
@@ -240,15 +269,10 @@ export async function createCheckoutUrl(
  * No session required — user is resolved from email by the webhook after purchase.
  */
 export async function createPublicCheckoutUrl(
-  billingPeriod: BillingPeriod
+  billingPeriod: BillingPeriod,
+  useEarlyBird = false,
 ): Promise<string> {
-  const productId =
-    billingPeriod === 'monthly'
-      ? (TIER_DEFINITIONS.pro.pricing.monthly?.productId ?? '')
-      : (TIER_DEFINITIONS.pro.pricing.annual?.productId ?? '');
-  if (!productId) {
-    throw new Error(`[billing] Missing Lemon Squeezy variant ID for ${billingPeriod} checkout.`);
-  }
+  const productId = await resolveProVariantId(billingPeriod, useEarlyBird);
 
   const provider = getPaymentProvider();
   const appUrl = getAppUrl();
