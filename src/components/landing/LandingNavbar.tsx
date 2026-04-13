@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -246,6 +247,9 @@ export function LandingNavbar({ isLoggedIn: isLoggedInProp }: LandingNavbarProps
                     <Logo className="w-6 h-6 header-logo" />
                     <span className="font-light tracking-wider">AlphaStats</span>
                   </SheetTitle>
+                  <SheetDescription className="sr-only">
+                    Mobile navigation menu
+                  </SheetDescription>
                 </SheetHeader>
 
                 {/* Decorative scan line in mobile menu */}
