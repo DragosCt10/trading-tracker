@@ -261,7 +261,11 @@ export interface Database {
           extra_cards: string[];
           saved_setup_types: string[];
           saved_liquidity_types: string[];
-          /** Pinned/favourite items per combobox kind (setup, liquidity, market, news). Max 10 per kind. */
+          saved_displacement_sizes: string[];
+          saved_sl_sizes: string[];
+          saved_risk_per_trades: string[];
+          saved_rr_ratios: string[];
+          /** Pinned/favourite items per combobox kind (setup, liquidity, market, news, …). Max 10 per kind. */
           saved_favourites: Record<string, string[]> | null;
         };
         Insert: {
@@ -273,6 +277,10 @@ export interface Database {
           extra_cards?: string[];
           saved_setup_types?: string[];
           saved_liquidity_types?: string[];
+          saved_displacement_sizes?: string[];
+          saved_sl_sizes?: string[];
+          saved_risk_per_trades?: string[];
+          saved_rr_ratios?: string[];
           saved_favourites?: Record<string, string[]> | null;
         };
         Update: Partial<{
@@ -287,6 +295,10 @@ export interface Database {
           extra_cards: string[];
           saved_setup_types: string[];
           saved_liquidity_types: string[];
+          saved_displacement_sizes: string[];
+          saved_sl_sizes: string[];
+          saved_risk_per_trades: string[];
+          saved_rr_ratios: string[];
           saved_favourites: Record<string, string[]> | null;
         }>;
         Relationships: never[];

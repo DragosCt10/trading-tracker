@@ -21,6 +21,10 @@ const MOCK_STRATEGIES: Strategy[] = [
     extra_cards: ['session_stats', 'setup_stats', 'mss_stats'],
     saved_setup_types: [],
     saved_liquidity_types: [],
+    saved_displacement_sizes: [],
+    saved_sl_sizes: [],
+    saved_risk_per_trades: [],
+    saved_rr_ratios: [],
     saved_tags: [],
   },
   {
@@ -35,6 +39,10 @@ const MOCK_STRATEGIES: Strategy[] = [
     extra_cards: ['launch_hour', 'fvg_size'],
     saved_setup_types: [],
     saved_liquidity_types: [],
+    saved_displacement_sizes: [],
+    saved_sl_sizes: [],
+    saved_risk_per_trades: [],
+    saved_rr_ratios: [],
     saved_tags: [],
   },
   {
@@ -49,6 +57,10 @@ const MOCK_STRATEGIES: Strategy[] = [
     extra_cards: ['trend_stats', 'potential_rr', 'sl_size_stats', 'evaluation_stats'],
     saved_setup_types: [],
     saved_liquidity_types: [],
+    saved_displacement_sizes: [],
+    saved_sl_sizes: [],
+    saved_risk_per_trades: [],
+    saved_rr_ratios: [],
     saved_tags: [],
   },
 ];

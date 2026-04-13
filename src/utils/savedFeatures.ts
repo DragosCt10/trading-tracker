@@ -128,6 +128,35 @@ export function mergeSetupTypeIntoSaved(
   return [...savedSetupTypes, trimmed];
 }
 
+// ─── Numeric saved pools (displacement, sl_size, risk_per_trade, rr_ratio) ───
+
+const MAX_SAVED_NUMERIC_VALUES = 11;
+
+/**
+ * Merges a numeric value into a strategy's saved numeric pool. Stored as strings
+ * (matching the column type) so the merge/dedupe/edit logic stays identical to
+ * the text-based pools and CommonCombobox can consume it without conversion.
+ *
+ * - Skips null/undefined/non-finite/non-positive values (prevents `0` and `NaN` polluting suggestions).
+ * - Numeric dedupe: "1" and "1.0" collapse via Number() comparison.
+ * - Sorted numerically ascending so dropdowns read naturally.
+ * - Capped at MAX_SAVED_NUMERIC_VALUES; oldest value falls off when full.
+ */
+export function mergeNumericIntoSaved(
+  value: number | null | undefined,
+  saved: string[]
+): string[] {
+  if (value == null || !Number.isFinite(value) || value <= 0) return saved;
+  const incoming = String(value);
+  const incomingNum = Number(incoming);
+  const without = saved.filter((s) => Number(s) !== incomingNum);
+  const merged = [...without, incoming];
+  merged.sort((a, b) => Number(a) - Number(b));
+  if (merged.length <= MAX_SAVED_NUMERIC_VALUES) return merged;
+  // Drop the smallest tail value — "least useful" heuristic when full.
+  return merged.slice(merged.length - MAX_SAVED_NUMERIC_VALUES);
+}
+
 // ─── Liquidity types (saved_liquidity_types, strategies) ─────────────────────
 
 const MAX_SAVED_LIQUIDITY_TYPES = 11;

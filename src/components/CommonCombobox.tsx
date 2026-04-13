@@ -33,6 +33,10 @@ export interface CommonComboboxProps {
   pinnedIds?: string[];
   /** Callback to toggle pin (persist to DB). When provided with pinnedIds, favourites are stored on the strategy. */
   onTogglePin?: (itemId: string) => void;
+  /** Hint the OS keyboard layout (e.g. 'decimal' for numeric fields). Passes through to the underlying input. */
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+  /** Input type attribute. Defaults to 'text'. Use 'tel' to force the numeric keypad on more devices. */
+  inputType?: 'text' | 'tel';
 }
 
 export function CommonCombobox({
@@ -49,6 +53,8 @@ export function CommonCombobox({
   onEditSavedOption,
   pinnedIds = [],
   onTogglePin,
+  inputMode,
+  inputType = 'text',
 }: CommonComboboxProps) {
   const [open, setOpen] = useState(false);
   const showPin = Boolean(onTogglePin);
@@ -212,13 +218,14 @@ export function CommonCombobox({
   /** Stop wheel from bubbling to Radix Dialog so the list actually scrolls */
   const onListWheel = (e: React.WheelEvent) => e.stopPropagation();
   const baseNoMatchClass =
-    'rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] shadow-lg backdrop-blur-sm p-1 text-sm text-slate-600 dark:text-slate-300';
+    'rounded-lg border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] shadow-lg backdrop-blur-sm p-2 text-xs leading-tight text-slate-600 dark:text-slate-300';
 
   return (
     <div ref={containerRef} className="relative">
       <Input
         id={id}
-        type="text"
+        type={inputType}
+        inputMode={inputMode}
         value={inputValue}
         onChange={handleInputChange}
         onFocus={handleFocus}
@@ -354,7 +361,7 @@ export function CommonCombobox({
       {showNoMatch && renderDropdownInline && (
         <div
           className={cn(
-            'absolute top-full left-0 right-0 z-50 mt-1.5',
+            'absolute top-full left-0 right-0 p-1 z-50 mt-1.5',
             baseNoMatchClass,
             dropdownClassName
           )}

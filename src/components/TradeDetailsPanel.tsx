@@ -174,6 +174,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     () => Array.from(new Set(['HOD', 'LOD', ...(currentStrategy?.saved_liquidity_types ?? [])])),
     [currentStrategy?.saved_liquidity_types]
   );
+  const displacementSizeOptions = currentStrategy?.saved_displacement_sizes ?? [];
+  const slSizeOptions = currentStrategy?.saved_sl_sizes ?? [];
+  const riskPerTradeOptions = currentStrategy?.saved_risk_per_trades ?? [];
+  const rrRatioOptions = currentStrategy?.saved_rr_ratios ?? [];
 
   const strategyNameFromStrategies = useMemo(
     () => strategies.find((s) => s.id === editedTrade?.strategy_id)?.name ?? '—',
@@ -545,16 +549,25 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         return (
           <div>
             <label className={`${labelClass} mb-2`}>{label}</label>
-            <Input
-              type="number"
-              step="any"
-              min={0}
+            <CommonCombobox
               value={num !== null ? String(num) : ''}
-              onChange={e => {
-                const val = e.target.value;
-                handleInputChange(field, val === '' ? '' : parseFloat(val));
+              onChange={(v) => {
+                const trimmed = v.trim();
+                if (trimmed === '') {
+                  handleInputChange(field, '');
+                  return;
+                }
+                const n = parseFloat(trimmed);
+                handleInputChange(field, Number.isFinite(n) ? n : '');
               }}
-              className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+              options={riskPerTradeOptions}
+              defaultSuggestions={riskPerTradeOptions}
+              customValueLabel="risk per trade"
+              placeholder="e.g. 1.5"
+              dropdownClassName="z-[100]"
+              inputMode="decimal"
+              pinnedIds={currentStrategy?.saved_favourites?.risk_per_trade}
+              onTogglePin={currentStrategy ? handleToggleFavourite('risk_per_trade') : undefined}
             />
           </div>
         );
@@ -625,17 +638,26 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       return (
         <div>
           <label className={`${labelClass} mb-2`}>{label}</label>
-          <Input
-            type="number"
-            step="any"
+          <CommonCombobox
             value={num !== null ? String(num) : ''}
-            onChange={e => {
-              const val = e.target.value;
-              handleInputChange(field, val === '' ? '' : parseFloat(val));
+            onChange={(v) => {
+              const trimmed = v.trim();
+              if (trimmed === '') {
+                handleInputChange(field, '');
+                return;
+              }
+              const n = parseFloat(trimmed);
+              handleInputChange(field, Number.isFinite(n) ? n : '');
             }}
-            className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+            options={displacementSizeOptions}
+            defaultSuggestions={displacementSizeOptions}
+            customValueLabel="displacement"
+            placeholder="Displacement"
+            dropdownClassName="z-[100]"
+            inputMode="decimal"
             disabled={!effectiveIsEditing}
-            readOnly={!effectiveIsEditing}
+            pinnedIds={currentStrategy?.saved_favourites?.displacement}
+            onTogglePin={currentStrategy ? handleToggleFavourite('displacement') : undefined}
           />
         </div>
       );
@@ -677,6 +699,66 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
             disabled={!effectiveIsEditing}
             readOnly={!effectiveIsEditing}
+          />
+        </div>
+      );
+    }
+
+    if (field === 'sl_size') {
+      const num = value != null && !isNaN(Number(value)) ? Number(value) : null;
+      return (
+        <div>
+          <label className={`${labelClass} mb-2`}>{label}</label>
+          <CommonCombobox
+            value={num !== null ? String(num) : ''}
+            onChange={(v) => {
+              const trimmed = v.trim();
+              if (trimmed === '') {
+                handleInputChange(field, '');
+                return;
+              }
+              const n = parseFloat(trimmed);
+              handleInputChange(field, Number.isFinite(n) ? n : '');
+            }}
+            options={slSizeOptions}
+            defaultSuggestions={slSizeOptions}
+            customValueLabel="SL size"
+            placeholder="e.g. 10"
+            dropdownClassName="z-[100]"
+            inputMode="decimal"
+            disabled={!effectiveIsEditing}
+            pinnedIds={currentStrategy?.saved_favourites?.sl_size}
+            onTogglePin={currentStrategy ? handleToggleFavourite('sl_size') : undefined}
+          />
+        </div>
+      );
+    }
+
+    if (field === 'risk_reward_ratio') {
+      const num = value != null && !isNaN(Number(value)) ? Number(value) : null;
+      return (
+        <div>
+          <label className={`${labelClass} mb-2`}>{label}</label>
+          <CommonCombobox
+            value={num !== null ? String(num) : ''}
+            onChange={(v) => {
+              const trimmed = v.trim();
+              if (trimmed === '') {
+                handleInputChange(field, '');
+                return;
+              }
+              const n = parseFloat(trimmed);
+              handleInputChange(field, Number.isFinite(n) ? n : '');
+            }}
+            options={rrRatioOptions}
+            defaultSuggestions={rrRatioOptions}
+            customValueLabel="R:R"
+            placeholder="e.g. 2"
+            dropdownClassName="z-[100]"
+            inputMode="decimal"
+            disabled={!effectiveIsEditing}
+            pinnedIds={currentStrategy?.saved_favourites?.rr_ratio}
+            onTogglePin={currentStrategy ? handleToggleFavourite('rr_ratio') : undefined}
           />
         </div>
       );

@@ -16,9 +16,16 @@ export type StrategyRow = Database['public']['Tables']['strategies']['Row'];
 
 /** Normalizes a raw strategy row's saved_tags from DB (handles string[] legacy rows). */
 function normalizeStrategy(row: Record<string, unknown>): Strategy {
+  const asArray = (v: unknown): string[] => (Array.isArray(v) ? (v as string[]) : []);
   return {
     ...(row as unknown as Strategy),
     saved_tags: normalizeSavedTags(row.saved_tags),
+    // Default the four numeric saved pools to [] so client code can rely on them
+    // even before the 20260414000000_add_strategy_numeric_saved_pools migration runs.
+    saved_displacement_sizes: asArray(row.saved_displacement_sizes),
+    saved_sl_sizes: asArray(row.saved_sl_sizes),
+    saved_risk_per_trades: asArray(row.saved_risk_per_trades),
+    saved_rr_ratios: asArray(row.saved_rr_ratios),
   };
 }
 
@@ -591,6 +598,42 @@ export async function updateStrategyLiquidityTypes(
 
   if (error) {
     console.error('Error updating strategy liquidity types:', error);
+  }
+}
+
+/** Numeric saved-pool columns for the four NewTradeModal numeric comboboxes. */
+export type StrategyNumericPoolColumn =
+  | 'saved_displacement_sizes'
+  | 'saved_sl_sizes'
+  | 'saved_risk_per_trades'
+  | 'saved_rr_ratios';
+
+/**
+ * Generic updater for the four numeric saved pools on a strategy. Mirrors
+ * updateStrategySetupTypes / updateStrategyLiquidityTypes but is keyed by
+ * column so we don't need four near-identical functions.
+ */
+export async function updateStrategyNumericPool(
+  strategyId: string,
+  userId: string,
+  column: StrategyNumericPoolColumn,
+  values: string[]
+): Promise<void> {
+  const authorizedUserId = await getAuthorizedUserId(userId);
+  if (!authorizedUserId) {
+    console.error(`Unauthorized attempt to update strategy ${column}`);
+    return;
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('strategies')
+    .update({ [column]: values, updated_at: new Date().toISOString() })
+    .eq('id', strategyId)
+    .eq('user_id', authorizedUserId);
+
+  if (error) {
+    console.error(`Error updating strategy ${column}:`, error);
   }
 }
 

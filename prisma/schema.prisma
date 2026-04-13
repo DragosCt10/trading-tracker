@@ -718,6 +718,10 @@ model strategies {
   extra_cards           String[]               @default([])
   saved_setup_types     String[]               @default([])
   saved_liquidity_types String[]               @default([])
+  saved_displacement_sizes String[]            @default([])
+  saved_sl_sizes        String[]               @default([])
+  saved_risk_per_trades String[]               @default([])
+  saved_rr_ratios       String[]               @default([])
   account_id            String?                @db.Uuid
   saved_favourites      Json?                  @default("{}")
   saved_custom_stats    Json?                  @default("[]")

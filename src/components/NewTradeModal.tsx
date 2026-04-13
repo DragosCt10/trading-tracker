@@ -63,7 +63,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
-import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyFavourites, renameStrategyTag, deleteStrategyTag, updateTagColor } from '@/lib/server/strategies';
+import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyNumericPool, updateStrategyFavourites, renameStrategyTag, deleteStrategyTag, updateTagColor } from '@/lib/server/strategies';
 import { TagInput } from '@/components/ui/TagInput';
 import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
 import type { SavedTag, TagColor } from '@/types/saved-tag';
@@ -292,6 +292,14 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     [currentStrategy?.saved_liquidity_types]
   );
 
+  // Numeric saved pools live on the strategy (parallel to saved_setup_types /
+  // saved_liquidity_types). Auto-merged on trade save by useTradeSaveFlow so
+  // the next trade gets one-tap reuse + pin/edit support via CommonCombobox.
+  const displacementSizeOptions = currentStrategy?.saved_displacement_sizes ?? [];
+  const slSizeOptions = currentStrategy?.saved_sl_sizes ?? [];
+  const riskPerTradeOptions = currentStrategy?.saved_risk_per_trades ?? [];
+  const rrRatioOptions = currentStrategy?.saved_rr_ratios ?? [];
+
   const { pnl_percentage: pnlPercentage, calculated_profit: signedProfit } = useMemo(
     () => calculateTradePnl(trade, accountBalance),
     [accountBalance, trade]
@@ -391,6 +399,122 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 saved_liquidity_types: next,
               }
             : s
+        );
+      }
+    );
+  }, [userId, accountId, currentStrategy, queryClient]);
+
+  const handleEditSavedDisplacement = useCallback(async (oldName: string, newName: string) => {
+    if (!userId || !currentStrategy) return;
+    const current = currentStrategy.saved_displacement_sizes ?? [];
+    const oldNum = Number(oldName);
+    const newTrimmed = newName.trim();
+    const newNum = Number(newTrimmed);
+    if (!newTrimmed || !Number.isFinite(newNum) || newNum <= 0) return;
+    const exists = current.some((s) => Number(s) === newNum);
+    let next: string[];
+    if (exists) {
+      next = current.filter((s) => Number(s) !== oldNum);
+    } else {
+      next = current.map((s) => (Number(s) === oldNum ? String(newNum) : s));
+    }
+    next = [...next].sort((a, b) => Number(a) - Number(b));
+    if (next.length === current.length && exists && next.every((v, i) => v === current[i])) return;
+    await updateStrategyNumericPool(currentStrategy.id, userId, 'saved_displacement_sizes', next);
+    const strategiesKey = queryKeys.strategies(userId, accountId);
+    queryClient.setQueryData(
+      strategiesKey,
+      (prev: { id: string; saved_displacement_sizes?: string[] }[] | undefined) => {
+        if (!prev) return prev;
+        return prev.map((s) =>
+          s.id === currentStrategy.id ? { ...s, saved_displacement_sizes: next } : s,
+        );
+      }
+    );
+  }, [userId, accountId, currentStrategy, queryClient]);
+
+  const handleEditSavedSlSize = useCallback(async (oldName: string, newName: string) => {
+    if (!userId || !currentStrategy) return;
+    const current = currentStrategy.saved_sl_sizes ?? [];
+    const oldNum = Number(oldName);
+    const newTrimmed = newName.trim();
+    const newNum = Number(newTrimmed);
+    if (!newTrimmed || !Number.isFinite(newNum) || newNum <= 0) return;
+    const exists = current.some((s) => Number(s) === newNum);
+    let next: string[];
+    if (exists) {
+      next = current.filter((s) => Number(s) !== oldNum);
+    } else {
+      next = current.map((s) => (Number(s) === oldNum ? String(newNum) : s));
+    }
+    next = [...next].sort((a, b) => Number(a) - Number(b));
+    if (next.length === current.length && exists && next.every((v, i) => v === current[i])) return;
+    await updateStrategyNumericPool(currentStrategy.id, userId, 'saved_sl_sizes', next);
+    const strategiesKey = queryKeys.strategies(userId, accountId);
+    queryClient.setQueryData(
+      strategiesKey,
+      (prev: { id: string; saved_sl_sizes?: string[] }[] | undefined) => {
+        if (!prev) return prev;
+        return prev.map((s) =>
+          s.id === currentStrategy.id ? { ...s, saved_sl_sizes: next } : s,
+        );
+      }
+    );
+  }, [userId, accountId, currentStrategy, queryClient]);
+
+  const handleEditSavedRiskPerTrade = useCallback(async (oldName: string, newName: string) => {
+    if (!userId || !currentStrategy) return;
+    const current = currentStrategy.saved_risk_per_trades ?? [];
+    const oldNum = Number(oldName);
+    const newTrimmed = newName.trim();
+    const newNum = Number(newTrimmed);
+    if (!newTrimmed || !Number.isFinite(newNum) || newNum <= 0) return;
+    const exists = current.some((s) => Number(s) === newNum);
+    let next: string[];
+    if (exists) {
+      next = current.filter((s) => Number(s) !== oldNum);
+    } else {
+      next = current.map((s) => (Number(s) === oldNum ? String(newNum) : s));
+    }
+    next = [...next].sort((a, b) => Number(a) - Number(b));
+    if (next.length === current.length && exists && next.every((v, i) => v === current[i])) return;
+    await updateStrategyNumericPool(currentStrategy.id, userId, 'saved_risk_per_trades', next);
+    const strategiesKey = queryKeys.strategies(userId, accountId);
+    queryClient.setQueryData(
+      strategiesKey,
+      (prev: { id: string; saved_risk_per_trades?: string[] }[] | undefined) => {
+        if (!prev) return prev;
+        return prev.map((s) =>
+          s.id === currentStrategy.id ? { ...s, saved_risk_per_trades: next } : s,
+        );
+      }
+    );
+  }, [userId, accountId, currentStrategy, queryClient]);
+
+  const handleEditSavedRrRatio = useCallback(async (oldName: string, newName: string) => {
+    if (!userId || !currentStrategy) return;
+    const current = currentStrategy.saved_rr_ratios ?? [];
+    const oldNum = Number(oldName);
+    const newTrimmed = newName.trim();
+    const newNum = Number(newTrimmed);
+    if (!newTrimmed || !Number.isFinite(newNum) || newNum <= 0) return;
+    const exists = current.some((s) => Number(s) === newNum);
+    let next: string[];
+    if (exists) {
+      next = current.filter((s) => Number(s) !== oldNum);
+    } else {
+      next = current.map((s) => (Number(s) === oldNum ? String(newNum) : s));
+    }
+    next = [...next].sort((a, b) => Number(a) - Number(b));
+    if (next.length === current.length && exists && next.every((v, i) => v === current[i])) return;
+    await updateStrategyNumericPool(currentStrategy.id, userId, 'saved_rr_ratios', next);
+    const strategiesKey = queryKeys.strategies(userId, accountId);
+    queryClient.setQueryData(
+      strategiesKey,
+      (prev: { id: string; saved_rr_ratios?: string[] }[] | undefined) => {
+        if (!prev) return prev;
+        return prev.map((s) =>
+          s.id === currentStrategy.id ? { ...s, saved_rr_ratios: next } : s,
         );
       }
     );
@@ -776,18 +900,26 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               hasAnyExtraCard={hasAnyExtraCard}
               setupOptions={setupOptions}
               liquidityOptions={liquidityOptions}
+              displacementSizeOptions={displacementSizeOptions}
+              slSizeOptions={slSizeOptions}
               savedMarkets={settings.saved_markets}
               updateTrade={updateTrade}
               onTradeOutcomeChange={handleTradeOutcomeChange}
               onEditSavedMarket={handleEditSavedMarket}
               onEditSavedSetup={handleEditSavedSetup}
               onEditSavedLiquidity={handleEditSavedLiquidity}
+              onEditSavedDisplacement={handleEditSavedDisplacement}
+              onEditSavedSlSize={handleEditSavedSlSize}
               pinnedIdsMarket={currentStrategy?.saved_favourites?.market}
               onTogglePinMarket={currentStrategy ? handleToggleFavourite('market') : undefined}
               pinnedIdsSetup={currentStrategy?.saved_favourites?.setup}
               onTogglePinSetup={currentStrategy ? handleToggleFavourite('setup') : undefined}
               pinnedIdsLiquidity={currentStrategy?.saved_favourites?.liquidity}
               onTogglePinLiquidity={currentStrategy ? handleToggleFavourite('liquidity') : undefined}
+              pinnedIdsDisplacement={currentStrategy?.saved_favourites?.displacement}
+              onTogglePinDisplacement={currentStrategy ? handleToggleFavourite('displacement') : undefined}
+              pinnedIdsSlSize={currentStrategy?.saved_favourites?.sl_size}
+              onTogglePinSlSize={currentStrategy ? handleToggleFavourite('sl_size') : undefined}
             />
 
             {/* Risk Management Section */}
@@ -799,6 +931,14 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               pnlPercentage={pnlPercentage}
               signedProfit={signedProfit}
               currency={currency}
+              riskPerTradeOptions={riskPerTradeOptions}
+              rrRatioOptions={rrRatioOptions}
+              onEditSavedRiskPerTrade={handleEditSavedRiskPerTrade}
+              onEditSavedRrRatio={handleEditSavedRrRatio}
+              pinnedIdsRiskPerTrade={currentStrategy?.saved_favourites?.risk_per_trade}
+              onTogglePinRiskPerTrade={currentStrategy ? handleToggleFavourite('risk_per_trade') : undefined}
+              pinnedIdsRrRatio={currentStrategy?.saved_favourites?.rr_ratio}
+              onTogglePinRrRatio={currentStrategy ? handleToggleFavourite('rr_ratio') : undefined}
               updateTrade={updateTrade}
             />
 
@@ -1113,18 +1253,26 @@ interface MarketAndSetupSectionProps {
   hasAnyExtraCard: boolean;
   setupOptions: string[];
   liquidityOptions: string[];
+  displacementSizeOptions: string[];
+  slSizeOptions: string[];
   savedMarkets: string[] | undefined;
   updateTrade: <K extends keyof Trade>(key: K, value: Trade[K]) => void;
   onTradeOutcomeChange: (value: Trade['trade_outcome']) => void;
   onEditSavedMarket: (oldName: string, newName: string) => void | Promise<void>;
   onEditSavedSetup: (oldName: string, newName: string) => void | Promise<void>;
   onEditSavedLiquidity: (oldName: string, newName: string) => void | Promise<void>;
+  onEditSavedDisplacement: (oldName: string, newName: string) => void | Promise<void>;
+  onEditSavedSlSize: (oldName: string, newName: string) => void | Promise<void>;
   pinnedIdsMarket?: string[];
   onTogglePinMarket?: (itemId: string) => void;
   pinnedIdsSetup?: string[];
   onTogglePinSetup?: (itemId: string) => void;
   pinnedIdsLiquidity?: string[];
   onTogglePinLiquidity?: (itemId: string) => void;
+  pinnedIdsDisplacement?: string[];
+  onTogglePinDisplacement?: (itemId: string) => void;
+  pinnedIdsSlSize?: string[];
+  onTogglePinSlSize?: (itemId: string) => void;
 }
 
 const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
@@ -1147,18 +1295,26 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
   hasAnyExtraCard,
   setupOptions,
   liquidityOptions,
+  displacementSizeOptions,
+  slSizeOptions,
   savedMarkets,
   updateTrade,
   onTradeOutcomeChange,
   onEditSavedMarket,
   onEditSavedSetup,
   onEditSavedLiquidity,
+  onEditSavedDisplacement,
+  onEditSavedSlSize,
   pinnedIdsMarket,
   onTogglePinMarket,
   pinnedIdsSetup,
   onTogglePinSetup,
   pinnedIdsLiquidity,
   onTogglePinLiquidity,
+  pinnedIdsDisplacement,
+  onTogglePinDisplacement,
+  pinnedIdsSlSize,
+  onTogglePinSlSize,
 }: MarketAndSetupSectionProps) {
   // Local state to track FVG custom input while typing
   const [fvgInputValue, setFvgInputValue] = useState<string>(String(fvgSize ?? ''));
@@ -1392,16 +1548,26 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
             <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
               Displacement Size (Points) *
             </Label>
-            <Input
-              type="number"
-              step="0.01"
-              inputMode="decimal"
-              value={String(displacementSize ?? '')}
-              onChange={(e) =>
-                updateTrade('displacement_size', parseFloat(e.target.value) || 0)
-              }
-              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+            <CommonCombobox
+              value={displacementSize != null ? String(displacementSize) : ''}
+              onChange={(v) => {
+                const trimmed = v.trim();
+                if (trimmed === '') {
+                  updateTrade('displacement_size', undefined);
+                  return;
+                }
+                const n = parseFloat(trimmed);
+                updateTrade('displacement_size', Number.isFinite(n) ? n : undefined);
+              }}
+              options={displacementSizeOptions}
+              defaultSuggestions={displacementSizeOptions}
+              customValueLabel="displacement"
               placeholder="Displacement"
+              dropdownClassName="z-[100]"
+              inputMode="decimal"
+              onEditSavedOption={onEditSavedDisplacement}
+              pinnedIds={pinnedIdsDisplacement}
+              onTogglePin={onTogglePinDisplacement}
             />
           </div>
         )}
@@ -1411,14 +1577,26 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
             <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
               SL Size *
             </Label>
-            <Input
-              type="number"
-              step="0.01"
-              inputMode="decimal"
-              value={String(slSize ?? '')}
-              onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
-              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+            <CommonCombobox
+              value={slSize != null ? String(slSize) : ''}
+              onChange={(v) => {
+                const trimmed = v.trim();
+                if (trimmed === '') {
+                  updateTrade('sl_size', undefined);
+                  return;
+                }
+                const n = parseFloat(trimmed);
+                updateTrade('sl_size', Number.isFinite(n) ? n : undefined);
+              }}
+              options={slSizeOptions}
+              defaultSuggestions={slSizeOptions}
+              customValueLabel="SL size"
               placeholder="e.g. 10"
+              dropdownClassName="z-[100]"
+              inputMode="decimal"
+              onEditSavedOption={onEditSavedSlSize}
+              pinnedIds={pinnedIdsSlSize}
+              onTogglePin={onTogglePinSlSize}
             />
           </div>
         )}
@@ -1571,6 +1749,14 @@ interface RiskSectionProps {
   pnlPercentage: number;
   signedProfit: number;
   currency: string;
+  riskPerTradeOptions: string[];
+  rrRatioOptions: string[];
+  onEditSavedRiskPerTrade: (oldName: string, newName: string) => void | Promise<void>;
+  onEditSavedRrRatio: (oldName: string, newName: string) => void | Promise<void>;
+  pinnedIdsRiskPerTrade?: string[];
+  onTogglePinRiskPerTrade?: (itemId: string) => void;
+  pinnedIdsRrRatio?: string[];
+  onTogglePinRrRatio?: (itemId: string) => void;
   updateTrade: <K extends keyof Trade>(key: K, value: Trade[K]) => void;
 }
 
@@ -1580,6 +1766,14 @@ const RiskSection = React.memo(function RiskSection({
   pnlPercentage,
   signedProfit,
   currency,
+  riskPerTradeOptions,
+  rrRatioOptions,
+  onEditSavedRiskPerTrade,
+  onEditSavedRrRatio,
+  pinnedIdsRiskPerTrade,
+  onTogglePinRiskPerTrade,
+  pinnedIdsRrRatio,
+  onTogglePinRrRatio,
   updateTrade,
 }: RiskSectionProps) {
   return (
@@ -1591,17 +1785,26 @@ const RiskSection = React.memo(function RiskSection({
             <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
               Risk per Trade (%) *
             </Label>
-            <Input
-              type="number"
-              step="0.01"
-              inputMode="decimal"
-              value={String(riskPerTrade ?? '')}
-              onChange={(e) =>
-                updateTrade('risk_per_trade', parseFloat(e.target.value) || 0)
-              }
-              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+            <CommonCombobox
+              value={riskPerTrade != null ? String(riskPerTrade) : ''}
+              onChange={(v) => {
+                const trimmed = v.trim();
+                if (trimmed === '') {
+                  updateTrade('risk_per_trade', undefined);
+                  return;
+                }
+                const n = parseFloat(trimmed);
+                updateTrade('risk_per_trade', Number.isFinite(n) ? n : undefined);
+              }}
+              options={riskPerTradeOptions}
+              defaultSuggestions={riskPerTradeOptions}
+              customValueLabel="risk per trade"
               placeholder="e.g. 1.5"
-              required
+              dropdownClassName="z-[100]"
+              inputMode="decimal"
+              onEditSavedOption={onEditSavedRiskPerTrade}
+              pinnedIds={pinnedIdsRiskPerTrade}
+              onTogglePin={onTogglePinRiskPerTrade}
             />
           </div>
 
@@ -1609,17 +1812,26 @@ const RiskSection = React.memo(function RiskSection({
             <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
               R:R Ratio *
             </Label>
-            <Input
-              type="number"
-              step="0.01"
-              inputMode="decimal"
-              value={String(riskRewardRatio ?? '')}
-              onChange={(e) =>
-                updateTrade('risk_reward_ratio', parseFloat(e.target.value) || 0)
-              }
-              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+            <CommonCombobox
+              value={riskRewardRatio != null ? String(riskRewardRatio) : ''}
+              onChange={(v) => {
+                const trimmed = v.trim();
+                if (trimmed === '') {
+                  updateTrade('risk_reward_ratio', undefined);
+                  return;
+                }
+                const n = parseFloat(trimmed);
+                updateTrade('risk_reward_ratio', Number.isFinite(n) ? n : undefined);
+              }}
+              options={rrRatioOptions}
+              defaultSuggestions={rrRatioOptions}
+              customValueLabel="R:R"
               placeholder="e.g. 2"
-              required
+              dropdownClassName="z-[100]"
+              inputMode="decimal"
+              onEditSavedOption={onEditSavedRrRatio}
+              pinnedIds={pinnedIdsRrRatio}
+              onTogglePin={onTogglePinRrRatio}
             />
           </div>
         </div>

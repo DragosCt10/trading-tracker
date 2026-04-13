@@ -26,6 +26,10 @@ function makeStrategy(id: string, overrides: Partial<Strategy> = {}): Strategy {
     extra_cards: [],
     saved_setup_types: [],
     saved_liquidity_types: [],
+    saved_displacement_sizes: [],
+    saved_sl_sizes: [],
+    saved_risk_per_trades: [],
+    saved_rr_ratios: [],
     saved_tags: [],
     ...overrides,
   };

@@ -13,10 +13,16 @@ import {
   mergeSetupTypeIntoSaved,
   mergeLiquidityTypeIntoSaved,
   mergeMarketIntoSaved,
+  mergeNumericIntoSaved,
   normalizeNewsName,
 } from '@/utils/savedFeatures';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
-import { updateStrategySetupTypes, updateStrategyLiquidityTypes, syncStrategyTags } from '@/lib/server/strategies';
+import {
+  updateStrategySetupTypes,
+  updateStrategyLiquidityTypes,
+  updateStrategyNumericPool,
+  syncStrategyTags,
+} from '@/lib/server/strategies';
 
 interface UseTradeSaveFlowParams {
   userId: string | undefined;
@@ -73,6 +79,10 @@ export function useTradeSaveFlow({
         let updatedSetups: string[] | undefined;
         let updatedLiquidity: string[] | undefined;
         let updatedMarkets: string[] | undefined;
+        let updatedDisplacementSizes: string[] | undefined;
+        let updatedSlSizes: string[] | undefined;
+        let updatedRiskPerTrades: string[] | undefined;
+        let updatedRrRatios: string[] | undefined;
 
         const savePromises: Promise<unknown>[] = [];
 
@@ -100,6 +110,57 @@ export function useTradeSaveFlow({
             currentStrategy.saved_liquidity_types ?? [],
           );
           savePromises.push(updateStrategyLiquidityTypes(currentStrategy.id, userId, updatedLiquidity));
+        }
+
+        // Numeric saved pools — auto-merge new values into the strategy's
+        // suggestion lists so the next trade gets one-tap reuse.
+        if (userId && currentStrategy) {
+          const next = mergeNumericIntoSaved(
+            trade.displacement_size ?? null,
+            currentStrategy.saved_displacement_sizes ?? [],
+          );
+          if (next !== (currentStrategy.saved_displacement_sizes ?? [])) {
+            updatedDisplacementSizes = next;
+            savePromises.push(
+              updateStrategyNumericPool(currentStrategy.id, userId, 'saved_displacement_sizes', next),
+            );
+          }
+        }
+        if (userId && currentStrategy) {
+          const next = mergeNumericIntoSaved(
+            trade.sl_size ?? null,
+            currentStrategy.saved_sl_sizes ?? [],
+          );
+          if (next !== (currentStrategy.saved_sl_sizes ?? [])) {
+            updatedSlSizes = next;
+            savePromises.push(
+              updateStrategyNumericPool(currentStrategy.id, userId, 'saved_sl_sizes', next),
+            );
+          }
+        }
+        if (userId && currentStrategy) {
+          const next = mergeNumericIntoSaved(
+            trade.risk_per_trade ?? null,
+            currentStrategy.saved_risk_per_trades ?? [],
+          );
+          if (next !== (currentStrategy.saved_risk_per_trades ?? [])) {
+            updatedRiskPerTrades = next;
+            savePromises.push(
+              updateStrategyNumericPool(currentStrategy.id, userId, 'saved_risk_per_trades', next),
+            );
+          }
+        }
+        if (userId && currentStrategy) {
+          const next = mergeNumericIntoSaved(
+            trade.risk_reward_ratio ?? null,
+            currentStrategy.saved_rr_ratios ?? [],
+          );
+          if (next !== (currentStrategy.saved_rr_ratios ?? [])) {
+            updatedRrRatios = next;
+            savePromises.push(
+              updateStrategyNumericPool(currentStrategy.id, userId, 'saved_rr_ratios', next),
+            );
+          }
         }
 
         if (trade.market?.trim() && userId) {
@@ -133,11 +194,36 @@ export function useTradeSaveFlow({
             }),
           );
 
-          if (currentStrategy && (updatedSetups !== undefined || updatedLiquidity !== undefined || updatedTags !== undefined)) {
+          const numericChanged =
+            updatedDisplacementSizes !== undefined ||
+            updatedSlSizes !== undefined ||
+            updatedRiskPerTrades !== undefined ||
+            updatedRrRatios !== undefined;
+
+          if (
+            currentStrategy &&
+            (updatedSetups !== undefined ||
+              updatedLiquidity !== undefined ||
+              updatedTags !== undefined ||
+              numericChanged)
+          ) {
             const strategiesKey = queryKeys.strategies(userId, accountId);
             queryClient.setQueryData(
               strategiesKey,
-              (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[]; saved_tags?: SavedTag[] }[] | undefined) => {
+              (
+                prev:
+                  | {
+                      id: string;
+                      saved_setup_types?: string[];
+                      saved_liquidity_types?: string[];
+                      saved_displacement_sizes?: string[];
+                      saved_sl_sizes?: string[];
+                      saved_risk_per_trades?: string[];
+                      saved_rr_ratios?: string[];
+                      saved_tags?: SavedTag[];
+                    }[]
+                  | undefined,
+              ) => {
                 if (!prev) return prev;
                 return prev.map((s) =>
                   s.id === currentStrategy.id
@@ -145,6 +231,12 @@ export function useTradeSaveFlow({
                         ...s,
                         saved_setup_types: updatedSetups ?? s.saved_setup_types ?? [],
                         saved_liquidity_types: updatedLiquidity ?? s.saved_liquidity_types ?? [],
+                        saved_displacement_sizes:
+                          updatedDisplacementSizes ?? s.saved_displacement_sizes ?? [],
+                        saved_sl_sizes: updatedSlSizes ?? s.saved_sl_sizes ?? [],
+                        saved_risk_per_trades:
+                          updatedRiskPerTrades ?? s.saved_risk_per_trades ?? [],
+                        saved_rr_ratios: updatedRrRatios ?? s.saved_rr_ratios ?? [],
                         saved_tags: updatedTags ?? s.saved_tags ?? [],
                       }
                     : s,
