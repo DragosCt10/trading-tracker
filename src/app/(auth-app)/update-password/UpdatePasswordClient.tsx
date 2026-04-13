@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { authContainerVariants, authItemVariants } from '@/components/auth/authAnimations';
 import { useLoading } from '@/context/LoadingContext';
 import { updatePasswordAction } from '@/lib/server/auth';
 import { createClient } from '@/utils/supabase/client';
@@ -87,9 +89,15 @@ export default function UpdatePasswordClient() {
       title="Update your password"
       subtitle="Choose a new secure password to protect your account"
     >
-      <form className="space-y-6" onSubmit={handleUpdatePassword}>
+      <motion.form
+        variants={authContainerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+        onSubmit={handleUpdatePassword}
+      >
         <div className="space-y-5">
-          <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-700 delay-500">
+          <motion.div variants={authItemVariants} className="space-y-2">
             <Label htmlFor="password" className="block text-sm font-semibold text-foreground">
               New password
             </Label>
@@ -109,9 +117,9 @@ export default function UpdatePasswordClient() {
               className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-300"
             />
             <PasswordStrengthMeter password={password} />
-          </div>
+          </motion.div>
 
-          <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-700 delay-600">
+          <motion.div variants={authItemVariants} className="space-y-2">
             <Label htmlFor="confirmPassword" className="block text-sm font-semibold text-foreground">
               Confirm new password
             </Label>
@@ -136,7 +144,7 @@ export default function UpdatePasswordClient() {
             {confirmTouched && confirmPassword.length > 0 && passwordsMatch && (
               <p className="text-xs text-green-600 dark:text-green-400 font-medium">Passwords match.</p>
             )}
-          </div>
+          </motion.div>
         </div>
 
         {error === 'expired' ? (
@@ -155,16 +163,19 @@ export default function UpdatePasswordClient() {
 
         {message && <SuccessBanner message={message} />}
 
-        <div className="flex items-center justify-between text-sm animate-in fade-in duration-700 delay-1000">
+        <motion.div
+          variants={authItemVariants}
+          className="flex items-center justify-between text-sm"
+        >
           <Link
             href="/login"
             className="font-medium text-muted-foreground hover:text-foreground transition-colors duration-200"
           >
             Back to login
           </Link>
-        </div>
+        </motion.div>
 
-        <div className="animate-in fade-in duration-700 delay-1100">
+        <motion.div variants={authItemVariants}>
           <GradientSubmitButton
             loading={isLoading}
             disabled={!canSubmit}
@@ -172,12 +183,15 @@ export default function UpdatePasswordClient() {
           >
             Update password
           </GradientSubmitButton>
-        </div>
-      </form>
+        </motion.div>
 
-      <p className="mt-8 text-center text-xs text-muted-foreground animate-in fade-in duration-700 delay-1200">
-        Your new password will be used the next time you sign in
-      </p>
+        <motion.p
+          variants={authItemVariants}
+          className="mt-8 text-center text-xs text-muted-foreground"
+        >
+          Your new password will be used the next time you sign in
+        </motion.p>
+      </motion.form>
     </AuthShell>
   );
 }

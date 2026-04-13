@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { authContainerVariants, authItemVariants } from '@/components/auth/authAnimations';
 import { useLoading } from '@/context/LoadingContext';
 import { resetPasswordAction } from '@/lib/server/auth';
 import { AuthShell } from '@/components/auth/AuthShell';
@@ -51,9 +53,15 @@ export default function ResetPasswordClient() {
       title="Reset your password"
       subtitle="Enter your email and we'll send you a secure reset link"
     >
-      <form className="space-y-6" onSubmit={handleResetPassword}>
+      <motion.form
+        variants={authContainerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+        onSubmit={handleResetPassword}
+      >
         <div className="space-y-5">
-          <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-700 delay-500">
+          <motion.div variants={authItemVariants} className="space-y-2">
             <Label htmlFor="email-address" className="block text-sm font-semibold text-foreground">
               Email address
             </Label>
@@ -74,13 +82,16 @@ export default function ResetPasswordClient() {
                 className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-300"
               />
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {error && <ErrorBanner message={error} />}
         {message && <SuccessBanner message={message} />}
 
-        <div className="flex items-center justify-between text-sm animate-in fade-in duration-700 delay-1000">
+        <motion.div
+          variants={authItemVariants}
+          className="flex items-center justify-between text-sm"
+        >
           <Link
             href="/login"
             className="font-medium text-muted-foreground hover:text-foreground transition-colors duration-200"
@@ -94,18 +105,21 @@ export default function ResetPasswordClient() {
             Create account
             <ArrowRight className="w-4 h-4" aria-hidden="true" />
           </Link>
-        </div>
+        </motion.div>
 
-        <div className="w-full animate-in fade-in duration-700 delay-1100">
+        <motion.div variants={authItemVariants} className="w-full">
           <GradientSubmitButton loading={isSubmitting} loadingLabel="Sending reset link...">
             Send reset link
           </GradientSubmitButton>
-        </div>
-      </form>
+        </motion.div>
 
-      <p className="mt-8 text-center text-xs text-muted-foreground animate-in fade-in duration-700 delay-1200">
-        Securely reset your password and get back to tracking your trades
-      </p>
+        <motion.p
+          variants={authItemVariants}
+          className="mt-8 text-center text-xs text-muted-foreground"
+        >
+          Securely reset your password and get back to tracking your trades
+        </motion.p>
+      </motion.form>
     </AuthShell>
   );
 }

@@ -1,73 +1,34 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { format, startOfMonth, endOfMonth, addMonths } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
+
+// Analytics view is lazy-loaded: Recharts and ~25 analytics cards only ship
+// when the viewer switches from the default "My trades" tab.
+const ShareAnalyticsView = dynamic(() => import('./ShareAnalyticsView'), {
+  ssr: false,
+  loading: () => (
+    <div className="py-16 flex items-center justify-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      <span>Loading analytics…</span>
+    </div>
+  ),
+});
 import type { Trade } from '@/types/trade';
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { StrategyShareRow } from '@/lib/server/publicShares';
 import type { SharePageStats } from './sharePageStats';
 import { TradeCardsView } from '@/components/trades/TradeCardsView';
-import { TradingOverviewStats } from '@/components/dashboard/analytics/TradingOverviewStats';
-import { EquityCurveCard } from '@/components/dashboard/analytics/EquityCurveCard';
 import {
-  MonthlyPerformanceChart,
-  computeFullMonthlyStatsFromTrades,
-} from '@/components/dashboard/analytics/MonthlyPerformanceChart';
-import { RiskRewardStats } from '@/components/dashboard/analytics/RiskRewardStats';
-import { SetupStatisticsCard } from '@/components/dashboard/analytics/SetupStatisticsCard';
-import { LiquidityStatisticsCard } from '@/components/dashboard/analytics/LiquidityStatisticsCard';
-import {
-  AccountOverviewCard,
-} from '@/components/dashboard/analytics/AccountOverviewCard';
-import {
-  MONTHS,
-  calculatePnlPercentFromOverview,
   calculateTotalYearProfit,
   computeMonthlyStatsFromTrades,
 } from '@/utils/accountOverviewHelpers';
 import {
-  TradesCalendarCard,
   getDaysInMonthForDate,
   buildWeeklyStats,
 } from '@/components/dashboard/analytics/TradesCalendarCard';
-import {
-  ConfidenceStatsCard,
-  MindStateStatsCard,
-} from '@/components/dashboard/analytics/ConfidenceMindStateCards';
-import { ConsistencyScoreChart } from '@/components/dashboard/analytics/ConsistencyScoreChart';
-import { AverageDrawdownChart } from '@/components/dashboard/analytics/AverageDrawdownChart';
-import { MaxDrawdownChart } from '@/components/dashboard/analytics/MaxDrawdownChart';
-import { ProfitFactorChart } from '@/components/dashboard/analytics/ProfitFactorChart';
-import { SharpeRatioChart } from '@/components/dashboard/analytics/SharpeRatioChart';
-import { TQIChart } from '@/components/dashboard/analytics/TQIChart';
-import { chartOptions } from '@/utils/chartConfig';
-import { MarketStatisticsCard } from '@/components/dashboard/analytics/MarketStatisticsCard';
-import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketProfitStats';
-import { SLSizeStatisticsCard } from '@/components/dashboard/analytics/SLSizeStatisticsCard';
-import { TimeIntervalStatisticsCard } from '@/components/dashboard/analytics/TimeIntervalStatisticsCard';
-import {
-  DayStatisticsCard,
-} from '@/components/dashboard/analytics/DayStatisticsCard';
-import { NewsNameChartCard } from '@/components/dashboard/analytics/NewsNameChartCard';
-import {
-  MSSStatisticsCard,
-} from '@/components/dashboard/analytics/MSSStatisticsCard';
-import {
-  LaunchHourTradesCard,
-} from '@/components/dashboard/analytics/LaunchHourTradesCard';
-import {
-  AverageDisplacementSizeCard,
-} from '@/components/dashboard/analytics/AverageDisplacementSizeCard';
-import {
-  DisplacementSizeStats,
-} from '@/components/dashboard/analytics/DisplacementSizeStats';
-import {
-  LocalHLStatisticsCard,
-} from '@/components/dashboard/analytics/LocalHLStatisticsCard';
-import {
-  FvgSizeStats,
-} from '@/components/dashboard/analytics/FvgSizeStats';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Footer } from '@/components/shared/Footer';
@@ -75,9 +36,9 @@ import { cn } from '@/lib/utils';
 import {
   BarChart3,
   Info,
+  Loader2,
   Lock,
   Share2,
-  TrendingDown,
   TrendingUp,
 } from 'lucide-react';
 import { PnLBadge } from '@/components/shared/PnLBadge';
@@ -99,6 +60,8 @@ type ShareStrategyClientProps = {
     extra_cards: ExtraCardKey[];
   };
   shareData: StrategyShareRow;
+  /** ISO timestamp from strategy_shares.expires_at — shown in the header as "Valid until …" */
+  expiresAt: string | null;
   currencySymbol: string;
   accountBalance: number | null;
   isPro: boolean;
@@ -427,6 +390,7 @@ export default function ShareStrategyClient({
   precomputedStats,
   strategy,
   shareData,
+  expiresAt,
   currencySymbol,
   accountBalance,
   isPro,
@@ -476,17 +440,6 @@ export default function ShareStrategyClient({
     hasAvgDisplacementData, hasDisplacementSizeData, hasFvgSizeData,
     hasConfidenceData, hasMindStateData,
   } = precomputedStats;
-
-  // Still computed client-side — fast, pure, from compact_trades
-  const monthlyStatsAllTrades = useMemo(
-    () => computeFullMonthlyStatsFromTrades(trades),
-    [trades]
-  );
-
-  const hasSetupCard = strategy.extra_cards.includes('setup_stats');
-  const hasLiquidityCard = strategy.extra_cards.includes('liquidity_stats');
-
-  const getCurrencySymbol = () => currencySymbol;
 
   // Calendar range: built from precomputed trade_months (YYYY-MM strings)
   const calendarRange = useMemo(() => {
@@ -606,9 +559,24 @@ export default function ShareStrategyClient({
       <main className="flex-1 w-full mt-12">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--tc-primary)]/50 px-3 py-1 text-xs font-medium shadow-sm bg-[var(--tc-primary)]/10 text-[var(--tc-primary)]">
-              <Share2 className="h-3.5 w-3.5" />
-              <span>Read-only shared view</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--tc-primary)]/50 px-3 py-1 text-xs font-medium shadow-sm bg-[var(--tc-primary)]/10 text-[var(--tc-primary)]">
+                <Share2 className="h-3.5 w-3.5" />
+                <span>Read-only shared view</span>
+              </div>
+              {expiresAt && (
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 px-3 py-1 text-xs text-slate-500 dark:text-slate-400 backdrop-blur-sm">
+                  <span>
+                    Valid until{' '}
+                    {/* Pinned locale so server and client render the same string (avoids hydration mismatch). */}
+                    {new Date(expiresAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </span>
+                </div>
+              )}
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
@@ -687,287 +655,21 @@ export default function ShareStrategyClient({
         )}
 
         {activeView === 'analytics' && (
-        <>
-        <section className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-                Account overview
-              </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Balance and P&amp;L over this shared period.
-              </p>
-            </div>
-          </div>
-          <AccountOverviewCard
-            accountName={null}
+          <ShareAnalyticsView
+            trades={trades}
+            strategy={strategy}
+            precomputedStats={precomputedStats}
             currencySymbol={currencySymbol}
-            updatedBalance={updatedBalance}
-            totalYearProfit={totalRangeProfit}
-            accountBalance={accountBalance ?? 0}
-            months={MONTHS}
-            monthlyStatsAllTrades={monthlyProfitStats}
-            isYearDataLoading={false}
-            tradesCount={trades.length}
-            fallbackAccountName="Read-only Account"
-          />
-        </section>
-
-        <section className="space-y-4 mt-14">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Trades calendar</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              See how trades are distributed across days and weeks in this shared period.
-            </p>
-          </div>
-          <TradesCalendarCard
+            accountBalance={accountBalance}
+            isPro={isPro}
+            hydrated={hydrated}
             currentDate={currentDate}
             onMonthNavigate={handleMonthNavigate}
             canNavigateMonth={canNavigateMonth}
             weeklyStats={weeklyStats}
             calendarMonthTrades={calendarMonthTrades}
-            selectedMarket="all"
-            currencySymbol={currencySymbol}
-            accountBalance={accountBalance ?? 0}
-            getDaysInMonth={() => daysInMonth}
+            daysInMonth={daysInMonth}
           />
-        </section>
-
-        {isPro && (
-        <section className="space-y-4 mt-14">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Core statistics</h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Win rate, profit, R-multiples, streaks, and more computed from this shared period.
-              </p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full [&>*]:min-w-0">
-            <TradingOverviewStats
-              trades={trades}
-              currencySymbol={currencySymbol}
-              hydrated={hydrated}
-              accountBalance={accountBalance ?? undefined}
-              totalProfitFromOverview={totalRangeProfit}
-              pnlPercentFromOverview={calculatePnlPercentFromOverview(totalRangeProfit, accountBalance)}
-              viewMode="dateRange"
-              showTitle={false}
-              partialRowProps={partialRowProps}
-              aboveRiskPerTradeRow={aboveRiskPerTradeRow}
-              allTradesRiskStats={allTradesRiskStats}
-              hideEmptyChartCards
-            />
-          </div>
-        </section>
-        )}
-
-        {isPro && (hasConfidenceData || hasMindStateData) && (
-          <section className="space-y-4 mt-14">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Psychological Factors</h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Confidence and mind state at entry across these shared trades.
-              </p>
-            </div>
-            <div
-              className={
-                hasConfidenceData && hasMindStateData
-                  ? 'grid grid-cols-1 md:grid-cols-2 gap-6'
-                  : 'grid grid-cols-1 gap-6'
-              }
-            >
-              {hasConfidenceData && <ConfidenceStatsCard trades={trades} isLoading={false} />}
-              {hasMindStateData && <MindStateStatsCard trades={trades} isLoading={false} />}
-            </div>
-          </section>
-        )}
-
-        <section className="space-y-4 mt-14">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Equity curve</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              Cumulative P&amp;L over the shared period, starting from zero.
-            </p>
-          </div>
-          <EquityCurveCard trades={trades} currencySymbol={currencySymbol} />
-        </section>
-
-        {isPro && (
-        <section className="space-y-4 mt-14">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Consistency &amp; drawdown</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              Consistency and capital preservation metrics over this shared period.
-            </p>
-          </div>
-          <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
-            <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} />
-            <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} />
-            <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} />
-          </div>
-        </section>
-        )}
-
-        {isPro && (
-        <section className="space-y-4 mt-14">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Performance ratios</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              Return and risk-adjusted metrics.
-            </p>
-          </div>
-          <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
-            <ProfitFactorChart
-              tradesToUse={trades}
-              totalWins={statsToUse.totalWins}
-              totalLosses={statsToUse.totalLosses}
-            />
-            <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} />
-            <TQIChart tradesToUse={trades} />
-          </div>
-        </section>
-        )}
-
-        {isPro && (
-        <section className="my-8">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-2">
-              Trade Performance Analysis
-            </h2>
-            <p className="text-slate-500 dark:text-slate-400 mb-6">
-              See your trading performance metrics and statistics.
-            </p>
-          </div>
-          <MonthlyPerformanceChart
-            monthlyStatsAllTrades={monthlyStatsAllTrades}
-            months={MONTHS}
-          />
-        </section>
-        )}
-
-        {isPro && hasMarketData && (
-          <div className="my-8">
-            <MarketStatisticsCard
-              marketStats={marketStats}
-              isLoading={false}
-              includeTotalTrades
-            />
-          </div>
-        )}
-
-        {isPro && hasMarketData && (
-          <div className="my-8">
-            <MarketProfitStatisticsCard
-              trades={trades}
-              marketStats={marketStats}
-              chartOptions={chartOptions}
-              getCurrencySymbol={getCurrencySymbol}
-            />
-          </div>
-        )}
-
-        {isPro && hasTimeIntervalData && (
-          <div className="my-8">
-            <TimeIntervalStatisticsCard
-              data={timeIntervalChartData}
-              isLoading={false}
-            />
-          </div>
-        )}
-
-        {hasDayStatsData && (
-          <div className="my-8">
-            <DayStatisticsCard
-              dayStats={dayStats}
-              isLoading={false}
-              includeTotalTrades
-            />
-          </div>
-        )}
-
-        {hasNewsNameData && (
-          <div className="my-8">
-            <NewsNameChartCard trades={trades} isLoading={false} />
-          </div>
-        )}
-
-        {(hasCard('potential_rr') && hasPotentialRRData) ||
-        (hasCard('sl_size_stats') && hasSLSizeData) ? (
-          <section className="my-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full [&>*]:min-w-0">
-              {hasCard('potential_rr') && hasPotentialRRData && (
-                <RiskRewardStats trades={trades} isLoading={false} />
-              )}
-              {hasCard('sl_size_stats') && hasSLSizeData && (
-                <SLSizeStatisticsCard
-                  slSizeStats={slSizeStats}
-                  isLoading={false}
-                />
-              )}
-            </div>
-          </section>
-        ) : null}
-
-        {hasSetupCard && hasSetupData && (
-          <div className="my-8">
-            <SetupStatisticsCard
-              setupStats={setupStats}
-              isLoading={false}
-              includeTotalTrades
-            />
-          </div>
-        )}
-
-        {hasLiquidityCard && hasLiquidityData && (
-          <div className="my-8">
-            <LiquidityStatisticsCard
-              liquidityStats={liquidityStats}
-              isLoading={false}
-              includeTotalTrades
-            />
-          </div>
-        )}
-
-        {((hasCard('mss_stats') && hasMssData) ||
-          (hasCard('launch_hour') && hasLaunchHourData) ||
-          (hasCard('avg_displacement') && hasAvgDisplacementData) ||
-          (hasCard('displacement_size') && hasDisplacementSizeData) ||
-          (hasCard('local_hl_stats') && hasLocalHLData) ||
-          (hasCard('fvg_size') && hasFvgSizeData)) && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8 w-full [&>*]:min-w-0">
-            {hasCard('mss_stats') && hasMssData && (
-              <MSSStatisticsCard
-                mssStats={mssStats}
-                isLoading={false}
-                includeTotalTrades
-              />
-            )}
-            {hasCard('launch_hour') && hasLaunchHourData && (
-              <LaunchHourTradesCard
-                filteredTrades={trades}
-                isLoading={false}
-              />
-            )}
-            {hasCard('avg_displacement') && hasAvgDisplacementData && (
-              <AverageDisplacementSizeCard trades={trades} isLoading={false} />
-            )}
-            {hasCard('displacement_size') && hasDisplacementSizeData && (
-              <DisplacementSizeStats trades={trades} isLoading={false} />
-            )}
-            {hasCard('local_hl_stats') && hasLocalHLData && (
-              <LocalHLStatisticsCard
-                localHLStats={localHLStats}
-                isLoading={false}
-                includeTotalTrades
-              />
-            )}
-            {hasCard('fvg_size') && hasFvgSizeData && (
-              <FvgSizeStats trades={trades} isLoading={false} />
-            )}
-          </div>
-        )}
-        </>
         )}
 
         <Footer />

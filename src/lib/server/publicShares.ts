@@ -1,6 +1,7 @@
 'use server';
 
 import type { Database } from '@/types/supabase';
+import { logShareError } from '@/lib/server/shareLogger';
 import type { Trade, TradingMode } from '@/types/trade';
 import { createClient as createSupabaseServerClient } from '@/utils/supabase/server';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
@@ -125,7 +126,7 @@ async function createStrategyShare(params: {
   }
 
   // If a share already exists for the same period, strategy, account and mode,
-  // reuse it instead of creating a duplicate.
+  // reuse it instead of creating a duplicate — but only if it is still active and not expired.
   const { data: existingShares, error: existingError } = await supabase
     .from('strategy_shares')
     .select('*')
@@ -135,6 +136,8 @@ async function createStrategyShare(params: {
     .eq('start_date', params.startDate)
     .eq('end_date', params.endDate)
     .eq('created_by', user.id)
+    .eq('active', true)
+    .gt('expires_at', new Date().toISOString())
     .limit(1);
 
   if (!existingError && existingShares && existingShares.length > 0) {
@@ -161,7 +164,7 @@ async function createStrategyShare(params: {
     .single();
 
   if (error || !data) {
-    console.error('Error creating strategy share:', error);
+    logShareError({ route: 'createStrategyShare' }, 'Error creating strategy share', error);
     return {
       shareToken: null,
       shareRow: null,
@@ -200,7 +203,7 @@ async function createStrategyShare(params: {
       .from('share_stats_cache')
       .upsert({ share_id: newShare.id, stats: stats as unknown as Record<string, unknown> });
   } catch (cacheErr) {
-    console.error('Failed to populate share_stats_cache (non-fatal):', cacheErr);
+    logShareError({ route: 'createStrategyShare', shareId: newShare.id }, 'Failed to populate share_stats_cache (non-fatal)', cacheErr);
   }
 
   return {
@@ -216,12 +219,24 @@ async function createStrategyShare(params: {
  */
 export async function getShareStatsCache(shareId: string): Promise<DashboardRpcResult | null> {
   const supabase = createServiceRoleClient();
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('share_stats_cache')
     .select('stats')
     .eq('share_id', shareId)
     .single();
-  return (data?.stats as DashboardRpcResult) ?? null;
+  return (data?.stats as unknown as DashboardRpcResult) ?? null;
+}
+
+/**
+ * Shared filter: only return shares that are active and not past their expiry.
+ * Applied to every share lookup so both access paths stay consistent.
+ *
+ * Usage: applyActiveShareFilter(supabase.from('strategy_shares').select('*'))
+ */
+function applyActiveShareFilter(query: any): any {
+  return query
+    .eq('active', true)
+    .gt('expires_at', new Date().toISOString());
 }
 
 export async function getShareByToken(
@@ -229,19 +244,16 @@ export async function getShareByToken(
 ): Promise<StrategyShareRow | null> {
   const supabase = createServiceRoleClient();
 
-  const { data, error } = await (supabase as any)
-    .from('strategy_shares')
-    .select('*')
-    .eq('share_token', token)
-    .eq('active', true)
-    .single();
+  const { data, error } = await applyActiveShareFilter(
+    (supabase as any).from('strategy_shares').select('*').eq('share_token', token)
+  ).single();
 
   if (error) {
     if ((error as any).code === 'PGRST116') {
-      // Not found
+      // Not found or expired
       return null;
     }
-    console.error('Error fetching strategy share by token:', error);
+    logShareError({ route: 'getShareByToken', token }, 'Error fetching strategy share by token', error);
     return null;
   }
 
@@ -295,12 +307,33 @@ export async function getPublicTradesForShare(params: {
   const limit = 500;
   let offset = 0;
   let allRows: any[] = [];
-  let totalCount = 0;
 
+  // Only fetch the columns that mapSupabaseTradeToTrade actually reads.
+  // trade_link + liquidity_taken are legacy fallbacks used by normalizeTradeScreens
+  // for old rows that pre-date the trade_screens migration — they don't exist
+  // on newer mode tables (e.g. backtesting_trades), so we leave them out here.
+  const TRADE_COLUMNS = [
+    'id', 'user_id', 'account_id', 'strategy_id',
+    'trade_date', 'trade_time', 'day_of_week',
+    'market', 'setup_type', 'liquidity', 'sl_size', 'direction', 'trade_outcome',
+    'session', 'break_even', 'reentry', 'news_related', 'mss',
+    'risk_reward_ratio', 'risk_reward_ratio_long', 'local_high_low',
+    'risk_per_trade', 'calculated_profit', 'pnl_percentage',
+    'quarter', 'evaluation', 'partials_taken', 'executed',
+    'launch_hour', 'displacement_size',
+    'trade_screens', 'trade_screen_timeframes',
+    'notes', 'trend', 'fvg_size',
+    'confidence_at_entry', 'mind_state_at_entry',
+    'be_final_result',
+    'news_name', 'news_intensity',
+  ].join(', ');
+
+  // Stop-on-short-page pagination: no COUNT query needed.
+  // When a page returns fewer rows than the limit, we've reached the end.
   const baseFilter = (client: ReturnType<typeof createServiceRoleClient>) =>
     client
       .from(tableName)
-      .select('*', { count: 'exact' })
+      .select(TRADE_COLUMNS)
       .eq('account_id', params.accountId)
       .eq('strategy_id', params.strategyId)
       .gte('trade_date', params.startDate)
@@ -309,41 +342,26 @@ export async function getPublicTradesForShare(params: {
       .order('trade_date', { ascending: false });
 
   try {
-    const initialQuery = baseFilter(supabase).range(offset, offset + limit - 1);
-    const {
-      data: initialData,
-      error: initialError,
-      count,
-    } = await initialQuery;
-
-    if (initialError) {
-      console.error('Supabase error in getPublicTradesForShare:', initialError);
-      return [];
-    }
-
-    totalCount = count || 0;
-    allRows = initialData || [];
-
-    offset += limit;
-    while (offset < totalCount) {
-      const { data: moreData, error: fetchError } = await baseFilter(supabase)
+    while (true) {
+      const { data: page, error: pageError } = await baseFilter(supabase)
         .range(offset, offset + limit - 1);
 
-      if (fetchError) {
-        console.error(
-          'Error fetching more trades in getPublicTradesForShare:',
-          fetchError
-        );
+      if (pageError) {
+        logShareError({ route: 'getPublicTradesForShare' }, `Error fetching trades page at offset ${offset}`, pageError);
         break;
       }
 
-      allRows = allRows.concat(moreData || []);
+      const rows = page ?? [];
+      allRows = allRows.concat(rows);
+
+      // Short page → no more data
+      if (rows.length < limit) break;
       offset += limit;
     }
 
     return allRows.map((row) => mapSupabaseTradeToTrade(row, params.mode));
   } catch (error) {
-    console.error('Error in getPublicTradesForShare:', error);
+    logShareError({ route: 'getPublicTradesForShare' }, 'Unexpected error', error);
     return [];
   }
 }

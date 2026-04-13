@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, LockKeyhole, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { authContainerVariants, authItemVariants } from '@/components/auth/authAnimations';
 import { useLoading } from '@/context/LoadingContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { loginAction } from '@/lib/server/auth';
@@ -198,9 +200,15 @@ export default function LoginPage() {
 
       {/* Form section */}
       {magicLinkStatus === 'idle' && (
-        <form className="space-y-6" onSubmit={handleLogin}>
+        <motion.form
+          variants={authContainerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-6"
+          onSubmit={handleLogin}
+        >
           <div className="space-y-5">
-            <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-700 delay-500">
+            <motion.div variants={authItemVariants} className="space-y-2">
               <Label htmlFor="email-address" className="block text-sm font-semibold text-foreground">
                 Email address
               </Label>
@@ -217,9 +225,9 @@ export default function LoginPage() {
                 }}
                 className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-300"
               />
-            </div>
+            </motion.div>
 
-            <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-700 delay-700">
+            <motion.div variants={authItemVariants} className="space-y-2">
               <Label htmlFor="password" className="block text-sm font-semibold text-foreground">
                 Password
               </Label>
@@ -236,12 +244,15 @@ export default function LoginPage() {
                 }}
                 className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-300"
               />
-            </div>
+            </motion.div>
           </div>
 
           {error && <ErrorBanner message={error} />}
 
-          <div className="flex items-center justify-between text-sm animate-in fade-in duration-700 delay-1000">
+          <motion.div
+            variants={authItemVariants}
+            className="flex items-center justify-between text-sm"
+          >
             <Link
               href="/reset-password"
               className="font-medium text-muted-foreground hover:text-foreground transition-colors duration-200"
@@ -255,19 +266,22 @@ export default function LoginPage() {
               Create account
               <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </Link>
-          </div>
+          </motion.div>
 
-          <div className="animate-in fade-in duration-700 delay-1100">
+          <motion.div variants={authItemVariants}>
             <GradientSubmitButton loading={isSubmitting} loadingLabel="Signing in...">
               Sign in to Dashboard
             </GradientSubmitButton>
-          </div>
-        </form>
-      )}
+          </motion.div>
 
-      <p className="mt-8 text-center text-xs text-muted-foreground animate-in fade-in duration-700 delay-1200">
-        Track your trades, analyze your performance, and optimize your strategy
-      </p>
+          <motion.p
+            variants={authItemVariants}
+            className="mt-8 text-center text-xs text-muted-foreground"
+          >
+            Track your trades, analyze your performance, and optimize your strategy
+          </motion.p>
+        </motion.form>
+      )}
     </AuthShell>
   );
 }

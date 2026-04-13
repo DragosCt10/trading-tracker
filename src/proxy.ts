@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/utils/supabase/middleware';
 import { safeRedirectTo } from '@/lib/safeRedirect';
+import { checkShareRateLimit } from '@/lib/shareRateLimit';
 
 /** Paths that do not require an authenticated user (auth pages). */
 const AUTH_PATHS = ['/login', '/signup', '/reset-password', '/update-password', '/api/auth'];
@@ -73,11 +74,37 @@ function buildFinalResponse(
   return response;
 }
 
+/** Extract the share token from a /share/strategy/:token path. Returns null for other paths. */
+function extractShareToken(pathname: string): string | null {
+  const match = pathname.match(/^\/share\/strategy\/([^/]+)/);
+  return match ? match[1] : null;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = new URL(request.url);
 
   // Generate a cryptographically random nonce per request.
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+
+  // --- Share page guard: rate limiting + noindex header ---
+  const shareToken = extractShareToken(pathname);
+  if (shareToken) {
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+      request.headers.get('x-real-ip') ??
+      '127.0.0.1';
+
+    const { allowed, retryAfter } = await checkShareRateLimit(ip, shareToken);
+    if (!allowed) {
+      return new NextResponse('Too Many Requests', {
+        status: 429,
+        headers: {
+          'Retry-After': String(retryAfter ?? 60),
+          'Content-Type': 'text/plain',
+        },
+      });
+    }
+  }
 
   if (isAuthPath(pathname) || isPublicPath(pathname)) {
     const { response } = await updateSession(request);
@@ -85,7 +112,10 @@ export async function proxy(request: NextRequest) {
     // override that redirect so the route handler always runs for auth/public pages.
     const isRedirect = response.status >= 300 && response.status < 400;
     const base = isRedirect ? NextResponse.next() : response;
-    return buildFinalResponse(base, request, nonce);
+    const final = buildFinalResponse(base, request, nonce);
+    // Defence-in-depth: X-Robots-Tag for bots that ignore <meta robots> (Slack, Discord).
+    if (shareToken) final.headers.set('X-Robots-Tag', 'noindex, nofollow');
+    return final;
   }
 
   // Protected pages: use the user already fetched by updateSession — no second getUser() call.

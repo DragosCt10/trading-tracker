@@ -327,6 +327,7 @@ export interface Database {
           created_by: string;
           created_at: string;
           active: boolean;
+          expires_at: string; // timestamptz — DB default: now() + 90 days
         };
         Insert: Partial<Database['public']['Tables']['strategy_shares']['Row']> & {
           strategy_id: string;

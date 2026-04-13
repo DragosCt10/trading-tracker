@@ -1,5 +1,7 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
+import { logShareError } from '@/lib/server/shareLogger';
 import { getShareByToken, getShareStatsCache, getPublicTradesForShare } from '@/lib/server/publicShares';
 import { getStrategyById } from '@/lib/server/strategies';
 import { getDashboardAggregatesServiceRole } from '@/lib/server/dashboardAggregates';
@@ -14,6 +16,14 @@ import {
 } from './sharePageStats';
 
 export const dynamic = 'force-dynamic';
+
+// Never index share pages — they contain private PnL data.
+// X-Robots-Tag: noindex is also set in middleware for defence-in-depth
+// (Slack / Discord unfurl bots ignore <meta> tags).
+export const metadata: Metadata = {
+  title: 'Shared strategy · Trading Tracker',
+  robots: { index: false, follow: false, nocache: true },
+};
 
 interface PageProps {
   params: Promise<{
@@ -122,11 +132,11 @@ export default async function ShareStrategyPage({ params }: PageProps) {
 
       // Persist so the next visit is served from cache.
       const serviceSupabase = createServiceRoleClient();
-      await (serviceSupabase as any)
+      await serviceSupabase
         .from('share_stats_cache')
         .upsert({ share_id: share.id, stats: rpcResult as unknown as Record<string, unknown> });
     } catch (err) {
-      console.error('Failed to compute share stats on cache miss (non-fatal):', err);
+      logShareError({ route: 'ShareStrategyPage', shareId: share.id }, 'Failed to compute share stats on cache miss (non-fatal)', err);
     }
   }
 
@@ -156,6 +166,7 @@ export default async function ShareStrategyPage({ params }: PageProps) {
               ),
         }}
         shareData={share as StrategyShareRow}
+        expiresAt={share.expires_at ?? null}
         currencySymbol={currencySymbol}
         accountBalance={accountBalance}
         isPro={isPro}
