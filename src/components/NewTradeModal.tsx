@@ -5,6 +5,7 @@ import { useProgressDialog } from '@/hooks/useProgressDialog';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { createTrade } from '@/lib/server/trades';
+import { createAddonCheckoutUrl } from '@/lib/server/addons';
 import { Trade } from '@/types/trade';
 import { useQueryClient } from '@tanstack/react-query';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
@@ -1190,10 +1191,28 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   {error === 'TRADE_LIMIT_REACHED' ? (
                     <>
                       You&apos;ve reached the 50 trades/month limit on the Starter plan.{' '}
-                      <Link href="/settings?tab=billing" className="underline font-medium hover:text-rose-800 dark:hover:text-rose-200">
+                      <Link
+                        href="/settings?tab=billing"
+                        className="underline font-medium hover:text-rose-800 dark:hover:text-rose-200"
+                      >
                         Upgrade to PRO
                       </Link>{' '}
-                      for unlimited trades.
+                      <span className="text-rose-700 dark:text-rose-300">or</span>{' '}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const result = await createAddonCheckoutUrl('starter_plus');
+                            window.location.assign(result.url);
+                          } catch {
+                            window.location.assign('/pricing');
+                          }
+                        }}
+                        className="underline font-medium hover:text-rose-800 dark:hover:text-rose-200 cursor-pointer"
+                      >
+                        add Starter Plus for $3.99/mo
+                      </button>{' '}
+                      to unlock unlimited trades.
                     </>
                   ) : error === 'RATE_LIMIT_EXCEEDED' ? (
                     'Too many requests. Please wait a moment and try again.'

@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { getCachedUserSession } from '@/lib/server/session';
 import { resolveSubscription } from '@/lib/server/subscription';
 import { getCachedSocialProfile } from '@/lib/server/socialProfile';
+import { getActiveAddon } from '@/lib/server/addonState';
+import { isAddonAvailable } from '@/constants/addons';
 import SettingsClient from './SettingsClient';
 
 export type SettingsTab = 'billing' | 'account' | 'profile';
@@ -56,10 +58,14 @@ export default async function SettingsPage({
 
   const tab = normalizeTab(resolvedSearch.tab);
 
-  const [subscription, socialProfile] = await Promise.all([
+  const [subscription, socialProfile, initialStarterPlus] = await Promise.all([
     resolveSubscription(user.id),
     getCachedSocialProfile(user.id),
+    getActiveAddon(user.id, 'starter_plus'),
   ]);
+
+  // ER-1: compute server-side so the client never sees the variant ID.
+  const starterPlusAvailable = isAddonAvailable('starter_plus');
 
   // Server-verify the "Payment successful!" banner. A URL with ?success=1 alone
   // is not enough — it must match a real, recently-updated active subscription,
@@ -78,6 +84,8 @@ export default async function SettingsPage({
       userEmail={user.email ?? ''}
       userId={user.id}
       socialProfile={socialProfile}
+      starterPlusAvailable={starterPlusAvailable}
+      initialStarterPlus={initialStarterPlus}
     />
   );
 }

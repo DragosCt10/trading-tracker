@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { PublicPageShell } from '@/components/shared/PublicPageShell';
 import { useParallax } from '@/hooks/useParallax';
 import { createPublicCheckoutUrl } from '@/lib/server/subscription';
+import { createPublicAddonCheckoutUrl } from '@/lib/server/addons';
 import type { BillingPeriod } from '@/types/subscription';
 import { PricingFAQ } from '@/components/pricing/PricingFAQ';
 import { PricingComparison } from '@/components/pricing/PricingComparison';
@@ -14,19 +15,40 @@ import { EARLY_BIRD_LIMIT } from '@/constants/earlyBird';
 
 interface PricingPageClientProps {
   earlyBirdSlotsUsed: number;
+  /**
+   * ER-1: computed server-side from env. When false, the AddonCard is not
+   * rendered and no checkout action is wired. This is the only gate — the
+   * variant ID is never exposed to the client.
+   */
+  starterPlusAvailable: boolean;
 }
 
-export function PricingPageClient({ earlyBirdSlotsUsed }: PricingPageClientProps) {
+export function PricingPageClient({
+  earlyBirdSlotsUsed,
+  starterPlusAvailable,
+}: PricingPageClientProps) {
   const sectionRef = useParallax();
   const router = useRouter();
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('annual');
   const [isCheckoutPending, startCheckoutTransition] = useTransition();
+  const [isAddonCheckoutPending, startAddonCheckoutTransition] = useTransition();
   const earlyBirdAvailable = earlyBirdSlotsUsed < EARLY_BIRD_LIMIT;
 
   function handleCheckout() {
     startCheckoutTransition(async () => {
       try {
         const url = await createPublicCheckoutUrl(billingPeriod, earlyBirdAvailable);
+        router.push(url);
+      } catch {
+        router.push('/signup');
+      }
+    });
+  }
+
+  function handleAddonCheckout() {
+    startAddonCheckoutTransition(async () => {
+      try {
+        const url = await createPublicAddonCheckoutUrl('starter_plus');
         router.push(url);
       } catch {
         router.push('/signup');
@@ -74,6 +96,9 @@ export function PricingPageClient({ earlyBirdSlotsUsed }: PricingPageClientProps
             isCheckoutPending={isCheckoutPending}
             onCheckout={handleCheckout}
             useEarlyBird={earlyBirdAvailable}
+            starterPlusAvailable={starterPlusAvailable}
+            onAddonCheckout={handleAddonCheckout}
+            isAddonCheckoutPending={isAddonCheckoutPending}
           />
 
           {/* Secured payment info */}

@@ -9,6 +9,7 @@ import type { TierId, BillingPeriod, ResolvedSubscription, SubscriptionRow } fro
 import { getPaymentProvider } from '@/lib/billing';
 import { EARLY_BIRD_LIMIT } from '@/constants/earlyBird';
 import { getEarlyBirdSlotsUsed } from './earlyBird';
+import { hasActiveStarterPlus } from './addonState';
 
 const STARTER_SUBSCRIPTION: ResolvedSubscription = {
   tier: 'starter',
@@ -496,6 +497,14 @@ export async function canAddAccount(userId: string, currentCount: number): Promi
 /**
  * Returns how many trades the user can still add this calendar month.
  * null = unlimited.
+ *
+ * Precedence:
+ *   1. Tier limit is unlimited → return null
+ *   2. User has an active Starter Plus add-on → return null (unlimited)
+ *   3. Otherwise count current-month trades against the tier cap
+ *
+ * ER-4: the addon read is fail-closed (returns false on DB error). A Supabase
+ * outage keeps the user on the tier cap instead of silently granting unlimited.
  */
 export async function getRemainingTrades(
   userId: string,
@@ -504,6 +513,8 @@ export async function getRemainingTrades(
   const sub = await getCachedSubscription(userId);
   const max = sub.definition.limits.maxMonthlyTrades;
   if (max === null) return null;
+
+  if (await hasActiveStarterPlus(userId)) return null;
 
   const supabase = await createClient();
   const startOfMonth = new Date();

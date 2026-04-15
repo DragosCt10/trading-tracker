@@ -20,6 +20,7 @@ import {
   PricingTableCell,
   PricingTablePlan,
 } from '@/components/pricing/PricingTable';
+import { AddonCard } from '@/components/pricing/AddonCard';
 
 const proDef = TIER_DEFINITIONS.pro;
 const MONTHLY_PRICE = proDef.pricing.monthly?.usd ?? 11.99;
@@ -135,6 +136,14 @@ interface PricingComparisonProps {
    * price as compareAt. Caller owns the "slots remaining" decision.
    */
   useEarlyBird?: boolean;
+  /**
+   * ER-1: When true, render the Starter Plus add-on callout card between the
+   * tier cards and the feature table. Computed server-side from env so the
+   * variant ID never reaches the client bundle.
+   */
+  starterPlusAvailable?: boolean;
+  onAddonCheckout?: () => void;
+  isAddonCheckoutPending?: boolean;
   className?: string;
 }
 
@@ -146,8 +155,15 @@ export function PricingComparison({
   hideStarterCTA = false,
   hideToggle = false,
   useEarlyBird = false,
+  starterPlusAvailable = false,
+  onAddonCheckout,
+  isAddonCheckoutPending = false,
   className,
 }: PricingComparisonProps) {
+  // ER-1: only render when the add-on variant is configured AND the caller
+  // supplied a handler. Both conditions mean a silent misconfig shows nothing
+  // rather than a dead CTA.
+  const showAddon = starterPlusAvailable && typeof onAddonCheckout === 'function';
   const isAnnual = billingPeriod === 'annual';
   const proPrice = useEarlyBird
     ? isAnnual
@@ -186,19 +202,37 @@ export function PricingComparison({
           badge="Free forever"
           badgeClassName="border-slate-300/50 dark:border-slate-600/50 text-slate-500 dark:text-slate-400"
           price="Free"
-          description="Get started at no cost."
+          description="Get started at no cost. No credit card required."
           icon={Zap}
         >
           {hideStarterCTA ? (
             <>
-              <p className="text-[10px] -mt-1 mb-2 text-muted-foreground">No credit card required</p>
+              {showAddon ? (
+                <a
+                  href="#starter-plus-addon"
+                  className="text-[10px] -mt-1 mb-2 block text-center font-medium text-[var(--tc-primary)] underline-offset-2 hover:underline"
+                >
+                  Need unlimited trades? Get Starter Plus →
+                </a>
+              ) : (
+                <p className="text-[10px] -mt-1 mb-2 text-muted-foreground">No credit card required</p>
+              )}
               <Button variant="outline" disabled className="w-full rounded-lg text-xs" size="sm">
                 Current plan
               </Button>
             </>
           ) : (
             <>
-              <p className="text-[10px] -mt-1 mb-2 text-muted-foreground">No credit card required</p>
+              {showAddon ? (
+                <a
+                  href="#starter-plus-addon"
+                  className="text-[10px] -mt-1 mb-2 block text-center font-medium text-[var(--tc-primary)] underline-offset-2 hover:underline"
+                >
+                  Need unlimited trades? Get Starter Plus →
+                </a>
+              ) : (
+                <p className="text-[10px] -mt-1 mb-2 text-muted-foreground">No credit card required</p>
+              )}
               <Link href="/login">
                 <Button variant="outline" className="w-full rounded-lg cursor-pointer text-xs" size="sm">
                   Get started
@@ -240,21 +274,39 @@ export function PricingComparison({
                 badge="Free forever"
                 badgeClassName="border-slate-300/50 dark:border-slate-600/50 text-slate-500 dark:text-slate-400"
                 price="Free"
-                description="Get started at no cost."
+                description="Get started at no cost. No credit card required."
                 icon={Zap}
               >
                 {hideStarterCTA ? (
                   <>
-                    <p className="text-xs -mt-1 mb-3 text-muted-foreground">No credit card required</p>
-                    <Button variant="outline" disabled className="w-full rounded-lg text-sm" size="sm">
+                    {showAddon ? (
+                      <a
+                        href="#starter-plus-addon"
+                        className="text-xs -mt-1 mb-3 block text-center font-medium text-[var(--tc-primary)] underline-offset-2 hover:underline"
+                      >
+                        Need unlimited trades? Get Starter Plus →
+                      </a>
+                    ) : (
+                      <p className="text-xs -mt-1 mb-3 text-muted-foreground">No credit card required</p>
+                    )}
+                    <Button variant="outline" disabled className="w-full rounded-lg text-sm" size="default">
                       Current plan
                     </Button>
                   </>
                 ) : (
                   <>
-                    <p className="text-xs -mt-1 mb-3 text-muted-foreground">No credit card required</p>
+                    {showAddon ? (
+                      <a
+                        href="#starter-plus-addon"
+                        className="text-xs -mt-1 mb-3 block text-center font-medium text-[var(--tc-primary)] underline-offset-2 hover:underline"
+                      >
+                        Need unlimited trades? Get Starter Plus →
+                      </a>
+                    ) : (
+                      <p className="text-xs -mt-1 mb-3 text-muted-foreground">No credit card required</p>
+                    )}
                     <Link href="/login">
-                      <Button variant="outline" className="w-full rounded-lg cursor-pointer text-sm" size="sm">
+                      <Button variant="outline" className="w-full rounded-lg cursor-pointer text-sm" size="default">
                         Get started
                       </Button>
                     </Link>
@@ -301,6 +353,19 @@ export function PricingComparison({
           ))}
         </PricingTableBody>
       </PricingTable>
+
+      {/* Starter Plus add-on callout — placed BELOW the feature table so users
+          see the full comparison before being offered the add-on. The Starter
+          card above has a "Need unlimited trades?" link that anchors here. */}
+      {showAddon && onAddonCheckout && (
+        <div id="starter-plus-addon" className="scroll-mt-24">
+          <AddonCard
+            className="mb-10"
+            onCheckout={onAddonCheckout}
+            isCheckoutPending={isAddonCheckoutPending}
+          />
+        </div>
+      )}
     </div>
   );
 }

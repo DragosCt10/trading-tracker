@@ -17,8 +17,10 @@ import { TIER_DEFINITIONS } from '@/constants/tiers';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import type { BillingPeriod, ResolvedSubscription } from '@/types/subscription';
+import type { ResolvedAddon } from '@/types/addon';
 import { BillingCurrentPlanCard } from '@/components/settings/BillingCurrentPlanCard';
 import { BillingUpgradeCard } from '@/components/settings/BillingUpgradeCard';
+import { BillingStarterPlusCard } from '@/components/settings/BillingStarterPlusCard';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -37,6 +39,9 @@ interface BillingSettingsPanelProps {
   justPaid: boolean;
   featureContext?: string;
   showHeader?: boolean;
+  /** ER-1: false hides the add-ons block entirely. */
+  starterPlusAvailable?: boolean;
+  initialStarterPlus?: ResolvedAddon | null;
 }
 
 export function BillingSettingsPanel({
@@ -44,6 +49,8 @@ export function BillingSettingsPanel({
   justPaid,
   featureContext,
   showHeader = false,
+  starterPlusAvailable = false,
+  initialStarterPlus = null,
 }: BillingSettingsPanelProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -259,6 +266,19 @@ export function BillingSettingsPanel({
         onCancelSubscription={handleCancelSubscription}
       />
 
+      {/* When Starter Plus is already active on initial page load, render the
+          add-on card ABOVE the Pro upgrade/pricing table so users see their
+          active entitlement first. When inactive, render it BELOW as a
+          discovery slot. */}
+      {initialStarterPlus?.isActive && (
+        <BillingStarterPlusCard
+          available={starterPlusAvailable}
+          initialAddon={initialStarterPlus}
+          isPro={isPro}
+          justPaid={justPaid}
+        />
+      )}
+
       <BillingUpgradeCard
         isPro={isPro}
         billingPeriod={billingPeriod}
@@ -266,6 +286,15 @@ export function BillingSettingsPanel({
         isCheckoutPending={isCheckoutPending}
         onUpgrade={handleUpgrade}
       />
+
+      {!initialStarterPlus?.isActive && (
+        <BillingStarterPlusCard
+          available={starterPlusAvailable}
+          initialAddon={initialStarterPlus}
+          isPro={isPro}
+          justPaid={justPaid}
+        />
+      )}
 
       <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
         <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient !rounded-2xl">

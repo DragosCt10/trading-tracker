@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { ResolvedSubscription } from '@/types/subscription';
+import type { ResolvedAddon } from '@/types/addon';
 import type { SocialProfile } from '@/types/social';
 import { updateEmailAction, updatePasswordAction } from '@/lib/server/auth';
 import { PASSWORD_RULES, getPasswordStrength } from '@/utils/passwordValidation';
@@ -44,6 +45,8 @@ interface SettingsClientProps {
   userEmail: string;
   userId: string;
   socialProfile: SocialProfile | null;
+  starterPlusAvailable: boolean;
+  initialStarterPlus: ResolvedAddon | null;
 }
 
 export default function SettingsClient({
@@ -54,6 +57,8 @@ export default function SettingsClient({
   userEmail,
   userId,
   socialProfile,
+  starterPlusAvailable,
+  initialStarterPlus,
 }: SettingsClientProps) {
   const [newEmail, setNewEmail] = useState(userEmail);
   const [emailError, setEmailError] = useState('');
@@ -205,6 +210,8 @@ export default function SettingsClient({
               initialSubscription={subscription}
               justPaid={justPaid}
               featureContext={featureContext}
+              starterPlusAvailable={starterPlusAvailable}
+              initialStarterPlus={initialStarterPlus}
             />
           ) : initialTab === 'profile' ? (
             <div className="space-y-6">
