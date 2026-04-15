@@ -86,7 +86,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       socialFeedEditPosts: false,
       socialFeedChannels: false,
     },
-    badge: { label: 'Starter Plus', colorClass: 'text-sky-400 border-sky-500/50' },
+    badge: { label: 'Starter Plus', colorClass: 'text-zinc-400 border-zinc-700' },
   },
 
   pro: {
