@@ -17,7 +17,8 @@ import { TIER_DEFINITIONS } from '@/constants/tiers';
 // These MUST match what is configured inside the Lemon Squeezy affiliate program
 // dashboard — they are the public promise to applicants. Update both in lockstep.
 const AFFILIATE_PROGRAM = {
-  commissionPercent: 15,
+  commissionMaxPercent: 30,
+  commissionDefaultPercent: 15,
   cookieWindowDays: 60,
   // Lemon Squeezy bi-monthly schedule:
   //   Payouts created: 1st and 15th of each month
@@ -25,6 +26,18 @@ const AFFILIATE_PROGRAM = {
   //   Holding period:  30 days before commissions become available
   payoutCadence: 'Bi-monthly',
 } as const;
+
+// Commission tier ladder. Every affiliate starts at 15% (Starter) and
+// progresses automatically based on their count of active paid referrals.
+// Update copy here in lockstep with the Lemon Squeezy dashboard config.
+const COMMISSION_TIERS = [
+  { percent: 15, name: 'Starter', range: '0 – 14 referrals' },
+  { percent: 20, name: 'Rising', range: '15 – 49 referrals' },
+  { percent: 25, name: 'Growth', range: '50 – 124 referrals' },
+  { percent: 30, name: 'Elite', range: '125+ referrals' },
+] as const;
+
+type CommissionRate = (typeof COMMISSION_TIERS)[number]['percent'];
 
 // Shared submit-button style, matching the gradient used by /contact and /pricing CTAs.
 const CTA_GRADIENT_BG =
@@ -85,7 +98,7 @@ export function AffiliatesPageClient() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <ProgramStat
             icon={<Percent className="h-4 w-4" />}
-            value={`${AFFILIATE_PROGRAM.commissionPercent}%`}
+            value={`Up to ${AFFILIATE_PROGRAM.commissionMaxPercent}%`}
             label="Recurring commission"
             detail="On every paid subscription your referral keeps."
           />
@@ -101,6 +114,77 @@ export function AffiliatesPageClient() {
             label="Payouts"
             detail="Created on the 1st &amp; 15th, paid on the 14th &amp; 28th. 30-day holding period."
           />
+        </div>
+      </div>
+
+      {/* ── Commission tiers ─────────────────────────────────────────────── */}
+      <div className="relative mx-auto max-w-3xl px-4 sm:px-6 pb-12 sm:pb-16">
+        <div className="mb-10 text-center">
+          <h2 className="text-2xl sm:text-3xl font-medium tracking-[-0.03em] text-foreground">
+            Commission tiers
+          </h2>
+          <p className="mt-3 text-sm sm:text-base text-muted-foreground max-w-xl mx-auto">
+            Start at {AFFILIATE_PROGRAM.commissionDefaultPercent}% and automatically
+            climb to {AFFILIATE_PROGRAM.commissionMaxPercent}% as your active referrals grow.
+          </p>
+        </div>
+
+        {/* Progression track */}
+        <div className="relative px-4 sm:px-8">
+          {/* Connecting line */}
+          <div
+            aria-hidden
+            className="absolute top-[7px] left-[calc(12.5%+1rem)] right-[calc(12.5%+1rem)] h-px sm:left-[calc(12.5%+2rem)] sm:right-[calc(12.5%+2rem)]"
+            style={{
+              background:
+                'linear-gradient(to right, color-mix(in oklab, var(--tc-primary) 20%, transparent) 0%, color-mix(in oklab, var(--tc-primary) 70%, transparent) 100%)',
+            }}
+          />
+
+          {/* Stops */}
+          <div className="relative grid grid-cols-4 gap-2 sm:gap-4">
+            {COMMISSION_TIERS.map((tier, i) => {
+              const isLast = i === COMMISSION_TIERS.length - 1;
+              return (
+                <div
+                  key={tier.percent}
+                  className="flex flex-col items-center text-center"
+                >
+                  {/* Dot */}
+                  <span
+                    className="relative block h-[14px] w-[14px] rounded-full"
+                    style={{
+                      backgroundColor: 'var(--tc-primary)',
+                      boxShadow: isLast
+                        ? '0 0 24px 4px color-mix(in oklab, var(--tc-primary) 45%, transparent)'
+                        : undefined,
+                    }}
+                  />
+
+                  {/* Percent */}
+                  <div className="mt-5 text-2xl sm:text-4xl font-semibold tracking-[-0.035em] text-foreground leading-none">
+                    {tier.percent}
+                    <span
+                      className="text-base sm:text-xl font-medium align-top ml-0.5"
+                      style={{ color: 'color-mix(in oklab, var(--foreground) 55%, transparent)' }}
+                    >
+                      %
+                    </span>
+                  </div>
+
+                  {/* Tier name */}
+                  <div className="mt-2 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.08em] text-foreground/70">
+                    {tier.name}
+                  </div>
+
+                  {/* Range */}
+                  <div className="mt-1 text-[11px] sm:text-xs text-muted-foreground">
+                    {tier.range}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -266,8 +350,11 @@ const ANNUAL_PRICE = TIER_DEFINITIONS.pro.pricing.annual?.usd ?? 114.99;
 function EarningsCalculator() {
   const [referrals, setReferrals] = useState(10);
   const [plan, setPlan] = useState<'monthly' | 'annual'>('monthly');
+  const [commissionPercent, setCommissionPercent] = useState<CommissionRate>(
+    AFFILIATE_PROGRAM.commissionDefaultPercent,
+  );
 
-  const rate = AFFILIATE_PROGRAM.commissionPercent / 100;
+  const rate = commissionPercent / 100;
   const monthlyEarnings = plan === 'monthly'
     ? referrals * MONTHLY_PRICE * rate
     : referrals * (ANNUAL_PRICE * rate) / 12;
@@ -321,6 +408,29 @@ function EarningsCalculator() {
         </div>
       </div>
 
+      {/* Commission rate toggle */}
+      <div className="mb-6">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Commission tier</p>
+        <div className="inline-flex rounded-xl border border-black/[0.07] dark:border-white/[0.12] p-1 gap-1">
+          {COMMISSION_TIERS.map((tier) => (
+            <button
+              key={tier.percent}
+              onClick={() => setCommissionPercent(tier.percent)}
+              className="relative px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer"
+              style={commissionPercent === tier.percent ? {
+                background: 'color-mix(in oklab, var(--tc-primary) 15%, transparent)',
+                color: 'var(--tc-primary)',
+              } : {
+                color: 'var(--muted-foreground)',
+              }}
+              aria-label={`${tier.percent}% commission — ${tier.name}`}
+            >
+              {tier.percent}%
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Slider */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-3">
@@ -367,7 +477,7 @@ function EarningsCalculator() {
           <p className="text-2xl sm:text-3xl font-semibold tracking-[-0.03em]" style={{ color: 'var(--tc-primary)' }}>
             {fmt(yearlyEarnings)}
           </p>
-          <p className="text-[11px] text-muted-foreground mt-1">{AFFILIATE_PROGRAM.commissionPercent}% of {plan === 'monthly' ? `$${MONTHLY_PRICE}/mo` : `$${ANNUAL_PRICE}/yr`} × {referrals}</p>
+          <p className="text-[11px] text-muted-foreground mt-1">{commissionPercent}% of {plan === 'monthly' ? `$${MONTHLY_PRICE}/mo` : `$${ANNUAL_PRICE}/yr`} × {referrals}</p>
         </div>
       </div>
 
