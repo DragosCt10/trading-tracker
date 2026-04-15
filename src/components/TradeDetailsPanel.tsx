@@ -11,7 +11,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
-import { Loader2, Info, Check } from 'lucide-react';
+import { Loader2, Info, Check, Share2 } from 'lucide-react';
 import { AfterBreakEvenSelect } from '@/components/trade/AfterBreakEvenSelect';
 import { TradeDirectionChips } from '@/components/trade/TradeDirectionChips';
 import { TradeOutcomeChips } from '@/components/trade/TradeOutcomeChips';
@@ -86,6 +86,7 @@ import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
 import { TagInput } from '@/components/ui/TagInput';
 import type { SavedTag, TagColor } from '@/types/saved-tag';
 import { resolveTagColorStyle } from '@/constants/tagColors';
+import { ShareTradeModal } from '@/components/ShareTradeModal';
 
 interface TradeDetailsPanelProps {
   trade: Trade | null;
@@ -101,9 +102,15 @@ interface TradeDetailsPanelProps {
   extraCards?: string[];
   /** Strategy's saved tag vocabulary for autocomplete. Pass [] for read-only contexts. */
   savedTags?: SavedTag[];
+  /**
+   * When true, the panel renders for page-level use (e.g. public share page).
+   * Drops the internal scroll container (`flex-1 overflow-y-auto`) so the browser
+   * window scrolls naturally. Default `false` preserves sidebar/sheet behavior.
+   */
+  pageMode?: boolean;
 }
 
-export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inlineMode, readOnly = false, strategyName: strategyNameProp, extraCards: extraCardsProp, savedTags: savedTagsProp = [] }: TradeDetailsPanelProps) {
+export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inlineMode, readOnly = false, strategyName: strategyNameProp, extraCards: extraCardsProp, savedTags: savedTagsProp = [], pageMode = false }: TradeDetailsPanelProps) {
   const params = useParams();
   const strategySlug = (params?.strategy as string | undefined) ?? '';
   const { selection } = useActionBarSelection();
@@ -134,6 +141,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { error, setError } = useProgressDialog(5000);
   const [showExtraScreens, setShowExtraScreens] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const accountBalanceRef = useRef(selection.activeAccount?.account_balance || 0);
@@ -918,33 +926,52 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   return (
     <>
       {/* Fixed Header */}
-      <div className="relative px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
+      <div className={`relative px-6 pt-5 pb-4${pageMode ? ' text-center' : ' border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0'}`}>
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between gap-4">
+          <div className={`flex items-center gap-4${pageMode ? ' justify-center' : ' justify-between'}`}>
             <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
               Trade Details
             </h2>
             <div className="flex items-center gap-3">
-              {/* Strategy name in top-right (from prop when readOnly, else from strategies) */}
-              <div className="max-w-[200px]">
-                <div className="text-right">
-                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Strategy</span>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate" title={strategyName}>
-                    {strategyName}
-                  </p>
+              {/* Strategy name in top-right (from prop when readOnly, else from strategies).
+                  Hidden entirely in pageMode (public share) since the page has its own header. */}
+              {!pageMode && strategyName ? (
+                <div className="max-w-[200px]">
+                  <div className="text-right">
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Strategy</span>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate" title={strategyName}>
+                      {strategyName}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="h-8 w-8 p-0 cursor-pointer flex-shrink-0"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </Button>
+              ) : null}
+              {/* Share button (owner-only, hidden on public share pages) */}
+              {!readOnly && trade?.id && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsShareOpen(true)}
+                  disabled={isShareOpen}
+                  className="h-8 w-8 cursor-pointer rounded-full border-slate-200/80 bg-slate-50/80 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-50 disabled:opacity-60 disabled:pointer-events-none flex-shrink-0"
+                  aria-label="Share this trade"
+                  title="Share this trade"
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              )}
+              {!pageMode && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  className="h-8 w-8 p-0 cursor-pointer flex-shrink-0"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </Button>
+              )}
             </div>
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -953,8 +980,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         </div>
       </div>
 
-      {/* Scrollable content */}
-      <div ref={panelContentRef} className="relative overflow-y-auto flex-1 px-6 py-5">
+      {/* Scrollable content (inner scroll in sidebar mode; natural page scroll when pageMode) */}
+      <div ref={panelContentRef} className={`relative px-6 py-5${pageMode ? '' : ' overflow-y-auto flex-1'}`}>
         <TooltipProvider>
         <div className="space-y-6">
           {/* Trade Outcome Card - Prominent Display */}
@@ -1640,6 +1667,13 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         </div>
         </TooltipProvider>
       </div>
+      {!readOnly && trade && (
+        <ShareTradeModal
+          open={isShareOpen}
+          onOpenChange={setIsShareOpen}
+          trade={trade}
+        />
+      )}
     </>
   );
 }

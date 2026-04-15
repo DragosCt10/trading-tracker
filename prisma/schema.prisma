@@ -762,6 +762,27 @@ model strategy_shares {
   @@schema("public")
 }
 
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model trade_shares {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  share_token     String    @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  trade_id        String    @db.Uuid
+  account_id      String    @db.Uuid
+  mode            String    @default("live")
+  strategy_id     String?   @db.Uuid
+  created_by      String    @db.Uuid
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  active          Boolean   @default(true)
+  expires_at      DateTime  @default(dbgenerated("(now() + '90 days'::interval)")) @db.Timestamptz(6)
+  trade_market    String?
+  trade_direction String?
+  trade_date      DateTime? @db.Date
+
+  @@index([created_by], map: "idx_trade_shares_created_by")
+  @@index([share_token, active, expires_at], map: "idx_trade_shares_token_active_expires")
+  @@schema("public")
+}
+
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model strategy_stats_cache {

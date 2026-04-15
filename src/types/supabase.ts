@@ -354,6 +354,36 @@ export interface Database {
       };
 
       // ─────────────────────────────────────────────────────────────
+      // Public share links for individual trades
+      trade_shares: {
+        Row: {
+          id: string;
+          share_token: string;
+          trade_id: string;
+          account_id: string;
+          mode: 'live' | 'backtesting' | 'demo';
+          strategy_id: string | null;
+          created_by: string;
+          created_at: string;
+          active: boolean;
+          expires_at: string; // timestamptz — DB default: now() + 90 days
+          // Denormalized labels captured at creation time so the Settings list
+          // never has to touch the mode-specific trade tables on render.
+          trade_market: string | null;
+          trade_direction: string | null;
+          trade_date: string | null; // date
+        };
+        Insert: Partial<Database['public']['Tables']['trade_shares']['Row']> & {
+          trade_id: string;
+          account_id: string;
+          mode: 'live' | 'backtesting' | 'demo';
+          created_by: string;
+        };
+        Update: Partial<Database['public']['Tables']['trade_shares']['Row']>;
+        Relationships: never[];
+      };
+
+      // ─────────────────────────────────────────────────────────────
       // Cache of precomputed analytics for a share link (one row per share)
       share_stats_cache: {
         Row: {

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useMemo, useState, useTransition } from 'react';
-import { Award, CreditCard, Loader2, Settings, User, Users } from 'lucide-react';
+import { Award, CreditCard, Link2, Loader2, Settings, User, Users } from 'lucide-react';
 import { PanelSkeleton } from '@/components/settings/PanelSkeleton';
 import { Button } from '@/components/ui/button';
 
@@ -24,6 +24,10 @@ const ProfileSettingsPanel = dynamic(
   { loading: () => <PanelSkeleton />, ssr: true }
 );
 const ReviewSection = dynamic(() => import('@/components/settings/ReviewSection'), {
+  loading: () => <PanelSkeleton />,
+  ssr: true,
+});
+const SharedTradesPanel = dynamic(() => import('@/components/settings/SharedTradesPanel'), {
   loading: () => <PanelSkeleton />,
   ssr: true,
 });
@@ -195,6 +199,15 @@ export default function SettingsClient({
                 Profile
               </Link>
             </Button>
+            <Button asChild variant="ghost" className={navItemClass(initialTab === 'sharedTrades')}>
+              <Link
+                href="/settings?tab=sharedTrades"
+                aria-current={initialTab === 'sharedTrades' ? 'page' : undefined}
+              >
+                <Link2 className="h-4 w-4" aria-hidden="true" />
+                Shared Trades
+              </Link>
+            </Button>
             <Button asChild variant="ghost" className={navItemClass(false)}>
               <Link href="/rewards?from=settings">
                 <Award className="h-4 w-4" aria-hidden="true" />
@@ -218,6 +231,8 @@ export default function SettingsClient({
               <ProfileSettingsPanel initialProfile={socialProfile} />
               <ReviewSection socialProfile={socialProfile} />
             </div>
+          ) : initialTab === 'sharedTrades' ? (
+            <SharedTradesPanel userId={userId} />
           ) : (
             <div className="space-y-6">
               <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-6">

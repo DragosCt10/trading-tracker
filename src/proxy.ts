@@ -74,9 +74,9 @@ function buildFinalResponse(
   return response;
 }
 
-/** Extract the share token from a /share/strategy/:token path. Returns null for other paths. */
+/** Extract the share token from a /share/strategy/:token or /share/trade/:token path. Returns null for other paths. */
 function extractShareToken(pathname: string): string | null {
-  const match = pathname.match(/^\/share\/strategy\/([^/]+)/);
+  const match = pathname.match(/^\/share\/(?:strategy|trade)\/([^/]+)/);
   return match ? match[1] : null;
 }
 

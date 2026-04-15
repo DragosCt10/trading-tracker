@@ -97,6 +97,10 @@ export const queryKeys = {
     mode: TradingMode
   ) => ['strategy-shares', strategyId, userId, accountId, mode] as const,
 
+  /** All trade shares for a user (powers Settings → Shared Trades). */
+  tradeShares: (userId: string) =>
+    ['trade-shares', userId] as const,
+
   /**
    * Pre-computed dashboard stats from /api/dashboard-stats.
    * selectedMarket is excluded — market filtering is handled client-side by the Web Worker.

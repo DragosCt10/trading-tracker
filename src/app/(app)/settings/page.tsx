@@ -6,7 +6,7 @@ import { getActiveAddon } from '@/lib/server/addonState';
 import { isAddonAvailable } from '@/constants/addons';
 import SettingsClient from './SettingsClient';
 
-export type SettingsTab = 'billing' | 'account' | 'profile';
+export type SettingsTab = 'billing' | 'account' | 'profile' | 'sharedTrades';
 
 /**
  * Allowlist of known feature codes that can flow through `?feature=` into the
@@ -28,6 +28,7 @@ const JUST_PAID_WINDOW_MS = 5 * 60 * 1000;
 function normalizeTab(tab?: string): SettingsTab {
   if (tab === 'account') return 'account';
   if (tab === 'profile') return 'profile';
+  if (tab === 'sharedTrades') return 'sharedTrades';
   return 'billing';
 }
 
