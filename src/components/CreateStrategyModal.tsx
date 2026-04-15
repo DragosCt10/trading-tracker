@@ -41,7 +41,8 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
   const { error, setError } = useProgressDialog();
   const [submitting, setSubmitting] = useState(false);
   const { data: userId } = useUserDetails();
-  const { isPro, withinLimit } = useSubscription({ userId: userId?.user?.id });
+  const { isPro, hasFeature, withinLimit } = useSubscription({ userId: userId?.user?.id });
+  const canAccessAllCards = hasFeature('allExtraCards');
   const { strategies } = useStrategies({ userId: userId?.user?.id, accountId });
   const isAtStrategyLimit = !isPro && !withinLimit('maxStrategies', strategies.length);
 
@@ -147,7 +148,7 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
               selected={extraCards}
               onChange={setExtraCards}
               disabled={submitting}
-              isPro={isPro}
+              canAccessAllCards={canAccessAllCards}
             />
 
             {isAtStrategyLimit && (

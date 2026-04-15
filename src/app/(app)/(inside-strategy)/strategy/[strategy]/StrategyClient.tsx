@@ -489,14 +489,19 @@ export default function StrategyClient(
   // Store strategyId from props
   const strategyId = props?.initialStrategyId ?? null;
 
-  const { isPro } = useSubscription({ userId: props?.initialUserId });
+  const { isPro, hasFeature } = useSubscription({ userId: props?.initialUserId });
+  // Starter Plus unlocks Trade Performance Analysis sections and the 5 PRO_ONLY
+  // Extra Trade Performance Cards while keeping Core Pro content (Psychological
+  // Factors, Consistency, Performance Ratios) gated behind `isPro`.
+  const hasExtendedAnalytics = hasFeature('allExtraCards');
   const {
     showProCards,
     setShowProCards,
     showProContent,
+    showExtendedContent,
     toggleSection,
     isSectionExpanded,
-  } = useStrategySectionVisibility(isPro);
+  } = useStrategySectionVisibility(isPro, hasExtendedAnalytics);
   const renderSectionCollapseButton = useCallback(
     (key: FullWidthSectionKey) => {
       if (!isPro) {
@@ -997,9 +1002,9 @@ export default function StrategyClient(
       ).filter(
         (card) =>
           hasCard(card.key) &&
-          (showProContent || !PRO_ONLY_EXTRA_CARD_KEYS.includes(card.key))
+          (showExtendedContent || !PRO_ONLY_EXTRA_CARD_KEYS.includes(card.key))
       ),
-    [statsToUseForCharts, chartsLoadingState, filteredChartStats, tradesToUse, hasCard, showProContent]
+    [statsToUseForCharts, chartsLoadingState, filteredChartStats, tradesToUse, hasCard, showExtendedContent]
   );
 
   const tradingOverviewProps: TradingOverviewStatsProps = {
@@ -1032,9 +1037,9 @@ export default function StrategyClient(
       sessionStats,
       chartsLoadingState,
       includeTotalTrades: filteredChartStats !== null,
-      showEvaluationCard: showProContent && hasCard('evaluation_stats'),
+      showEvaluationCard: showExtendedContent && hasCard('evaluation_stats'),
       showTrendCard: hasCard('trend_stats'),
-      showSessionCard: showProContent && hasCard('session_stats'),
+      showSessionCard: showExtendedContent && hasCard('session_stats'),
     },
     beforeRiskPerTradeRow: {
       trades: tradesToUse,
@@ -1138,6 +1143,7 @@ export default function StrategyClient(
       <StrategyAdditionalAnalyticsSections
         isPro={isPro}
         showProContent={showProContent}
+        showExtendedContent={showExtendedContent}
         renderSectionCollapseButton={renderSectionCollapseButton}
         isSectionExpanded={isSectionExpanded}
         filteredChartStats={filteredChartStats}

@@ -20,7 +20,19 @@ import type { TradeStatDatum } from '@/components/dashboard/analytics/TradesStat
 
 type StrategyAdditionalAnalyticsSectionsProps = {
   isPro: boolean;
+  /**
+   * Gates the "Trade Performance Analysis" dashboard sections (Market Stats,
+   * Market Profit, Time Interval, News). Pro-only — includes the usual
+   * `isPro || showProCards` preview toggle for non-Pro users.
+   */
   showProContent: boolean;
+  /**
+   * Gates the 5 PRO_ONLY Extra Trade Performance Cards (Potential RR,
+   * Evaluation Grade, Session Stats, Avg Displacement, Displacement Size).
+   * True for Starter Plus, Pro, and Elite tiers — SP unlocks these even
+   * though it does not get the full Trade Performance Analysis sections.
+   */
+  showExtendedContent: boolean;
   renderSectionCollapseButton: (key: FullWidthSectionKey) => ReactNode;
   isSectionExpanded: (key: FullWidthSectionKey) => boolean;
   filteredChartStats: unknown;
@@ -48,6 +60,7 @@ type StrategyAdditionalAnalyticsSectionsProps = {
 function StrategyAdditionalAnalyticsSectionsBase({
   isPro,
   showProContent,
+  showExtendedContent,
   renderSectionCollapseButton,
   isSectionExpanded,
   filteredChartStats,
@@ -166,7 +179,7 @@ function StrategyAdditionalAnalyticsSectionsBase({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8 w-full [&>*]:min-w-0">
-        {showProContent && hasCard('potential_rr') && (
+        {showExtendedContent && hasCard('potential_rr') && (
           <RiskRewardStats
             trades={tradesToUse}
             isLoading={chartsLoadingState}

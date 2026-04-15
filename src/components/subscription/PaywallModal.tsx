@@ -55,7 +55,7 @@ export function PaywallModal({
   function handleUpgrade() {
     startTransition(async () => {
       try {
-        const url = await createCheckoutUrl(billingPeriod);
+        const url = await createCheckoutUrl('pro', billingPeriod);
         router.push(url);
       } catch (err) {
         console.error('Checkout error:', err);

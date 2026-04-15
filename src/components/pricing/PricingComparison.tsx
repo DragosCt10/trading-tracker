@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, BarChart3, Loader2, Zap } from 'lucide-react';
+import { ArrowRight, BarChart3, Loader2, TrendingUp, Zap, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { TIER_DEFINITIONS } from '@/constants/tiers';
@@ -10,7 +10,7 @@ import {
   EARLY_BIRD_MONTHLY_PRICE,
   EARLY_BIRD_ANNUAL_PRICE,
 } from '@/constants/earlyBird';
-import type { BillingPeriod } from '@/types/subscription';
+import type { BillingPeriod, TierId } from '@/types/subscription';
 import {
   PricingTable,
   PricingTableBody,
@@ -20,14 +20,17 @@ import {
   PricingTableCell,
   PricingTablePlan,
 } from '@/components/pricing/PricingTable';
-import { AddonCard } from '@/components/pricing/AddonCard';
 
 const proDef = TIER_DEFINITIONS.pro;
-const MONTHLY_PRICE = proDef.pricing.monthly?.usd ?? 11.99;
-const ANNUAL_PRICE = proDef.pricing.annual?.usd ?? 114.99;
+const starterPlusDef = TIER_DEFINITIONS.starter_plus;
+const PRO_MONTHLY_PRICE = proDef.pricing.monthly?.usd ?? 11.99;
+const PRO_ANNUAL_PRICE = proDef.pricing.annual?.usd ?? 114.99;
 const SAVINGS_PCT = proDef.pricing.annual?.savingsPct ?? 20;
-const ANNUAL_MONTHLY_EQUIV = Math.floor(ANNUAL_PRICE / 12);
+const PRO_ANNUAL_MONTHLY_EQUIV = Math.floor(PRO_ANNUAL_PRICE / 12);
 const EARLY_ANNUAL_MONTHLY_EQUIV = Math.floor(EARLY_BIRD_ANNUAL_PRICE / 12);
+const SP_MONTHLY_PRICE = starterPlusDef.pricing.monthly?.usd ?? 7.99;
+const SP_ANNUAL_PRICE = starterPlusDef.pricing.annual?.usd ?? 76.70;
+const SP_ANNUAL_MONTHLY_EQUIV = Math.floor(SP_ANNUAL_PRICE / 12);
 
 const themedGradientStyle = {
   background: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))',
@@ -118,11 +121,106 @@ export function BillingToggle({
   );
 }
 
+/** Static per-tier card config. Prices are resolved dynamically inside renderPlanCard. */
+type PaidTierId = Exclude<TierId, 'starter' | 'elite'>;
+
+interface TierCardConfig {
+  name: string;
+  badge: string;
+  badgeClassName: string;
+  description: string;
+  icon: LucideIcon;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+const TIER_CARD_CONFIG: Record<TierId, TierCardConfig> = {
+  starter: {
+    name: 'Starter',
+    badge: 'Free forever',
+    badgeClassName: 'border-slate-300/50 dark:border-slate-600/50 text-slate-500 dark:text-slate-400',
+    description: 'Start free, no credit card needed.',
+    icon: Zap,
+  },
+  starter_plus: {
+    name: 'Starter Plus',
+    badge: 'Best value',
+    badgeClassName: 'border-slate-300/50 dark:border-slate-600/50 text-slate-500 dark:text-slate-400',
+    description: 'Everything in Starter, plus more.',
+    icon: TrendingUp,
+  },
+  pro: {
+    name: 'Pro',
+    badge: 'Recommended',
+    badgeClassName: 'border-[var(--tc-primary)]/30 bg-[var(--tc-primary)]/10 text-[var(--tc-primary)]',
+    description: 'Everything unlimited, full analytics.',
+    icon: BarChart3,
+    className: 'after:pointer-events-none after:absolute after:-inset-0.5 after:rounded-[inherit] after:to-transparent after:blur-[2px]',
+    style: {
+      '--tw-after-bg': `linear-gradient(to bottom, color-mix(in oklch, var(--tc-primary) 15%, transparent), transparent)`,
+    } as React.CSSProperties,
+  },
+  elite: {
+    name: 'Elite',
+    badge: 'Elite',
+    badgeClassName: 'border-purple-500/30 bg-purple-500/10 text-purple-500',
+    description: 'Full suite plus Alpha Hub.',
+    icon: BarChart3,
+  },
+};
+
+/**
+ * Resolves `{ price, compareAt?, billingNote? }` for a paid tier card, honouring
+ * the Pro early-bird promo when applicable.
+ */
+function resolveTierPricing(
+  tier: PaidTierId,
+  billingPeriod: BillingPeriod,
+  useEarlyBird: boolean,
+): { price: string; compareAt?: string; billingNote?: string } {
+  const isAnnual = billingPeriod === 'annual';
+  if (tier === 'pro') {
+    const price = useEarlyBird
+      ? isAnnual
+        ? `$${EARLY_ANNUAL_MONTHLY_EQUIV}/mo`
+        : `$${EARLY_BIRD_MONTHLY_PRICE}/mo`
+      : isAnnual
+        ? `$${PRO_ANNUAL_MONTHLY_EQUIV}/mo`
+        : `$${PRO_MONTHLY_PRICE}/mo`;
+    const compareAt = useEarlyBird
+      ? isAnnual
+        ? `$${PRO_ANNUAL_MONTHLY_EQUIV}/mo`
+        : `$${PRO_MONTHLY_PRICE}/mo`
+      : isAnnual
+        ? `$${PRO_MONTHLY_PRICE}/mo`
+        : undefined;
+    const billingNote = useEarlyBird
+      ? isAnnual
+        ? `$${EARLY_BIRD_ANNUAL_PRICE} billed annually`
+        : undefined
+      : isAnnual
+        ? `$${PRO_ANNUAL_PRICE} billed annually`
+        : undefined;
+    return { price, compareAt, billingNote };
+  }
+  // starter_plus — no early-bird path
+  const price = isAnnual
+    ? `$${SP_ANNUAL_MONTHLY_EQUIV}/mo`
+    : `$${SP_MONTHLY_PRICE}/mo`;
+  const billingNote = isAnnual
+    ? `$${SP_ANNUAL_PRICE} billed annually`
+    : undefined;
+  return { price, billingNote };
+}
+
 interface PricingComparisonProps {
   billingPeriod: BillingPeriod;
   setBillingPeriod: (period: BillingPeriod) => void;
   isCheckoutPending: boolean;
-  onCheckout: () => void;
+  /** Called when user clicks "Buy now" on a paid tier card. */
+  onCheckout: (tier: PaidTierId) => void;
+  /** Currently-pending checkout tier, used to disable only that button. */
+  pendingCheckoutTier?: PaidTierId | null;
   /**
    * When true, replaces the Starter "Get started" CTA with "Your current plan"
    * label (for authenticated settings context where user is already logged in).
@@ -136,15 +234,96 @@ interface PricingComparisonProps {
    * price as compareAt. Caller owns the "slots remaining" decision.
    */
   useEarlyBird?: boolean;
-  /**
-   * ER-1: When true, render the Starter Plus add-on callout card between the
-   * tier cards and the feature table. Computed server-side from env so the
-   * variant ID never reaches the client bundle.
-   */
-  starterPlusAvailable?: boolean;
-  onAddonCheckout?: () => void;
-  isAddonCheckoutPending?: boolean;
   className?: string;
+}
+
+/**
+ * Shared per-card renderer used by both mobile (stacked) and desktop (header row)
+ * layouts. Keeps all three tier cards in a single place and lets each layout pass
+ * its own `variant` to tweak text sizing and padding.
+ */
+function renderPlanCard(params: {
+  tier: TierId;
+  variant: 'mobile' | 'desktop';
+  billingPeriod: BillingPeriod;
+  useEarlyBird: boolean;
+  hideStarterCTA: boolean;
+  onCheckout: (tier: PaidTierId) => void;
+  pendingCheckoutTier: PaidTierId | null;
+}) {
+  const { tier, variant, billingPeriod, useEarlyBird, hideStarterCTA, onCheckout, pendingCheckoutTier } = params;
+  const cfg = TIER_CARD_CONFIG[tier];
+  const isMobile = variant === 'mobile';
+  const noteClass = isMobile ? 'text-[10px] -mt-1 mb-2' : 'text-xs -mt-1 mb-3';
+  const buttonSize: 'sm' | 'default' = isMobile ? 'sm' : 'default';
+
+  if (tier === 'starter') {
+    return (
+      <PricingTablePlan
+        name={cfg.name}
+        badge={cfg.badge}
+        badgeClassName={cfg.badgeClassName}
+        price="Free"
+        description={cfg.description}
+        icon={cfg.icon}
+      >
+        <p className={cn(noteClass, 'text-muted-foreground')}>No credit card required</p>
+        {hideStarterCTA ? (
+          <Button
+            variant="outline"
+            disabled
+            className={cn('w-full rounded-lg', isMobile ? 'text-xs' : 'text-sm')}
+            size={buttonSize}
+          >
+            Current plan
+          </Button>
+        ) : (
+          <Link href="/login">
+            <Button
+              variant="outline"
+              className={cn('w-full rounded-lg cursor-pointer', isMobile ? 'text-xs' : 'text-sm')}
+              size={buttonSize}
+            >
+              Get started
+            </Button>
+          </Link>
+        )}
+      </PricingTablePlan>
+    );
+  }
+
+  if (tier === 'elite') {
+    // Not currently rendered; kept for future launch.
+    return null;
+  }
+
+  // Paid tier (starter_plus or pro)
+  const paidTier = tier as PaidTierId;
+  const { price, compareAt, billingNote } = resolveTierPricing(paidTier, billingPeriod, useEarlyBird);
+  const isPendingThisTier = pendingCheckoutTier === paidTier;
+
+  return (
+    <PricingTablePlan
+      name={cfg.name}
+      badge={cfg.badge}
+      badgeClassName={cfg.badgeClassName}
+      price={price}
+      compareAt={compareAt}
+      description={cfg.description}
+      icon={cfg.icon}
+      className={cfg.className}
+      style={cfg.style}
+    >
+      <p className={cn(noteClass, billingNote ? 'text-muted-foreground' : 'invisible')}>
+        {billingNote || '\u00A0'}
+      </p>
+      <BuyNowButton
+        size={buttonSize}
+        onCheckout={() => onCheckout(paidTier)}
+        isCheckoutPending={isPendingThisTier}
+      />
+    </PricingTablePlan>
+  );
 }
 
 export function PricingComparison({
@@ -152,40 +331,25 @@ export function PricingComparison({
   setBillingPeriod,
   isCheckoutPending,
   onCheckout,
+  pendingCheckoutTier = null,
   hideStarterCTA = false,
   hideToggle = false,
   useEarlyBird = false,
-  starterPlusAvailable = false,
-  onAddonCheckout,
-  isAddonCheckoutPending = false,
   className,
 }: PricingComparisonProps) {
-  // ER-1: only render when the add-on variant is configured AND the caller
-  // supplied a handler. Both conditions mean a silent misconfig shows nothing
-  // rather than a dead CTA.
-  const showAddon = starterPlusAvailable && typeof onAddonCheckout === 'function';
-  const isAnnual = billingPeriod === 'annual';
-  const proPrice = useEarlyBird
-    ? isAnnual
-      ? `$${EARLY_ANNUAL_MONTHLY_EQUIV}/mo`
-      : `$${EARLY_BIRD_MONTHLY_PRICE}/mo`
-    : isAnnual
-      ? `$${ANNUAL_MONTHLY_EQUIV}/mo`
-      : `$${MONTHLY_PRICE}/mo`;
-  const proCompareAt = useEarlyBird
-    ? isAnnual
-      ? `$${ANNUAL_MONTHLY_EQUIV}/mo`
-      : `$${MONTHLY_PRICE}/mo`
-    : isAnnual
-      ? `$${MONTHLY_PRICE}/mo`
-      : undefined;
-  const proBillingNote = useEarlyBird
-    ? isAnnual
-      ? `$${EARLY_BIRD_ANNUAL_PRICE} billed annually`
-      : undefined
-    : isAnnual
-      ? `$${ANNUAL_PRICE} billed annually`
-      : undefined;
+  const visibleTiers: TierId[] = ['starter', 'starter_plus', 'pro'];
+  // When no specific pending tier is tracked, fall back to the generic flag so
+  // the legacy single-button call sites still disable during checkout.
+  const effectivePendingTier = pendingCheckoutTier ?? (isCheckoutPending ? 'pro' : null);
+
+  const cardParams = (variant: 'mobile' | 'desktop') => ({
+    variant,
+    billingPeriod,
+    useEarlyBird,
+    hideStarterCTA,
+    onCheckout,
+    pendingCheckoutTier: effectivePendingTier,
+  });
 
   return (
     <div className={className}>
@@ -197,69 +361,9 @@ export function PricingComparison({
 
       {/* Mobile: stacked full-width cards */}
       <div className="flex flex-col gap-3 my-5 sm:hidden">
-        <PricingTablePlan
-          name="Starter"
-          badge="Free forever"
-          badgeClassName="border-slate-300/50 dark:border-slate-600/50 text-slate-500 dark:text-slate-400"
-          price="Free"
-          description="Get started at no cost. No credit card required."
-          icon={Zap}
-        >
-          {hideStarterCTA ? (
-            <>
-              {showAddon ? (
-                <a
-                  href="#starter-plus-addon"
-                  className="text-[10px] -mt-1 mb-2 block text-center font-medium text-[var(--tc-primary)] underline-offset-2 hover:underline"
-                >
-                  Need unlimited trades? Get Starter Plus →
-                </a>
-              ) : (
-                <p className="text-[10px] -mt-1 mb-2 text-muted-foreground">No credit card required</p>
-              )}
-              <Button variant="outline" disabled className="w-full rounded-lg text-xs" size="sm">
-                Current plan
-              </Button>
-            </>
-          ) : (
-            <>
-              {showAddon ? (
-                <a
-                  href="#starter-plus-addon"
-                  className="text-[10px] -mt-1 mb-2 block text-center font-medium text-[var(--tc-primary)] underline-offset-2 hover:underline"
-                >
-                  Need unlimited trades? Get Starter Plus →
-                </a>
-              ) : (
-                <p className="text-[10px] -mt-1 mb-2 text-muted-foreground">No credit card required</p>
-              )}
-              <Link href="/login">
-                <Button variant="outline" className="w-full rounded-lg cursor-pointer text-xs" size="sm">
-                  Get started
-                </Button>
-              </Link>
-            </>
-          )}
-        </PricingTablePlan>
-
-        <PricingTablePlan
-          name="Pro"
-          badge="Recommended"
-          badgeClassName="border-[var(--tc-primary)]/30 bg-[var(--tc-primary)]/10 text-[var(--tc-primary)]"
-          price={proPrice}
-          compareAt={proCompareAt}
-          description="Everything unlimited, full analytics."
-          icon={BarChart3}
-          className="after:pointer-events-none after:absolute after:-inset-0.5 after:rounded-[inherit] after:to-transparent after:blur-[2px]"
-          style={{
-            '--tw-after-bg': `linear-gradient(to bottom, color-mix(in oklch, var(--tc-primary) 15%, transparent), transparent)`,
-          } as React.CSSProperties}
-        >
-          <p className={cn('text-[10px] -mt-1 mb-2', proBillingNote ? 'text-muted-foreground' : 'invisible')}>
-            {proBillingNote || '\u00A0'}
-          </p>
-          <BuyNowButton size="sm" onCheckout={onCheckout} isCheckoutPending={isCheckoutPending} />
-        </PricingTablePlan>
+        {visibleTiers.map((tier) => (
+          <div key={tier}>{renderPlanCard({ tier, ...cardParams('mobile') })}</div>
+        ))}
       </div>
 
       {/* Feature comparison table */}
@@ -267,79 +371,21 @@ export function PricingComparison({
         <PricingTableHeader>
           {/* Desktop: full plan cards in header */}
           <PricingTableRow className="hidden sm:table-row">
-            <th className="w-[30%]" />
-            <th className="w-[35%] p-1 h-1">
-              <PricingTablePlan
-                name="Starter"
-                badge="Free forever"
-                badgeClassName="border-slate-300/50 dark:border-slate-600/50 text-slate-500 dark:text-slate-400"
-                price="Free"
-                description="Get started at no cost. No credit card required."
-                icon={Zap}
-              >
-                {hideStarterCTA ? (
-                  <>
-                    {showAddon ? (
-                      <a
-                        href="#starter-plus-addon"
-                        className="text-xs -mt-1 mb-3 block text-center font-medium text-[var(--tc-primary)] underline-offset-2 hover:underline"
-                      >
-                        Need unlimited trades? Get Starter Plus →
-                      </a>
-                    ) : (
-                      <p className="text-xs -mt-1 mb-3 text-muted-foreground">No credit card required</p>
-                    )}
-                    <Button variant="outline" disabled className="w-full rounded-lg text-sm" size="default">
-                      Current plan
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    {showAddon ? (
-                      <a
-                        href="#starter-plus-addon"
-                        className="text-xs -mt-1 mb-3 block text-center font-medium text-[var(--tc-primary)] underline-offset-2 hover:underline"
-                      >
-                        Need unlimited trades? Get Starter Plus →
-                      </a>
-                    ) : (
-                      <p className="text-xs -mt-1 mb-3 text-muted-foreground">No credit card required</p>
-                    )}
-                    <Link href="/login">
-                      <Button variant="outline" className="w-full rounded-lg cursor-pointer text-sm" size="default">
-                        Get started
-                      </Button>
-                    </Link>
-                  </>
-                )}
-              </PricingTablePlan>
-            </th>
-            <th className="w-[35%] p-1 h-1">
-              <PricingTablePlan
-                name="Pro"
-                badge="Recommended"
-                badgeClassName="border-[var(--tc-primary)]/30 bg-[var(--tc-primary)]/10 text-[var(--tc-primary)]"
-                price={proPrice}
-                compareAt={proCompareAt}
-                description="Everything unlimited, full analytics."
-                icon={BarChart3}
-                className="after:pointer-events-none after:absolute after:-inset-0.5 after:rounded-[inherit] after:to-transparent after:blur-[2px]"
-                style={{
-                  '--tw-after-bg': `linear-gradient(to bottom, color-mix(in oklch, var(--tc-primary) 15%, transparent), transparent)`,
-                } as React.CSSProperties}
-              >
-                <p className={cn('text-xs -mt-1 mb-3', proBillingNote ? 'text-muted-foreground' : 'invisible')}>
-                  {proBillingNote || '\u00A0'}
-                </p>
-                <BuyNowButton size="default" onCheckout={onCheckout} isCheckoutPending={isCheckoutPending} />
-              </PricingTablePlan>
-            </th>
+            <th className="w-[25%]" />
+            {visibleTiers.map((tier) => (
+              <th key={tier} className="w-[25%] p-1 h-1">
+                {renderPlanCard({ tier, ...cardParams('desktop') })}
+              </th>
+            ))}
           </PricingTableRow>
           {/* Mobile: simple column labels */}
           <PricingTableRow className="sm:hidden">
             <th className="p-2 text-left text-xs font-medium text-muted-foreground">Feature</th>
-            <th className="p-2 text-left text-xs font-medium">Starter</th>
-            <th className="p-2 text-left text-xs font-medium">Pro</th>
+            {visibleTiers.map((tier) => (
+              <th key={tier} className="p-2 text-left text-xs font-medium">
+                {TIER_CARD_CONFIG[tier].name}
+              </th>
+            ))}
           </PricingTableRow>
         </PricingTableHeader>
         <PricingTableBody>
@@ -353,19 +399,6 @@ export function PricingComparison({
           ))}
         </PricingTableBody>
       </PricingTable>
-
-      {/* Starter Plus add-on callout — placed BELOW the feature table so users
-          see the full comparison before being offered the add-on. The Starter
-          card above has a "Need unlimited trades?" link that anchors here. */}
-      {showAddon && onAddonCheckout && (
-        <div id="starter-plus-addon" className="scroll-mt-24">
-          <AddonCard
-            className="mb-10"
-            onCheckout={onAddonCheckout}
-            isCheckoutPending={isAddonCheckoutPending}
-          />
-        </div>
-      )}
     </div>
   );
 }

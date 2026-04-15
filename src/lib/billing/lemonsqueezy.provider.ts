@@ -10,14 +10,11 @@ import {
   updateSubscription,
 } from '@lemonsqueezy/lemonsqueezy.js';
 import { TIER_DEFINITIONS } from '@/constants/tiers';
-import { resolveAddonByVariantId } from '@/constants/addons';
 import type { TierId, BillingPeriod } from '@/types/subscription';
-import type { AddonId } from '@/types/addon';
 import type {
   IPaymentProvider,
   WebhookAction,
   ProviderSubscriptionData,
-  ProviderAddonData,
   CheckoutParams,
 } from './provider.interface';
 
@@ -204,28 +201,6 @@ export class LemonSqueezyProvider implements IPaymentProvider {
     ) {
       const variantId = String(attrs.variant_id ?? attrs.first_subscription_item?.variant_id ?? '');
 
-      // ER-3: Check add-on variant FIRST. A misconfigured env var must never
-      // silently route an addon payment into a tier upgrade.
-      const addonId = resolveAddonByVariantId(variantId);
-      if (addonId) {
-        const mappedAddon: ProviderAddonData = {
-          providerSubscriptionId: dataId,
-          providerCustomerId: String(attrs.customer_id ?? ''),
-          customerEmail: attrs.user_email ?? null,
-          addonId,
-          status: mapStatus(attrs.status ?? 'active'),
-          periodStart: new Date(attrs.renews_at ?? attrs.created_at ?? Date.now()),
-          periodEnd: new Date(attrs.renews_at ?? attrs.ends_at ?? Date.now()),
-          cancelAtPeriodEnd: attrs.cancelled === true,
-          priceAmount: null,
-          currency: typeof attrs.currency === 'string' ? attrs.currency.toLowerCase() : null,
-        };
-        console.log(
-          `[billing/webhook] action=addon.updated addonId=${addonId} userId=${userId ?? '—'} event=${eventName}`,
-        );
-        return { type: 'addon.updated', data: mappedAddon, userId, originalEvent: eventName };
-      }
-
       const tierId = mapTierFromVariantId(variantId);
       if (!tierId) {
         console.log(`[billing/webhook] ignore reason=unknown_variant variantId=${variantId}`);
@@ -367,62 +342,6 @@ export class LemonSqueezyProvider implements IPaymentProvider {
       return null;
     } catch (err) {
       console.error(`[billing/lemonsqueezy] getActiveSubscriptionForUser failed userId=${userId}`, err);
-      return null;
-    }
-  }
-
-  /**
-   * Fetch an active add-on subscription from LS by email. Parallel to
-   * `getActiveSubscriptionForUser` but filters via `resolveAddonByVariantId`
-   * instead of the tier mapper. Used by `verifyAndActivateAddon` to bridge
-   * webhook latency after checkout.
-   */
-  async getActiveAddonSubscriptionForUser(
-    userId: string,
-    addonId: AddonId,
-  ): Promise<ProviderAddonData | null> {
-    try {
-      const { createServiceRoleClient } = await import('@/utils/supabase/service-role');
-      const supabase = createServiceRoleClient();
-      const { data } = await supabase.auth.admin.getUserById(userId);
-      const email = data?.user?.email;
-      if (!email) return null;
-
-      const result = await listSubscriptions({
-        filter: { storeId: Number(this.storeId), userEmail: email },
-      });
-
-      const items = result.data?.data;
-      if (!items || items.length === 0) return null;
-
-      for (const sub of items) {
-        const attrs = sub.attributes;
-        if (attrs.status !== 'active' && attrs.status !== 'on_trial') continue;
-
-        const variantId = String(attrs.variant_id ?? '');
-        const matchedAddon = resolveAddonByVariantId(variantId);
-        if (matchedAddon !== addonId) continue;
-
-        return {
-          providerSubscriptionId: String(sub.id),
-          providerCustomerId: String(attrs.customer_id ?? ''),
-          customerEmail: attrs.user_email ?? null,
-          addonId: matchedAddon,
-          status: mapStatus(attrs.status),
-          periodStart: new Date(attrs.created_at ?? Date.now()),
-          periodEnd: new Date(attrs.renews_at ?? attrs.ends_at ?? Date.now()),
-          cancelAtPeriodEnd: attrs.cancelled === true,
-          priceAmount: null,
-          currency: null,
-        };
-      }
-
-      return null;
-    } catch (err) {
-      console.error(
-        `[billing/lemonsqueezy] getActiveAddonSubscriptionForUser failed userId=${userId} addonId=${addonId}`,
-        err,
-      );
       return null;
     }
   }

@@ -151,6 +151,9 @@ export default async function ShareStrategyPage({ params }: PageProps) {
     : buildEmptySharePageStats();
 
   const isPro = tierAtLeast(ownerSubscription.tier, 'pro');
+  // Starter Plus and above grant access to the full set of Extra Trade
+  // Performance Cards, including the 5 PRO_ONLY keys.
+  const hasAllExtraCards = tierAtLeast(ownerSubscription.tier, 'starter_plus');
 
   return (
     <main className="min-h-screen max-w-(--breakpoint-xl) mx-auto w-full">
@@ -159,7 +162,7 @@ export default async function ShareStrategyPage({ params }: PageProps) {
         precomputedStats={precomputedStats}
         strategy={{
           name: strategy.name,
-          extra_cards: isPro
+          extra_cards: hasAllExtraCards
             ? strategy.extra_cards
             : strategy.extra_cards.filter(
                 (card) => !PRO_ONLY_EXTRA_CARD_KEYS.includes(card as ExtraCardKey)

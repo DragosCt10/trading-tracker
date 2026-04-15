@@ -1,15 +1,18 @@
 'use client';
 
-import type { BillingPeriod } from '@/types/subscription';
+import type { BillingPeriod, TierId } from '@/types/subscription';
 import { PricingComparison, BillingToggle } from '@/components/pricing/PricingComparison';
 import { PaymentSecuredInfo } from '@/components/pricing/PaymentSecuredInfo';
+
+type PaidTierId = Extract<TierId, 'starter_plus' | 'pro'>;
 
 interface BillingUpgradeCardProps {
   isPro: boolean;
   billingPeriod: BillingPeriod;
   setBillingPeriod: (period: BillingPeriod) => void;
   isCheckoutPending: boolean;
-  onUpgrade: () => void;
+  pendingCheckoutTier?: PaidTierId | null;
+  onUpgrade: (tier: PaidTierId) => void;
 }
 
 export function BillingUpgradeCard({
@@ -17,6 +20,7 @@ export function BillingUpgradeCard({
   billingPeriod,
   setBillingPeriod,
   isCheckoutPending,
+  pendingCheckoutTier = null,
   onUpgrade,
 }: BillingUpgradeCardProps) {
   if (isPro) return null;
@@ -45,6 +49,7 @@ export function BillingUpgradeCard({
         billingPeriod={billingPeriod}
         setBillingPeriod={setBillingPeriod}
         isCheckoutPending={isCheckoutPending}
+        pendingCheckoutTier={pendingCheckoutTier}
         onCheckout={onUpgrade}
         hideStarterCTA
         hideToggle

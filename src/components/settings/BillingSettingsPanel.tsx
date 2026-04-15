@@ -16,11 +16,9 @@ import { useUserDetails } from '@/hooks/useUserDetails';
 import { TIER_DEFINITIONS } from '@/constants/tiers';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
-import type { BillingPeriod, ResolvedSubscription } from '@/types/subscription';
-import type { ResolvedAddon } from '@/types/addon';
+import type { BillingPeriod, ResolvedSubscription, TierId } from '@/types/subscription';
 import { BillingCurrentPlanCard } from '@/components/settings/BillingCurrentPlanCard';
 import { BillingUpgradeCard } from '@/components/settings/BillingUpgradeCard';
-import { BillingStarterPlusCard } from '@/components/settings/BillingStarterPlusCard';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -33,15 +31,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+type PaidTierId = Extract<TierId, 'starter_plus' | 'pro'>;
 
 interface BillingSettingsPanelProps {
   initialSubscription: ResolvedSubscription;
   justPaid: boolean;
   featureContext?: string;
   showHeader?: boolean;
-  /** ER-1: false hides the add-ons block entirely. */
-  starterPlusAvailable?: boolean;
-  initialStarterPlus?: ResolvedAddon | null;
 }
 
 export function BillingSettingsPanel({
@@ -49,8 +45,6 @@ export function BillingSettingsPanel({
   justPaid,
   featureContext,
   showHeader = false,
-  starterPlusAvailable = false,
-  initialStarterPlus = null,
 }: BillingSettingsPanelProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -61,10 +55,16 @@ export function BillingSettingsPanel({
   const effectiveSubscription =
     hasHydrated && userId ? (subscription ?? initialSubscription) : initialSubscription;
   const effectiveTier = effectiveSubscription.tier;
-  const isPro = effectiveTier !== 'starter';
+  // Paid = any tier beyond the free Starter. Used to show/hide portal + invoice actions.
+  const isPaid = effectiveTier !== 'starter';
+  // Pro = true only for Pro/Elite. Used to hide the upgrade card so Pro users
+  // don't see a "Buy now" on a plan they already own. Starter Plus users
+  // SHOULD still see the upgrade card so they can reach Pro.
+  const isPro = effectiveTier === 'pro' || effectiveTier === 'elite';
 
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('annual');
   const [isCheckoutPending, startCheckoutTransition] = useTransition();
+  const [pendingCheckoutTier, setPendingCheckoutTier] = useState<PaidTierId | null>(null);
   const [isPortalPending, startPortalTransition] = useTransition();
   const [isCancelPending, startCancelTransition] = useTransition();
   const [isInvoicePending, startInvoiceTransition] = useTransition();
@@ -134,9 +134,11 @@ export function BillingSettingsPanel({
   const proDef = TIER_DEFINITIONS.pro;
   const monthlyPrice = proDef.pricing.monthly?.usd ?? 0;
   const annualPrice = proDef.pricing.annual?.usd ?? 0;
-  function handleUpgrade() {
+
+  function handleUpgrade(nextTier: PaidTierId) {
+    setPendingCheckoutTier(nextTier);
     startCheckoutTransition(async () => {
-      const url = await createCheckoutUrl(billingPeriod);
+      const url = await createCheckoutUrl(nextTier, billingPeriod);
       router.push(url);
     });
   }
@@ -229,7 +231,7 @@ export function BillingSettingsPanel({
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
           <div className="flex-1">
             <span className="font-medium">Payment failed.</span>{' '}
-            Your Pro access is active during the grace period, but may be interrupted soon if payment
+            Your access is active during the grace period, but may be interrupted soon if payment
             isn&apos;t resolved.
           </div>
           <Button
@@ -254,7 +256,7 @@ export function BillingSettingsPanel({
       )}
 
       <BillingCurrentPlanCard
-        isPro={isPro}
+        isPaid={isPaid}
         resolvedSub={resolvedSub}
         monthlyPrice={monthlyPrice}
         annualPrice={annualPrice}
@@ -266,35 +268,14 @@ export function BillingSettingsPanel({
         onCancelSubscription={handleCancelSubscription}
       />
 
-      {/* When Starter Plus is already active on initial page load, render the
-          add-on card ABOVE the Pro upgrade/pricing table so users see their
-          active entitlement first. When inactive, render it BELOW as a
-          discovery slot. */}
-      {initialStarterPlus?.isActive && (
-        <BillingStarterPlusCard
-          available={starterPlusAvailable}
-          initialAddon={initialStarterPlus}
-          isPro={isPro}
-          justPaid={justPaid}
-        />
-      )}
-
       <BillingUpgradeCard
         isPro={isPro}
         billingPeriod={billingPeriod}
         setBillingPeriod={setBillingPeriod}
         isCheckoutPending={isCheckoutPending}
+        pendingCheckoutTier={pendingCheckoutTier}
         onUpgrade={handleUpgrade}
       />
-
-      {!initialStarterPlus?.isActive && (
-        <BillingStarterPlusCard
-          available={starterPlusAvailable}
-          initialAddon={initialStarterPlus}
-          isPro={isPro}
-          justPaid={justPaid}
-        />
-      )}
 
       <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
         <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient !rounded-2xl">
@@ -306,7 +287,7 @@ export function BillingSettingsPanel({
             </AlertDialogTitle>
             <AlertDialogDescription>
               <span className="text-slate-600 dark:text-slate-400">
-                Are you sure you want to cancel? Your PRO access will continue until the end of your
+                Are you sure you want to cancel? Your access will continue until the end of your
                 current billing period, then your account will revert to the Starter plan.
               </span>
             </AlertDialogDescription>

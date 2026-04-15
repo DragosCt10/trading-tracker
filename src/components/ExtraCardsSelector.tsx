@@ -12,15 +12,20 @@ interface ExtraCardsSelectorProps {
   selected: ExtraCardKey[];
   onChange: (keys: ExtraCardKey[]) => void;
   disabled?: boolean;
-  isPro?: boolean;
+  /**
+   * True when the user's tier grants access to all Extra Trade Performance
+   * Cards, including the 5 keys in PRO_ONLY_EXTRA_CARD_KEYS. Starter Plus,
+   * Pro, and Elite pass true; Starter passes false.
+   */
+  canAccessAllCards?: boolean;
 }
 
-export function ExtraCardsSelector({ selected, onChange, disabled, isPro = false }: ExtraCardsSelectorProps) {
+export function ExtraCardsSelector({ selected, onChange, disabled, canAccessAllCards = false }: ExtraCardsSelectorProps) {
   const [search, setSearch] = React.useState('');
 
   const toggle = (key: ExtraCardKey) => {
     if (disabled) return;
-    if (!isPro && PRO_ONLY_EXTRA_CARD_KEYS.includes(key)) return;
+    if (!canAccessAllCards && PRO_ONLY_EXTRA_CARD_KEYS.includes(key)) return;
     if (selected.includes(key)) {
       onChange(selected.filter((k) => k !== key));
     } else {
@@ -77,7 +82,7 @@ export function ExtraCardsSelector({ selected, onChange, disabled, isPro = false
           </p>
         ) : (
           filteredCards.map((card) => {
-            const isLocked = !isPro && PRO_ONLY_EXTRA_CARD_KEYS.includes(card.key);
+            const isLocked = !canAccessAllCards && PRO_ONLY_EXTRA_CARD_KEYS.includes(card.key);
             const isSelected = selected.includes(card.key);
 
             if (isLocked) {

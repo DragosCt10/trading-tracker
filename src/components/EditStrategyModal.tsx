@@ -40,7 +40,8 @@ export function EditStrategyModal({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { data: userDetails } = useUserDetails();
-  const { isPro } = useSubscription({ userId: userDetails?.user?.id });
+  const { hasFeature } = useSubscription({ userId: userDetails?.user?.id });
+  const canAccessAllCards = hasFeature('allExtraCards');
 
   useEffect(() => {
     if (strategy) {
@@ -170,7 +171,7 @@ export function EditStrategyModal({
               selected={extraCards}
               onChange={setExtraCards}
               disabled={submitting}
-              isPro={isPro}
+              canAccessAllCards={canAccessAllCards}
             />
 
             {error && (

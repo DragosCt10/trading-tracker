@@ -5,50 +5,33 @@ import { useRouter } from 'next/navigation';
 import { PublicPageShell } from '@/components/shared/PublicPageShell';
 import { useParallax } from '@/hooks/useParallax';
 import { createPublicCheckoutUrl } from '@/lib/server/subscription';
-import { createPublicAddonCheckoutUrl } from '@/lib/server/addons';
-import type { BillingPeriod } from '@/types/subscription';
+import type { BillingPeriod, TierId } from '@/types/subscription';
 import { PricingFAQ } from '@/components/pricing/PricingFAQ';
 import { PricingComparison } from '@/components/pricing/PricingComparison';
 import { PaymentSecuredInfo } from '@/components/pricing/PaymentSecuredInfo';
 import { EarlyBirdBanner } from '@/components/pricing/EarlyBirdBanner';
 import { EARLY_BIRD_LIMIT } from '@/constants/earlyBird';
 
+type PaidTierId = Exclude<TierId, 'starter' | 'elite'>;
+
 interface PricingPageClientProps {
   earlyBirdSlotsUsed: number;
-  /**
-   * ER-1: computed server-side from env. When false, the AddonCard is not
-   * rendered and no checkout action is wired. This is the only gate — the
-   * variant ID is never exposed to the client.
-   */
-  starterPlusAvailable: boolean;
 }
 
-export function PricingPageClient({
-  earlyBirdSlotsUsed,
-  starterPlusAvailable,
-}: PricingPageClientProps) {
+export function PricingPageClient({ earlyBirdSlotsUsed }: PricingPageClientProps) {
   const sectionRef = useParallax();
   const router = useRouter();
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('annual');
   const [isCheckoutPending, startCheckoutTransition] = useTransition();
-  const [isAddonCheckoutPending, startAddonCheckoutTransition] = useTransition();
+  const [pendingCheckoutTier, setPendingCheckoutTier] = useState<PaidTierId | null>(null);
   const earlyBirdAvailable = earlyBirdSlotsUsed < EARLY_BIRD_LIMIT;
 
-  function handleCheckout() {
+  function handleCheckout(tier: PaidTierId) {
+    setPendingCheckoutTier(tier);
     startCheckoutTransition(async () => {
       try {
-        const url = await createPublicCheckoutUrl(billingPeriod, earlyBirdAvailable);
-        router.push(url);
-      } catch {
-        router.push('/signup');
-      }
-    });
-  }
-
-  function handleAddonCheckout() {
-    startAddonCheckoutTransition(async () => {
-      try {
-        const url = await createPublicAddonCheckoutUrl('starter_plus');
+        // Early-bird only applies to Pro. Starter Plus always uses its regular variants.
+        const url = await createPublicCheckoutUrl(tier, billingPeriod, tier === 'pro' && earlyBirdAvailable);
         router.push(url);
       } catch {
         router.push('/signup');
@@ -85,7 +68,7 @@ export function PricingPageClient({
         </div>
 
         {/* Pricing cards + table */}
-        <div className="relative mx-auto max-w-5xl px-2 sm:px-4 pb-12 sm:pb-20">
+        <div className="relative mx-auto max-w-6xl px-2 sm:px-4 pb-12 sm:pb-20">
           {earlyBirdAvailable && (
             <EarlyBirdBanner slotsUsed={earlyBirdSlotsUsed} className="mb-6" />
           )}
@@ -94,11 +77,9 @@ export function PricingPageClient({
             billingPeriod={billingPeriod}
             setBillingPeriod={setBillingPeriod}
             isCheckoutPending={isCheckoutPending}
+            pendingCheckoutTier={pendingCheckoutTier}
             onCheckout={handleCheckout}
             useEarlyBird={earlyBirdAvailable}
-            starterPlusAvailable={starterPlusAvailable}
-            onAddonCheckout={handleAddonCheckout}
-            isAddonCheckoutPending={isAddonCheckoutPending}
           />
 
           {/* Secured payment info */}

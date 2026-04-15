@@ -45,6 +45,50 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
     badge: { label: 'Upgrade to PRO', colorClass: 'text-zinc-400 border-zinc-700' },
   },
 
+  starter_plus: {
+    id: 'starter_plus',
+    label: 'Starter Plus',
+    pricing: {
+      monthly: {
+        usd: 7.99,
+        productId: process.env.LEMONSQUEEZY_STARTER_PLUS_VARIANT_ID_MONTHLY ?? '',
+      },
+      annual: {
+        usd: 76.70,
+        productId: process.env.LEMONSQUEEZY_STARTER_PLUS_VARIANT_ID_ANNUAL ?? '',
+        savingsPct: 20,
+      },
+    },
+    limits: {
+      maxStrategies: 2,
+      maxExtraCards: null,           // full suite of Extra Trade Performance Cards
+      maxAccounts: 3,
+      allowedModes: ['demo', 'live', 'backtesting'],
+      maxPostsPerWeek: null,
+      maxPostsPerDay: 50,
+      maxPostContentLength: 280,
+      maxMonthlyTrades: 250,
+    },
+    features: {
+      dailyJournal: false,
+      csvImport: true,
+      futureEquityChart: false,
+      publicSharing: false,
+      prioritySupport: false,
+      allCoreStatistics: false,
+      allPsychologicalFactors: false,
+      allConsistencyDrawdown: false,
+      allPerformanceRatios: false,
+      allTradePerformanceAnalysis: false,
+      allExtraCards: true,
+      alphaHub: false,
+      socialFeedTradeAttach: false,
+      socialFeedEditPosts: false,
+      socialFeedChannels: false,
+    },
+    badge: { label: 'Starter Plus', colorClass: 'text-sky-400 border-sky-500/50' },
+  },
+
   pro: {
     id: 'pro',
     label: 'PRO',
@@ -139,7 +183,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
 };
 
 /** Ordered array for iteration (e.g. upgrade prompt comparison). */
-export const TIER_ORDER: TierId[] = ['starter', 'pro', 'elite'];
+export const TIER_ORDER: TierId[] = ['starter', 'starter_plus', 'pro', 'elite'];
 
 /** Returns true if tierA is at least as high as tierB. */
 export function tierAtLeast(tierA: TierId, tierB: TierId): boolean {

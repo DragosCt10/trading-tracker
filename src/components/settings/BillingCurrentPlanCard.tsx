@@ -2,10 +2,18 @@
 
 import { AlertCircle, Ban, CreditCard, ExternalLink, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { ResolvedSubscription } from '@/types/subscription';
+import type { ResolvedSubscription, TierId } from '@/types/subscription';
+
+const TIER_LABEL: Record<TierId, string> = {
+  starter: 'Starter (Free)',
+  starter_plus: 'Starter Plus',
+  pro: 'PRO',
+  elite: 'Elite',
+};
 
 interface BillingCurrentPlanCardProps {
-  isPro: boolean;
+  /** True when the user is on any paid tier (starter_plus, pro, elite). */
+  isPaid: boolean;
   resolvedSub: ResolvedSubscription;
   monthlyPrice: number;
   annualPrice: number;
@@ -26,7 +34,7 @@ function formatPrice(cents: number, currency: string): string {
 }
 
 export function BillingCurrentPlanCard({
-  isPro,
+  isPaid,
   resolvedSub,
   monthlyPrice,
   annualPrice,
@@ -57,9 +65,9 @@ export function BillingCurrentPlanCard({
             Current plan
           </p>
           <p className="text-xl font-bold text-slate-900 dark:text-slate-50">
-            {isPro ? 'PRO' : 'Starter (Free)'}
+            {TIER_LABEL[resolvedSub.tier]}
           </p>
-          {isPro && resolvedSub.billingPeriod && (
+          {isPaid && resolvedSub.billingPeriod && (
             <div className="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-800/60">
               <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
                 {currentPrice}
@@ -71,7 +79,7 @@ export function BillingCurrentPlanCard({
               </p>
             </div>
           )}
-          {isPro && resolvedSub.billingPeriod && (
+          {isPaid && resolvedSub.billingPeriod && (
             <div className="mt-2">
               {resolvedSub.periodEnd && (
                 <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -94,7 +102,7 @@ export function BillingCurrentPlanCard({
         <CreditCard className="h-5 w-5 shrink-0 text-slate-400 dark:text-slate-500 mt-1" />
       </div>
 
-      {isPro && (
+      {isPaid && (
         <div className="mt-4 pt-4 border-t border-slate-200/60 dark:border-slate-800/60">
           <div className="flex flex-wrap items-center gap-2">
             <Button

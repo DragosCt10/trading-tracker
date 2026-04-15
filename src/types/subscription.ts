@@ -1,6 +1,6 @@
 import type { AccountMode } from '@/lib/server/accounts';
 
-export type TierId = 'starter' | 'pro' | 'elite';
+export type TierId = 'starter' | 'starter_plus' | 'pro' | 'elite';
 export type BillingPeriod = 'monthly' | 'annual';
 
 export interface TierLimits {

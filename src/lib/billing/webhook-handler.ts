@@ -182,39 +182,6 @@ export async function processWebhookAction(
   providerName: ProviderName
 ): Promise<void> {
   const supabase = createServiceRoleClient();
-  // The generated @/types/supabase types don't include user_addons yet
-  // (same situation as social_profiles). Cast locally until types are
-  // regenerated via `npx supabase gen types`. Matches the existing idiom at
-  // webhook-handler.ts line ~273 and subscription.ts line ~134.
-  const supabaseAddons = supabase as unknown as Record<string, (table: string) => unknown> & {
-    from: (table: string) => {
-      select: (cols: string) => {
-        eq: (c: string, v: unknown) => {
-          eq: (c: string, v: unknown) => {
-            maybeSingle: () => Promise<{
-              data: { provider: string | null; provider_subscription_id: string | null } | null;
-              error: unknown;
-            }>;
-          };
-        };
-      };
-      upsert: (
-        values: Record<string, unknown>,
-        options: { onConflict: string },
-      ) => Promise<{ error: { message: string } | null }>;
-      update: (values: Record<string, unknown>) => {
-        eq: (c: string, v: unknown) => Promise<{ error: { message: string } | null }> & {
-          eq: (c: string, v: unknown) => Promise<{ error: { message: string } | null }>;
-          select: (cols: string) => {
-            limit: (n: number) => Promise<{
-              data: { user_id: string }[] | null;
-              error: { message: string } | null;
-            }>;
-          };
-        };
-      };
-    };
-  };
 
   switch (action.type) {
     case 'subscription.updated': {
@@ -315,127 +282,6 @@ export async function processWebhookAction(
       break;
     }
 
-    case 'addon.updated': {
-      // AUD-3: validate payload at trust boundary. LS signs the request via
-      // HMAC (parseWebhookEvent), but the parser can't guarantee the DB payload
-      // is clean — do it here before we write to user_addons.
-      const addon = action.data;
-      const VALID_ADDON_IDS = new Set(['starter_plus']);
-      const VALID_STATUSES = new Set(['active', 'trialing', 'past_due', 'canceled']);
-      const fiveYearsMs = 5 * 365 * 24 * 60 * 60 * 1000;
-      const now = Date.now();
-      if (
-        !VALID_ADDON_IDS.has(addon.addonId) ||
-        !VALID_STATUSES.has(addon.status) ||
-        !addon.providerSubscriptionId ||
-        !(addon.periodEnd instanceof Date) ||
-        Math.abs(addon.periodEnd.getTime() - now) > fiveYearsMs
-      ) {
-        console.error(
-          `[billing/addon] invalid_payload addonId=${addon.addonId} status=${addon.status} providerSubscriptionId=${addon.providerSubscriptionId}`,
-        );
-        break;
-      }
-
-      let resolvedUserId = action.userId;
-      if (!resolvedUserId) {
-        const email = addon.customerEmail ?? await (async () => {
-          try {
-            return await getPaymentProvider().getCustomerEmail(addon.providerCustomerId);
-          } catch {
-            return null;
-          }
-        })();
-        const emailMatchedUserId = email ? await ensureUserForCheckoutEmail(email, providerName) : null;
-        resolvedUserId = emailMatchedUserId ?? null;
-      }
-
-      if (!resolvedUserId) {
-        console.log(
-          `[billing/addon] ignored reason=no_user_resolution customerId=${addon.providerCustomerId}`,
-        );
-        break;
-      }
-
-      // ER-2: admin-grant protection. If an admin has manually granted this
-      // add-on, do not let a real LS webhook clobber that row.
-      const { data: existingAddon } = await supabaseAddons
-        .from('user_addons')
-        .select('provider, provider_subscription_id')
-        .eq('user_id', resolvedUserId)
-        .eq('addon_type', addon.addonId)
-        .maybeSingle();
-
-      if (existingAddon?.provider === 'admin') {
-        console.log(
-          `[billing/addon] skip_upsert reason=admin_grant_protected userId=${resolvedUserId}`,
-        );
-        break;
-      }
-
-      // ER-6: orphan warning. If we already have a row with a DIFFERENT
-      // provider_subscription_id, an anonymous user may have checked out twice.
-      // Log for manual follow-up (the upsert below will replace the older row).
-      if (
-        existingAddon?.provider_subscription_id &&
-        existingAddon.provider_subscription_id !== addon.providerSubscriptionId
-      ) {
-        console.warn(
-          `[billing/addon] orphan_ls_subscription userId=${resolvedUserId} existing=${existingAddon.provider_subscription_id} incoming=${addon.providerSubscriptionId}`,
-        );
-      }
-
-      const { error: upsertError } = await supabaseAddons.from('user_addons').upsert(
-        {
-          user_id: resolvedUserId,
-          addon_type: addon.addonId,
-          status: addon.status,
-          provider: providerName,
-          provider_subscription_id: addon.providerSubscriptionId,
-          provider_customer_id: addon.providerCustomerId,
-          current_period_start: addon.periodStart.toISOString(),
-          current_period_end: addon.periodEnd.toISOString(),
-          cancel_at_period_end: addon.cancelAtPeriodEnd,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id,addon_type' },
-      );
-      if (upsertError) {
-        console.error('[billing/addon] upsert error:', upsertError.message);
-        break;
-      }
-
-      // Apply any price cached by the preceding order.created event (same
-      // pattern as subscription.updated).
-      const pendingAddon = addon.providerCustomerId
-        ? consumePendingPrice(addon.providerCustomerId)
-        : null;
-      if (pendingAddon) {
-        const { error: priceError } = await supabaseAddons
-          .from('user_addons')
-          .update({
-            price_amount: pendingAddon.amountCents,
-            tax_amount: pendingAddon.taxCents,
-            currency: pendingAddon.currency,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', resolvedUserId)
-          .eq('addon_type', addon.addonId);
-        if (priceError) {
-          console.error('[billing/addon] price update error:', priceError.message);
-        } else {
-          console.log(
-            `[billing/addon] applied pending price userId=${resolvedUserId} amount=${pendingAddon.amountCents} currency=${pendingAddon.currency}`,
-          );
-        }
-      }
-
-      console.log(
-        `[billing/addon] upserted userId=${resolvedUserId} providerSubscriptionId=${addon.providerSubscriptionId} status=${addon.status}`,
-      );
-      break;
-    }
-
     case 'subscription.canceled': {
       const updatePayload = {
         cancel_at_period_end: action.cancelAtPeriodEnd,
@@ -466,24 +312,6 @@ export async function processWebhookAction(
           );
         }
       }
-
-      // Also attempt to match the cancel against user_addons by
-      // provider_subscription_id. LS IDs are globally unique, so at most one
-      // row across both tables will match. No-op if this cancel belongs to a
-      // tier subscription.
-      const { data: addonData, error: addonError } = await supabaseAddons
-        .from('user_addons')
-        .update(updatePayload)
-        .eq('provider_subscription_id', action.providerSubscriptionId)
-        .select('user_id')
-        .limit(1);
-      if (addonError) {
-        console.error('[billing/addon] webhook_canceled error:', addonError.message);
-      } else if ((addonData?.length ?? 0) > 0) {
-        console.log(
-          `[billing/addon] webhook_canceled providerSubscriptionId=${action.providerSubscriptionId}`,
-        );
-      }
       break;
     }
 
@@ -511,21 +339,6 @@ export async function processWebhookAction(
             `[billing/webhook] revoke matched by provider_customer_id customerId=${action.providerCustomerId}`
           );
         }
-      }
-
-      // Mirror the revoke against user_addons — see the canceled branch above.
-      const { data: addonData, error: addonError } = await supabaseAddons
-        .from('user_addons')
-        .update(updatePayload)
-        .eq('provider_subscription_id', action.providerSubscriptionId)
-        .select('user_id')
-        .limit(1);
-      if (addonError) {
-        console.error('[billing/addon] webhook_revoked error:', addonError.message);
-      } else if ((addonData?.length ?? 0) > 0) {
-        console.log(
-          `[billing/addon] webhook_revoked providerSubscriptionId=${action.providerSubscriptionId}`,
-        );
       }
       break;
     }

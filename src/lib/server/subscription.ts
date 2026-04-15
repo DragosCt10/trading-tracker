@@ -9,7 +9,6 @@ import type { TierId, BillingPeriod, ResolvedSubscription, SubscriptionRow } fro
 import { getPaymentProvider } from '@/lib/billing';
 import { EARLY_BIRD_LIMIT } from '@/constants/earlyBird';
 import { getEarlyBirdSlotsUsed } from './earlyBird';
-import { hasActiveStarterPlus } from './addonState';
 
 const STARTER_SUBSCRIPTION: ResolvedSubscription = {
   tier: 'starter',
@@ -209,17 +208,23 @@ export async function verifyAndActivateSubscription(userId: string): Promise<Res
   return _getSubscription(userId);
 }
 
+/** Tiers the user can actually buy. Starter is free, Elite is unlaunched. */
+type PaidTierId = Extract<TierId, 'starter_plus' | 'pro'>;
+
 /**
- * Resolve the Lemon Squeezy variant ID for a given billing period, preferring
- * the early-bird variant when the caller requests it AND seats remain. The
- * slot count is re-checked against the live DB inside this function so the
- * client never controls whether the discount applies.
+ * Resolve the Lemon Squeezy variant ID for a given tier + billing period,
+ * preferring the Pro early-bird variant when the caller requests it AND seats
+ * remain. The slot count is re-checked against the live DB inside this
+ * function so the client never controls whether the discount applies.
+ *
+ * Early-bird only applies to Pro. Starter Plus always uses its regular variants.
  */
-async function resolveProVariantId(
+async function resolveTierVariantId(
+  tier: PaidTierId,
   billingPeriod: BillingPeriod,
   preferEarlyBird: boolean,
 ): Promise<string> {
-  if (preferEarlyBird) {
+  if (tier === 'pro' && preferEarlyBird) {
     const earlyBird = TIER_DEFINITIONS.pro.pricing.earlyBird;
     const used = await getEarlyBirdSlotsUsed();
     if (earlyBird && used < EARLY_BIRD_LIMIT) {
@@ -231,27 +236,29 @@ async function resolveProVariantId(
       console.warn(`[billing] Early-bird variant ID not configured for ${billingPeriod} — falling back to regular variant`);
     }
   }
+  const tierDef = TIER_DEFINITIONS[tier];
   const regularId =
     billingPeriod === 'monthly'
-      ? (TIER_DEFINITIONS.pro.pricing.monthly?.productId ?? '')
-      : (TIER_DEFINITIONS.pro.pricing.annual?.productId ?? '');
+      ? (tierDef.pricing.monthly?.productId ?? '')
+      : (tierDef.pricing.annual?.productId ?? '');
   if (!regularId) {
-    throw new Error(`[billing] Missing Lemon Squeezy variant ID for ${billingPeriod} checkout.`);
+    throw new Error(`[billing] Missing Lemon Squeezy variant ID for tier=${tier} ${billingPeriod} checkout.`);
   }
   return regularId;
 }
 
 /**
- * Server action: create a Lemon Squeezy checkout URL.
+ * Server action: create a Lemon Squeezy checkout URL for the authenticated user.
  * Returns the URL; client then does router.push(url).
  */
 export async function createCheckoutUrl(
+  tier: PaidTierId,
   billingPeriod: BillingPeriod,
   useEarlyBird = false,
 ): Promise<string> {
   const session = await getCachedUserSession();
   if (!session.user) throw new Error('Not authenticated');
-  const productId = await resolveProVariantId(billingPeriod, useEarlyBird);
+  const productId = await resolveTierVariantId(tier, billingPeriod, useEarlyBird);
 
   const provider = getPaymentProvider();
   const appUrl = getAppUrl();
@@ -270,10 +277,11 @@ export async function createCheckoutUrl(
  * No session required — user is resolved from email by the webhook after purchase.
  */
 export async function createPublicCheckoutUrl(
+  tier: PaidTierId,
   billingPeriod: BillingPeriod,
   useEarlyBird = false,
 ): Promise<string> {
-  const productId = await resolveProVariantId(billingPeriod, useEarlyBird);
+  const productId = await resolveTierVariantId(tier, billingPeriod, useEarlyBird);
 
   const provider = getPaymentProvider();
   const appUrl = getAppUrl();
@@ -499,12 +507,9 @@ export async function canAddAccount(userId: string, currentCount: number): Promi
  * null = unlimited.
  *
  * Precedence:
- *   1. Tier limit is unlimited → return null
- *   2. User has an active Starter Plus add-on → return null (unlimited)
- *   3. Otherwise count current-month trades against the tier cap
- *
- * ER-4: the addon read is fail-closed (returns false on DB error). A Supabase
- * outage keeps the user on the tier cap instead of silently granting unlimited.
+ *   1. Tier limit is unlimited (Pro / Elite) → return null
+ *   2. Otherwise count current-month trades against the tier cap
+ *      (Starter = 50, Starter Plus = 250)
  */
 export async function getRemainingTrades(
   userId: string,
@@ -513,8 +518,6 @@ export async function getRemainingTrades(
   const sub = await getCachedSubscription(userId);
   const max = sub.definition.limits.maxMonthlyTrades;
   if (max === null) return null;
-
-  if (await hasActiveStarterPlus(userId)) return null;
 
   const supabase = await createClient();
   const startOfMonth = new Date();

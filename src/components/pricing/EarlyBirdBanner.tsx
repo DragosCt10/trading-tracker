@@ -41,7 +41,7 @@ export function EarlyBirdBanner({ slotsUsed, className }: EarlyBirdBannerProps) 
           </span>
           <div>
             <p className="text-sm font-semibold text-slate-900 dark:text-white sm:text-base">
-              Launch offer — ${EARLY_BIRD_MONTHLY_PRICE}/mo for the first {EARLY_BIRD_LIMIT} members
+              Launch offer — ${EARLY_BIRD_MONTHLY_PRICE}/mo
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Locked in for as long as you stay subscribed. Applies to monthly and annual.

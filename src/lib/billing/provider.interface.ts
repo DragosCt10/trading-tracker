@@ -1,5 +1,4 @@
 import type { TierId, BillingPeriod } from '@/types/subscription';
-import type { AddonId } from '@/types/addon';
 
 
 // ── Webhook action discriminated union ───────────────────────────────────────
@@ -20,36 +19,12 @@ export interface ProviderSubscriptionData {
   currency: string | null;
 }
 
-/**
- * Add-on variant of ProviderSubscriptionData. Structurally identical apart from
- * the `tierId` field, which is replaced by `addonId`. Emitted by webhooks when
- * an incoming LS subscription event matches an add-on variant ID.
- */
-export interface ProviderAddonData {
-  providerSubscriptionId: string;
-  providerCustomerId: string;
-  customerEmail: string | null;
-  addonId: AddonId;
-  status: 'active' | 'trialing' | 'past_due' | 'canceled';
-  periodStart: Date;
-  periodEnd: Date;
-  cancelAtPeriodEnd: boolean;
-  priceAmount: number | null;
-  currency: string | null;
-}
-
 export type WebhookAction =
   | {
       type: 'subscription.updated';
       data: ProviderSubscriptionData;
       userId: string | null;
       /** Raw event name from the provider (e.g. 'subscription_payment_success'). */
-      originalEvent?: string;
-    }
-  | {
-      type: 'addon.updated';
-      data: ProviderAddonData;
-      userId: string | null;
       originalEvent?: string;
     }
   | {
@@ -108,11 +83,6 @@ export interface IPaymentProvider {
   cancelSubscription(providerSubscriptionId: string): Promise<void>;
   /** Fetch the active subscription for a userId directly from the provider (bypasses webhook lag). */
   getActiveSubscriptionForUser(userId: string): Promise<ProviderSubscriptionData | null>;
-  /** Fetch an active add-on subscription for a userId + addonId (bypasses webhook lag). */
-  getActiveAddonSubscriptionForUser?(
-    userId: string,
-    addonId: AddonId,
-  ): Promise<ProviderAddonData | null>;
   /** Create a one-time percentage discount coupon code the user can apply themselves. */
   createDiscountCode(params: { discountPct: number; discountLabel: string; code: string }): Promise<{ code: string }>;
   /** Switch an existing subscription to a different variant (e.g. a discounted one). */
