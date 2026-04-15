@@ -9,6 +9,7 @@ export const PRICING_FEATURES: FeatureItem[] = [
   { label: 'Trade Performance Analysis', values: ['Basic', 'Basic', 'Full suite'] },
   { label: 'Social Trading Feed', values: ['Basic', 'Basic', 'Full (attach trades, edit, channels)'] },
   { label: 'Extra Trade Performance Cards', values: ['Basic', 'Full suite', 'Full suite'] },
+  { label: 'Export Trades', values: [true, true, true] },
   { label: 'Public Stats Sharing', values: [true, true, true] },
   { label: 'Equity Curve Chart', values: [true, true, true] },
   { label: 'Trades Calendar', values: [true, true, true] },
@@ -19,6 +20,5 @@ export const PRICING_FEATURES: FeatureItem[] = [
   { label: 'Consistency & Drawdown', values: [false, false, true] },
   { label: 'Performance Ratios', values: [false, false, true] },
   { label: 'Daily Journal', values: [false, false, true] },
-  { label: 'Export Trades', values: [false, false, true] },
   { label: 'Priority Support', values: [false, false, true] },
 ];
