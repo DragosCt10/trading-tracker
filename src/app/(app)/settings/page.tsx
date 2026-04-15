@@ -4,7 +4,7 @@ import { resolveSubscription } from '@/lib/server/subscription';
 import { getCachedSocialProfile } from '@/lib/server/socialProfile';
 import SettingsClient from './SettingsClient';
 
-export type SettingsTab = 'billing' | 'account' | 'profile' | 'sharedTrades';
+export type SettingsTab = 'billing' | 'account' | 'profile' | 'sharedTrades' | 'review';
 
 /**
  * Allowlist of known feature codes that can flow through `?feature=` into the
@@ -27,6 +27,7 @@ function normalizeTab(tab?: string): SettingsTab {
   if (tab === 'account') return 'account';
   if (tab === 'profile') return 'profile';
   if (tab === 'sharedTrades') return 'sharedTrades';
+  if (tab === 'review') return 'review';
   return 'billing';
 }
 
