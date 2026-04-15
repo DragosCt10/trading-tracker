@@ -69,8 +69,8 @@ export function PricingHeroBackground() {
             />
           </div>
 
-          {/* ── Structural grid: bold outer borders at max-w-6xl edges ── */}
-          <div className="pointer-events-none absolute inset-0 mx-auto hidden w-full max-w-6xl lg:block">
+          {/* ── Structural grid: bold outer borders at max-w-7xl edges ── */}
+          <div className="pointer-events-none absolute inset-0 mx-auto hidden w-full max-w-7xl lg:block">
             <div
               className="absolute inset-y-0 left-0 z-10 h-full w-px"
               style={{
@@ -90,21 +90,21 @@ export function PricingHeroBackground() {
           </div>
 
           {/* ── Structural grid: inner content borders ── */}
-          <div className="pointer-events-none absolute inset-0 mx-auto hidden w-full max-w-6xl sm:block">
+          <div className="pointer-events-none absolute inset-0 mx-auto hidden w-full max-w-7xl sm:block">
             <div
-              className="absolute inset-y-0 left-4 w-px md:left-8"
+              className="absolute inset-y-0 left-8 w-px"
               style={{ background: `linear-gradient(to bottom, transparent, var(--pricing-grid-medium) 30%, var(--pricing-grid-medium))` }}
             />
             <div
-              className="absolute inset-y-0 right-4 w-px md:right-8"
+              className="absolute inset-y-0 right-8 w-px"
               style={{ background: `linear-gradient(to bottom, transparent, var(--pricing-grid-medium) 30%, var(--pricing-grid-medium))` }}
             />
             <div
-              className="absolute inset-y-0 left-8 w-px md:left-12"
+              className="absolute inset-y-0 left-16 w-px"
               style={{ background: `linear-gradient(to bottom, transparent, var(--pricing-grid-light) 30%, var(--pricing-grid-light))` }}
             />
             <div
-              className="absolute inset-y-0 right-8 w-px md:right-12"
+              className="absolute inset-y-0 right-16 w-px"
               style={{ background: `linear-gradient(to bottom, transparent, var(--pricing-grid-light) 30%, var(--pricing-grid-light))` }}
             />
           </div>
