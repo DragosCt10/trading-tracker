@@ -14,6 +14,7 @@ import {
   Crown,
   Sparkles,
   Handshake,
+  TrendingUp,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -124,6 +125,9 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
 
   const tierDef = TIER_DEFINITIONS[tier ?? 'starter'];
   const isPro = tier === 'pro' || tier === 'elite';
+  // Starter Plus is a paid tier but not "Pro" — render a non-clickable badge
+  // (no "go upgrade" link) with its own color.
+  const isStarterPlus = tier === 'starter_plus';
 
   // Pro badge colors: solid deep gold in light mode, gradient in dark mode
   const isLightMode = mounted && theme === 'light';
@@ -208,6 +212,15 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                 >
                   <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
                   <span className="text-[10px] font-bold uppercase tracking-widest" style={proTextStyle}>
+                    {tierDef.badge.label}
+                  </span>
+                </span>
+              ) : isStarterPlus ? (
+                <span
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 select-none border border-zinc-700"
+                >
+                  <TrendingUp className="h-3 w-3 shrink-0 text-zinc-400" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                     {tierDef.badge.label}
                   </span>
                 </span>
@@ -454,6 +467,15 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                       >
                         <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
                         <span className="text-[10px] font-bold uppercase tracking-widest" style={proTextStyle}>
+                          {tierDef.badge.label}
+                        </span>
+                      </span>
+                    ) : isStarterPlus ? (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 select-none border border-zinc-700"
+                      >
+                        <TrendingUp className="h-3 w-3 shrink-0 text-zinc-400" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                           {tierDef.badge.label}
                         </span>
                       </span>
