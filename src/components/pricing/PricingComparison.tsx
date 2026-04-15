@@ -373,7 +373,10 @@ export function PricingComparison({
           <PricingTableRow className="hidden sm:table-row">
             <th className="w-[25%]" />
             {visibleTiers.map((tier) => (
-              <th key={tier} className="w-[25%] p-1 h-1">
+              <th
+                key={tier}
+                className="w-[25%] p-1 sticky top-20 z-20"
+              >
                 {renderPlanCard({ tier, ...cardParams('desktop') })}
               </th>
             ))}
