@@ -72,15 +72,39 @@ const FALLBACK_TESTIMONIALS: Testimonial[] = [
   },
 ];
 
-const TARGET_COUNT = 9;
+const COLUMN_COUNT = 3;
+const PER_COLUMN = 3;
 
-function buildTestimonialList(external: Testimonial[] | undefined): Testimonial[] {
-  if (!external || external.length === 0) return FALLBACK_TESTIMONIALS;
-  if (external.length >= TARGET_COUNT) return external.slice(0, TARGET_COUNT);
+/**
+ * Distribute approved reviews round-robin across the 3 columns so that a single
+ * approved review lands in column 1, the next in column 2, the next in column 3,
+ * the 4th in column 1 again, and so on. Each column is then padded with unique
+ * fallback testimonials (no fallback is repeated across columns) until it holds
+ * `PER_COLUMN` items.
+ */
+function buildTestimonialColumns(
+  external: Testimonial[] | undefined,
+): [Testimonial[], Testimonial[], Testimonial[]] {
+  const approved = external ?? [];
+  const columns: Testimonial[][] = [[], [], []];
 
-  // Mix real reviews first, pad the rest with fallbacks
-  const needed = TARGET_COUNT - external.length;
-  return [...external, ...FALLBACK_TESTIMONIALS.slice(0, needed)];
+  approved.forEach((t, i) => {
+    const col = i % COLUMN_COUNT;
+    if (columns[col].length < PER_COLUMN) {
+      columns[col].push(t);
+    }
+  });
+
+  // Pad each column with a unique slice of fallbacks so the same fallback never
+  // appears in more than one column.
+  let fallbackIndex = 0;
+  for (const col of columns) {
+    while (col.length < PER_COLUMN && fallbackIndex < FALLBACK_TESTIMONIALS.length) {
+      col.push(FALLBACK_TESTIMONIALS[fallbackIndex++]);
+    }
+  }
+
+  return [columns[0], columns[1], columns[2]];
 }
 
 // --- Sub-Components ---
@@ -176,10 +200,7 @@ function TestimonialsColumn({
 
 // --- Main Section ---
 export default function TestimonialsSection({ testimonials: external }: { testimonials?: Testimonial[] }) {
-  const items = buildTestimonialList(external);
-  const firstColumn = items.slice(0, 3);
-  const secondColumn = items.slice(3, 6);
-  const thirdColumn = items.slice(6, 9);
+  const [firstColumn, secondColumn, thirdColumn] = buildTestimonialColumns(external);
 
   return (
     <div>
