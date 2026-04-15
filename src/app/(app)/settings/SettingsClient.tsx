@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useMemo, useState, useTransition } from 'react';
-import { Award, CreditCard, Link2, Loader2, Settings, User, Users } from 'lucide-react';
+import { Award, CreditCard, Link2, Loader2, Settings, Star, User, Users } from 'lucide-react';
 import { PanelSkeleton } from '@/components/settings/PanelSkeleton';
 import { Button } from '@/components/ui/button';
 
@@ -203,6 +203,15 @@ export default function SettingsClient({
                 Shared Trades
               </Link>
             </Button>
+            <Button asChild variant="ghost" className={navItemClass(initialTab === 'review')}>
+              <Link
+                href="/settings?tab=review"
+                aria-current={initialTab === 'review' ? 'page' : undefined}
+              >
+                <Star className="h-4 w-4" aria-hidden="true" />
+                Leave a Review
+              </Link>
+            </Button>
             <Button asChild variant="ghost" className={navItemClass(false)}>
               <Link href="/rewards?from=settings">
                 <Award className="h-4 w-4" aria-hidden="true" />
@@ -220,10 +229,9 @@ export default function SettingsClient({
               featureContext={featureContext}
             />
           ) : initialTab === 'profile' ? (
-            <div className="space-y-6">
-              <ProfileSettingsPanel initialProfile={socialProfile} />
-              <ReviewSection socialProfile={socialProfile} />
-            </div>
+            <ProfileSettingsPanel initialProfile={socialProfile} />
+          ) : initialTab === 'review' ? (
+            <ReviewSection socialProfile={socialProfile} />
           ) : initialTab === 'sharedTrades' ? (
             <SharedTradesPanel userId={userId} />
           ) : (
