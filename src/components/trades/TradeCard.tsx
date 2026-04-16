@@ -58,7 +58,7 @@ export function TradeCard({
     <Card
       onClick={onSelect ? () => onSelect(trade) : undefined}
       className={cn(
-        'relative overflow-hidden rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm hover:shadow-xl hover:shadow-slate-300/50 dark:hover:shadow-slate-900/50 transition-all duration-300',
+        'relative overflow-hidden rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm hover:shadow-xl hover:shadow-slate-300/50 dark:hover:shadow-slate-900/50 transition-all duration-300 h-full',
         onSelect && 'cursor-pointer',
         isSelected && 'themed-selected-card'
       )}
@@ -201,15 +201,15 @@ export function TradeCard({
         </div>
       )}
 
-      <CardContent className={cn('px-5 pb-6', hideImage ? 'pt-5' : 'pt-0')}>
-        <div className="flex items-center justify-between mb-4">
+      <CardContent className={cn('px-5 !p-0 !px-5 !pb-3', hideImage ? '!pt-4' : '!pt-0')}>
+        <div className="flex items-center justify-between mb-3">
           <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
             {trade.market}
           </h3>
           <OutcomeChips trade={trade} />
         </div>
 
-        <div className={cn('space-y-2.5', hideImage ? 'mb-2' : 'mb-5')}>
+        <div className={cn('space-y-2', hideImage ? 'mb-2' : 'mb-3')}>
           <div className="flex items-center text-slate-500 dark:text-slate-300 text-sm">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -242,29 +242,30 @@ export function TradeCard({
           </div>
         </div>
 
-        {(trade.tags?.length ?? 0) > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {(trade.tags ?? []).slice(0, 3).map((tag) => {
-              const savedTag = savedTags?.find(t => t.name === tag);
-              const style = resolveTagColorStyle(savedTag?.color);
-              return (
-                <span
-                  key={tag}
-                  title={tag}
-                  className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium max-w-[120px] text-white shadow-sm"
-                  style={{ background: style.gradient }}
-                >
-                  <span className="truncate">{tag.length > 20 ? tag.slice(0, 19) + '…' : tag}</span>
-                </span>
-              );
-            })}
-            {(trade.tags?.length ?? 0) > 3 && (
-              <span className="inline-flex items-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded px-2 py-0.5 text-xs font-medium">
-                +{(trade.tags?.length ?? 0) - 3}
-              </span>
-            )}
-          </div>
-        )}
+        <div className="flex gap-1 mb-2 sm:mb-4 overflow-x-auto scrollbar-hide">
+          {(trade.tags?.length ?? 0) > 0 ? (
+            <>
+              {(trade.tags ?? []).map((tag) => {
+                const savedTag = savedTags?.find(t => t.name === tag);
+                const style = resolveTagColorStyle(savedTag?.color);
+                return (
+                  <span
+                    key={tag}
+                    title={tag}
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white shadow-sm shrink-0"
+                    style={{ background: style.gradient }}
+                  >
+                    <span className="truncate">{tag.length > 20 ? tag.slice(0, 19) + '…' : tag}</span>
+                  </span>
+                );
+              })}
+            </>
+          ) : (
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500">
+              No tags
+            </span>
+          )}
+        </div>
 
         {!hideDetailsLink && (
           <button
