@@ -5,6 +5,7 @@ import type { SavedTag } from '@/types/saved-tag';
 import {
   AlertDialog,
   AlertDialogContent,
+  AlertDialogDescription,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import TradeDetailsPanel from './TradeDetailsPanel';
@@ -49,6 +50,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         <div className="absolute -top-px left-0 right-0 h-0.5 themed-accent-line rounded-t-2xl" />
 
         <AlertDialogTitle className="sr-only">Trade Details</AlertDialogTitle>
+        <AlertDialogDescription className="sr-only">View and edit trade details</AlertDialogDescription>
         <TradeDetailsPanel trade={trade} onClose={onClose} onTradeUpdated={onTradeUpdated} readOnly={readOnly} strategyName={strategyName} extraCards={extraCards} savedTags={savedTags} />
       </AlertDialogContent>
     </AlertDialog>
