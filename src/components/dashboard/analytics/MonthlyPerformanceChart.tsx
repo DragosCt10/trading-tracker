@@ -111,7 +111,7 @@ export function MonthlyPerformanceChart({
   // Check if there are any trades across all months
   const hasTrades = chartData.some((d) => d.totalTrades > 0);
 
-  const cardHeight = bodyVisible ? 'h-[360px]' : 'h-auto';
+  const cardHeight = bodyVisible ? 'h-[360px] max-sm:h-auto' : 'h-auto';
 
   if (!mounted) {
     return (
@@ -191,7 +191,7 @@ export function MonthlyPerformanceChart({
 
       {bodyVisible ? (
         <CardContent className="flex-1 flex items-end mt-1">
-          <div className="w-full h-[250px]">
+          <div className="w-full h-[250px] max-sm:h-auto">
             <ComposedBarWinRateChart
               data={chartData as BarWinRateChartDatum[]}
               xAxisDataKey="month"

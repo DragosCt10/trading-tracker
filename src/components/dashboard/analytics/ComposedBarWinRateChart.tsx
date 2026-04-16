@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { MobileWinsLossesPyramidChart } from './MobileWinsLossesPyramidChart';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -125,6 +126,15 @@ export const ComposedBarWinRateChart = React.memo(function ComposedBarWinRateCha
   lineActiveDot = false,
   xAxisInterval,
 }: ComposedBarWinRateChartProps) {
+  const [isMobile, setIsMobile] = React.useState(false);
+  React.useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   const axisTextColor = isDark ? '#cbd5e1' : '#64748b';
 
   const maxTotal = Math.max(
@@ -159,6 +169,43 @@ export const ComposedBarWinRateChart = React.memo(function ComposedBarWinRateCha
   };
 
   const mergedMargins = { ...DEFAULT_MARGINS, ...margins };
+
+  if (isMobile) {
+    return (
+      <MobileWinsLossesPyramidChart
+        data={data as (BarWinRateChartDatum & Record<string, unknown>)[]}
+        labelKey={xAxisDataKey}
+        labelFormatter={(value, index) => {
+          // Look up by key value (not index) so the count is correct regardless
+          // of the order Recharts iterates Y-axis ticks in a vertical BarChart.
+          const d = (data as Array<BarWinRateChartDatum & Record<string, unknown>>).find(
+            (item) => String(item[xAxisDataKey]) === String(value)
+          );
+          const count = d?.totalTrades ?? ((d?.wins ?? 0) + (d?.losses ?? 0) + (d?.breakEven ?? 0));
+          // Use xAxisTickFormatter only for the display name (strip any count suffix it adds).
+          const raw = xAxisTickFormatter(String(value), index);
+          let baseName = raw.replace(/\s*\(\d+\)\s*$/, '').trim() || String(value);
+          // Abbreviate long labels to fit mobile Y-axis:
+          // Time ranges "00:00-01:59" → "00-01", words like "September" → "Sep"
+          if (baseName.length > 8) {
+            const timeMatch = baseName.match(/^(\d{1,2}):\d{2}\s*[-–]\s*(\d{1,2}):\d{2}$/);
+            if (timeMatch) {
+              baseName = `${timeMatch[1]}-${timeMatch[2]}`;
+            } else {
+              baseName = baseName.slice(0, 3);
+            }
+          } else if (baseName.length > 5) {
+            baseName = baseName.slice(0, 3);
+          }
+          return `${baseName} (${count})`;
+        }}
+        tooltipHeaderGetter={tooltipHeaderGetter}
+        isDark={isDark}
+        beCalcEnabled={beCalcEnabled}
+        idPrefix={idPrefix}
+      />
+    );
+  }
 
   return (
     <ResponsiveContainer width="100%" height="100%">

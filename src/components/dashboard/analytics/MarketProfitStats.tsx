@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { MobileProfitPyramidChart } from './MobileProfitPyramidChart';
 import { Crown } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -256,6 +257,14 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
   const trades = isLocked ? previewTrades : rawTrades;
   const { mounted, isDark } = useDarkMode();
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobile, setIsMobile] = React.useState(false);
+  React.useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
 
   useEffect(() => {
@@ -436,7 +445,7 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
     <Card
       className={cn(
         'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
-        bodyVisible ? 'h-[420px]' : 'h-auto'
+        bodyVisible ? 'h-[420px] max-sm:h-auto' : 'h-auto'
       )}
     >
       <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
@@ -469,6 +478,29 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
         <CardContent className="flex-1 flex flex-col items-center justify-center relative pt-2 pb-4">
           <div className="flex-1 w-full flex items-center justify-center min-h-0 relative px-4">
           <div className="w-full h-full relative">
+          {isMobile ? (
+            <MobileProfitPyramidChart
+              data={chartDataWithScaled.map((d) => ({
+                ...d,
+                label: d.market,
+                value: d.profit,
+                percent: d.profitPercent,
+              }))}
+              isDark={isDark}
+              idPrefix="marketProfitMobile"
+              xTickFormatter={(v) => {
+                if (v === 0) return '0';
+                const sym = getCurrencySymbol();
+                const abs = Math.abs(v);
+                if (abs >= 1000) return `${sym}${(abs / 1000).toFixed(abs % 1000 === 0 ? 0 : 1)}k`;
+                return `${sym}${abs}`;
+              }}
+              tooltipContent={(props) => (
+                <CustomTooltip {...props} isDark={isDark} getCurrencySymbol={getCurrencySymbol} />
+              )}
+              yAxisWidth={64}
+            />
+          ) : (
             <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={chartDataWithScaled}
@@ -538,6 +570,7 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
               </ReBar>
             </ComposedChart>
             </ResponsiveContainer>
+          )}
           </div>
         </div>
         {/* Stats summary below chart - hidden on small screens */}

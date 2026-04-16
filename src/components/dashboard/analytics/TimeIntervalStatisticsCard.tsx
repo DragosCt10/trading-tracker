@@ -123,7 +123,7 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
         <Card
           className={cn(
             'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
-            bodyVisible ? 'h-96' : 'h-auto'
+            bodyVisible ? 'h-96 max-sm:h-auto' : 'h-auto'
           )}
         >
           <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
@@ -154,7 +154,7 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
         <Card
           className={cn(
             'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
-            bodyVisible ? 'h-96' : 'h-auto'
+            bodyVisible ? 'h-96 max-sm:h-auto' : 'h-auto'
           )}
         >
           <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
@@ -195,7 +195,7 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
       <Card
         className={cn(
           'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
-          bodyVisible ? 'h-96' : 'h-auto'
+          bodyVisible ? 'h-96 max-sm:h-auto' : 'h-auto'
         )}
       >
         <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
@@ -226,7 +226,7 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
           </CardHeader>
           {bodyVisible ? (
             <CardContent className="flex-1 flex items-end mt-1">
-              <div className="w-full h-[250px]">
+              <div className="w-full h-[250px] max-sm:h-auto">
                 <ComposedBarWinRateChart
                   data={withTotals as BarWinRateChartDatum[]}
                   xAxisDataKey="category"

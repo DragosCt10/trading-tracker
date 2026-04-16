@@ -10,7 +10,6 @@ import {
   Bar as ReBar,
   Cell,
   LabelList,
-  ReferenceLine,
 } from 'recharts';
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Wallet, Info } from 'lucide-react';
@@ -24,6 +23,7 @@ import {
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import React from 'react';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { MobileProfitPyramidChart } from './MobileProfitPyramidChart';
 import {
   calculateTotalYearProfit,
   calculatePnlPercentFromOverview,
@@ -251,7 +251,7 @@ export function AccountOverviewCard({
         </div>
 
         {/* Chart — vertical bars on desktop, Population Pyramid on mobile */}
-        <CardContent className="h-72 relative p-0">
+        <CardContent className="h-72 max-sm:h-auto relative p-0">
           <div className="w-full h-full transition-all duration-300 opacity-100">
             {!mounted ? (
               <div className="w-full h-full min-h-[200px] flex items-end justify-center gap-8 px-8" aria-hidden>
@@ -282,97 +282,20 @@ export function AccountOverviewCard({
                 </div>
               </div>
             ) : isMobile ? (
-              /* ── Mobile: Population Pyramid (horizontal diverging bars) ── */
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  layout="vertical"
-                  data={chartData}
-                  margin={{ top: 4, right: 50, left: 0, bottom: 4 }}
-                  barCategoryGap="28%"
-                >
-                  <defs>
-                    <linearGradient id="profitGradientH" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.75} />
-                      <stop offset="100%" stopColor="#0d9488" stopOpacity={1} />
-                    </linearGradient>
-                    <linearGradient id="lossGradientH" x1="1" y1="0" x2="0" y2="0">
-                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.75} />
-                      <stop offset="100%" stopColor="#e11d48" stopOpacity={1} />
-                    </linearGradient>
-                  </defs>
-
-                  <XAxis
-                    type="number"
-                    domain={[-maxAbsVal, maxAbsVal]}
-                    tick={{ fill: axisTextColor, fontSize: 10, fontWeight: 500 }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={fmtPyramidTick}
-                    tickCount={7}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="month"
-                    tick={{ fill: axisTextColor, fontSize: 11, fontWeight: 500 }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={72}
-                  />
-
-                  {/* Zero center line */}
-                  <ReferenceLine
-                    x={0}
-                    stroke={isDark ? '#475569' : '#cbd5e1'}
-                    strokeWidth={1.5}
-                    strokeDasharray="3 3"
-                  />
-
-                  <ReTooltip
-                    contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none', minWidth: '160px' }}
-                    wrapperStyle={{ outline: 'none', zIndex: 1000 }}
-                    cursor={{ fill: isDark ? 'rgba(148,163,184,0.06)' : 'rgba(100,116,139,0.06)', radius: 4 }}
-                    content={tooltipContent}
-                  />
-
-                  <ReBar dataKey="profit" barSize={13} radius={[8, 8, 8, 8]}>
-                    {chartData.map((item) => (
-                      <Cell
-                        key={item.month}
-                        fill={item.profit >= 0 ? 'url(#profitGradientH)' : 'url(#lossGradientH)'}
-                        style={{ cursor: 'pointer' }}
-                      />
-                    ))}
-                    <LabelList
-                      dataKey="profitPercent"
-                      content={(props: any) => {
-                        if (!props || props.value == null || props.value === 0) return null;
-                        const value = Number(props.value);
-                        const x = Number(props.x || 0);
-                        const y = Number(props.y || 0);
-                        const width = Number(props.width || 0);
-                        const height = Number(props.height || 0);
-                        const labelX = value >= 0 ? x + width + 4 : x - 4;
-                        const labelY = y + height / 2;
-
-                        return (
-                          <text
-                            x={labelX}
-                            y={labelY}
-                            fill={value >= 0 ? (isDark ? '#2dd4bf' : '#0d9488') : (isDark ? '#fb7185' : '#e11d48')}
-                            textAnchor={value >= 0 ? 'start' : 'end'}
-                            dominantBaseline="middle"
-                            fontSize={10}
-                            fontWeight={700}
-                            fontFamily="system-ui, -apple-system, sans-serif"
-                          >
-                            {value > 0 ? '+' : ''}{value}%
-                          </text>
-                        );
-                      }}
-                    />
-                  </ReBar>
-                </BarChart>
-              </ResponsiveContainer>
+              /* ── Mobile: Population Pyramid ── */
+              <MobileProfitPyramidChart
+                data={chartData.map((d) => ({
+                  ...d,
+                  label: d.month,
+                  value: d.profit,
+                  percent: d.profitPercent,
+                }))}
+                isDark={isDark}
+                idPrefix="accountOverview"
+                xTickFormatter={fmtPyramidTick}
+                tooltipContent={tooltipContent}
+                yAxisWidth={72}
+              />
             ) : (
               /* ── Desktop: original vertical bar chart ── */
               <ResponsiveContainer width="100%" height="100%">
