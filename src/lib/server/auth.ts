@@ -2,6 +2,7 @@
 
 import { type SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { headers } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { ensureDefaultAccount } from '@/lib/server/accounts';
 import { isPasswordStrong } from '@/utils/passwordValidation';
@@ -55,11 +56,23 @@ function sanitizeAuthError(error: { message: string }): string {
   return 'Something went wrong. Please try again.';
 }
 
+/** Resolve the trusted app origin: env var first, then request headers as fallback. */
+async function getAppOrigin(): Promise<string> {
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (envUrl) {
+    try { return new URL(envUrl).origin; } catch { /* malformed env var */ }
+  }
+  const h = await headers();
+  const proto = h.get('x-forwarded-proto') ?? 'https';
+  const host = h.get('host');
+  if (host) return `${proto}://${host}`;
+  return 'http://localhost:3000';
+}
+
 /** Validate that redirectTo points at this app's origin (not a foreign host). */
-function isValidRedirectTo(redirectTo: string): boolean {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+async function isValidRedirectTo(redirectTo: string): Promise<boolean> {
   try {
-    return new URL(redirectTo).origin === new URL(appUrl).origin;
+    return new URL(redirectTo).origin === await getAppOrigin();
   } catch {
     return false;
   }
@@ -100,7 +113,7 @@ export async function signupAction(
   if (!parsed.success) return { error: firstZodError(parsed) };
   const { email, password, redirectTo } = parsed.data;
 
-  if (!isValidRedirectTo(redirectTo)) {
+  if (!await isValidRedirectTo(redirectTo)) {
     return { error: 'Invalid redirect URL' };
   }
 
@@ -142,7 +155,7 @@ export async function resetPasswordAction(
   if (!parsed.success) return { error: firstZodError(parsed) };
   const { email, redirectTo } = parsed.data;
 
-  if (!isValidRedirectTo(redirectTo)) {
+  if (!await isValidRedirectTo(redirectTo)) {
     return { error: 'Invalid redirect URL' };
   }
 
