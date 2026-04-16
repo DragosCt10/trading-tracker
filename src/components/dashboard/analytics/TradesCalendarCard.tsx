@@ -342,7 +342,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
               <div
                 key={day}
-                className="p-2 text-center text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide"
+                className="p-1 sm:p-2 text-center text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide"
               >
                 {day}
               </div>
@@ -353,7 +353,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                 return (
                   <div
                     key={`empty-${index}`}
-                    className="min-h-[80px] rounded-xl border border-slate-300/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/20 p-3"
+                    className="min-h-[56px] sm:min-h-[80px] rounded-lg sm:rounded-xl border border-slate-300/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/20 p-1.5 sm:p-3"
                   />
                 );
               }
@@ -423,12 +423,12 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
 
               const dayCellContent = (
                 <>
-                  <div className="mb-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  <div className="mb-0.5 sm:mb-1 text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100">
                     {format(date, 'd')}
                   </div>
 
                   {mounted && hasBE && (
-                    <div className="absolute right-2.5 top-3.5 px-1.5 py-0.5 rounded-md bg-slate-200/80 dark:bg-slate-700/60 border border-slate-300/60 dark:border-slate-600/50 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <div className="absolute right-1 top-1 sm:right-2.5 sm:top-3.5 px-1 sm:px-1.5 py-0.5 rounded-md bg-slate-200/80 dark:bg-slate-700/60 border border-slate-300/60 dark:border-slate-600/50 text-[10px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300">
                       {beTrades.length} BE
                     </div>
                   )}
@@ -436,7 +436,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                   {filteredDayTrades.length > 0 && (
                     <>
                       {/* --- CELL CONTENT --- */}
-                      <div className="text-xs space-y-1">
+                      <div className="text-[10px] sm:text-xs space-y-0.5 sm:space-y-1">
                         <div className="font-semibold text-slate-900 dark:text-slate-100">
                           {filteredDayTrades.length} trade
                           {filteredDayTrades.length !== 1 ? 's' : ''}
@@ -471,13 +471,13 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
               const cellDiv = (
                 <div
                   className={cn(
-                    'group relative min-h-[80px] rounded-xl p-3 transition-all duration-200',
+                    'group relative min-h-[56px] sm:min-h-[80px] rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all duration-200',
                     !mounted ? 'bg-slate-50/50 dark:bg-slate-800/20 border border-slate-300/60 dark:border-slate-700/50' : [filteredDayTrades.length > 0 && 'cursor-pointer', baseColor],
                   )}
                   {...(mounted && filteredDayTrades.length > 0 ? { tabIndex: 0 } : {})}
                 >
                   {!mounted ? (
-                    <><div className="mb-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{format(date, 'd')}</div><div className="text-xs font-medium text-slate-500 dark:text-slate-400">—</div></>
+                    <><div className="mb-0.5 sm:mb-1 text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100">{format(date, 'd')}</div><div className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">—</div></>
                   ) : (
                     dayCellContent
                   )}

@@ -145,7 +145,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
 
   return (
     <>
-      <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-(--breakpoint-xl) px-4 sm:px-0">
+      <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-(--breakpoint-xl) px-4 xl:px-0">
         <div className="relative rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40">
           <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
           <div className="relative flex items-center px-3 py-2 sm:px-4 sm:py-2.5">
@@ -154,7 +154,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-50 shrink-0"
             >
               <Logo className="w-8.5 sm:h-8.5 pt-1 shrink-0" />
-              <span className="hidden lg:inline text-sm font-semibold tracking-widest text-slate-900 dark:text-slate-50">
+              <span className="text-sm font-semibold tracking-widest text-slate-900 dark:text-slate-50">
                 AlphaStats
               </span>
             </Link>

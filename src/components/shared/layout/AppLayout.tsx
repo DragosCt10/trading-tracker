@@ -102,7 +102,14 @@ export default function AppLayout({
 
   return (
     <>
-      <div className={clsx("max-w-(--breakpoint-xl) mx-auto flex min-h-screen flex-col", isPastDue ? "pt-38 sm:pt-52" : "pt-30 sm:pt-44")}>
+      <div className={clsx(
+        "max-w-(--breakpoint-xl) mx-auto flex min-h-screen flex-col",
+        isPastDue
+          ? "pt-38 sm:pt-52"
+          : showActionBar
+            ? "pt-38 sm:pt-44"
+            : "pt-30 sm:pt-44"
+      )}>
         {isPastDue && (
           <div className="flex items-center justify-between px-4 py-2 text-sm dark:text-rose-300 text-rose-500 gap-3 rounded-xl border mb-4 z-1 relative border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
             <div className="flex items-center gap-2">
@@ -122,24 +129,6 @@ export default function AppLayout({
           </div>
         )}
         <Navbar
-          centerContent={
-            showActionBar ? (
-              <ActionBar
-                showAddButton={false}
-                initialData={
-                  userId && initialAllAccounts != null
-                    ? {
-                        userDetails: initialUserDetails ?? null,
-                        mode: initialActiveAccountMode,
-                        activeAccount: initialActiveAccount ?? null,
-                        accountsForMode: accountsForInitialMode,
-                        allAccounts: initialAllAccounts,
-                      }
-                    : undefined
-                }
-              />
-            ) : undefined
-          }
           mobileMenuExtra={
             showActionBar ? (
               <CreateAccountAlertDialog
@@ -149,29 +138,57 @@ export default function AppLayout({
           }
         />
         {showActionBar && (
-          <div className={clsx(
-            "hidden lg:block fixed top-20 left-1/2 z-40 w-auto max-w-[calc(100vw-2rem)] -translate-x-1/2",
-            "transition-all duration-300 ease-in-out",
-            actionBarVisible
-              ? "opacity-100 translate-y-0 pointer-events-auto"
-              : "opacity-0 -translate-y-3 pointer-events-none"
-          )}>
-            <div className="inline-block mx-2 sm:mx-4 rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 sm:px-4 py-3">
-              <ActionBar
-                initialData={
-                  userId && initialAllAccounts != null
-                    ? {
-                        userDetails: initialUserDetails ?? null,
-                        mode: initialActiveAccountMode,
-                        activeAccount: initialActiveAccount ?? null,
-                        accountsForMode: accountsForInitialMode,
-                        allAccounts: initialAllAccounts,
-                      }
-                    : undefined
-                }
-              />
+          <>
+            {/* Mobile / tablet: full-width action bar card below navbar */}
+            <div className={clsx(
+              "lg:hidden fixed top-[5.25rem] left-0 right-0 z-40 px-4",
+              "transition-all duration-300 ease-in-out",
+              actionBarVisible
+                ? "opacity-100 translate-y-0 pointer-events-auto"
+                : "opacity-0 -translate-y-3 pointer-events-none"
+            )}>
+              <div className="mx-auto max-w-(--breakpoint-xl) rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 py-2.5 [&>div]:w-full [&>div]:gap-2 [&>div>*]:flex-1">
+                <ActionBar
+                  showAddButton={false}
+                  initialData={
+                    userId && initialAllAccounts != null
+                      ? {
+                          userDetails: initialUserDetails ?? null,
+                          mode: initialActiveAccountMode,
+                          activeAccount: initialActiveAccount ?? null,
+                          accountsForMode: accountsForInitialMode,
+                          allAccounts: initialAllAccounts,
+                        }
+                      : undefined
+                  }
+                />
+              </div>
             </div>
-          </div>
+            {/* Desktop: centered floating action bar */}
+            <div className={clsx(
+              "hidden lg:block fixed top-20 left-1/2 z-40 w-auto max-w-[calc(100vw-2rem)] -translate-x-1/2",
+              "transition-all duration-300 ease-in-out",
+              actionBarVisible
+                ? "opacity-100 translate-y-0 pointer-events-auto"
+                : "opacity-0 -translate-y-3 pointer-events-none"
+            )}>
+              <div className="inline-block mx-2 sm:mx-4 rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 sm:px-4 py-3">
+                <ActionBar
+                  initialData={
+                    userId && initialAllAccounts != null
+                      ? {
+                          userDetails: initialUserDetails ?? null,
+                          mode: initialActiveAccountMode,
+                          activeAccount: initialActiveAccount ?? null,
+                          accountsForMode: accountsForInitialMode,
+                          allAccounts: initialAllAccounts,
+                        }
+                      : undefined
+                  }
+                />
+              </div>
+            </div>
+          </>
         )}
         <div className="flex-1">{children}</div>
         <Footer constrained />

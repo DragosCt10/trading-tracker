@@ -144,7 +144,7 @@ export default async function RootLayout({
           <ThemeSync>
             <QueryProvider>
               <LoadingProvider>
-                <main className="relative z-10 mx-auto p-4 sm:p-0">
+                <main className="relative z-10 mx-auto p-4 xl:p-0">
                   {children}
                 </main>
               </LoadingProvider>

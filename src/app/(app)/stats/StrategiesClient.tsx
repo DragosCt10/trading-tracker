@@ -261,7 +261,7 @@ export function StrategiesClient({
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8">
       <StatsHeader
         activeAccount={activeAccount}
         isArchivedSheetOpen={isArchivedSheetOpen}

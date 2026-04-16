@@ -118,7 +118,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
 
   return (
     <Card className="rounded-xl border text-card-foreground mb-4 z-1 relative border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
-      <div className="relative p-6 flex flex-col h-full">
+      <div className="relative p-4 sm:p-6 flex flex-col h-full">
         {/* Strategy Name + Share button (top-right) */}
         <div className="flex items-start justify-between mb-2 gap-3">
           <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">

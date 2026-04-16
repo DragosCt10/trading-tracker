@@ -40,12 +40,12 @@ export function StrategySelectPopover({ strategies, currentSlug }: StrategySelec
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50',
           )}
         >
-          <span className="font-medium max-w-[120px] sm:max-w-[200px] truncate">
+          <span className="font-medium min-w-0 truncate">
             {triggerLabel}
           </span>
           <ChevronDown
             className={clsx(
-              'h-4 w-4 text-slate-400 flex-shrink-0 transition-transform duration-200',
+              'h-4 w-4 text-slate-400 flex-shrink-0 ml-auto transition-transform duration-200',
               open && 'rotate-180'
             )}
           />
