@@ -552,6 +552,7 @@ model backtesting_trades {
   @@index([strategy_id], map: "idx_backtesting_trades_strategy_id")
   @@index([user_id, account_id, trade_date, strategy_id, market, executed], map: "idx_backtesting_trades_user_account_date")
   @@index([user_id, account_id, strategy_id, trade_date], map: "idx_backtesting_trades_user_account_strategy_date")
+  @@index([created_at], map: "idx_backtesting_trades_created_at")
   @@schema("public")
 }
 
@@ -611,6 +612,7 @@ model demo_trades {
   @@index([strategy_id], map: "idx_demo_trades_strategy_id")
   @@index([user_id, account_id, trade_date, strategy_id, market, executed], map: "idx_demo_trades_user_account_date")
   @@index([user_id, account_id, strategy_id, trade_date], map: "idx_demo_trades_user_account_strategy_date")
+  @@index([created_at], map: "idx_demo_trades_created_at")
   @@schema("public")
 }
 
@@ -670,6 +672,7 @@ model live_trades {
   @@index([strategy_id], map: "idx_live_trades_strategy_id")
   @@index([user_id, account_id, trade_date, strategy_id, market, executed], map: "idx_live_trades_user_account_date")
   @@index([user_id, account_id, strategy_id, trade_date], map: "idx_live_trades_user_account_strategy_date")
+  @@index([created_at], map: "idx_live_trades_created_at")
   @@schema("public")
 }
 
@@ -739,6 +742,7 @@ model strategies {
   @@index([account_id], map: "idx_strategies_account_id")
   @@index([user_id, slug], map: "idx_strategies_slug")
   @@index([user_id], map: "idx_strategies_user_id")
+  @@index([created_at], map: "idx_strategies_created_at")
   @@schema("public")
 }
 

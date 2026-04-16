@@ -28,13 +28,16 @@ const TRADING_BARS = [
   { x: 1200, h: 490, d: 1.77 },
 ] as const;
 
-const HERO_STATS = [
-  { label: 'Traders',        value: '1,200+' },
-  { label: 'Trades tracked', value: '4.2M+'  },
-  { label: 'Stats Board',    value: '3,800+' },
-] as const;
+interface HeroStat {
+  label: string;
+  value: string;
+}
 
-export function LandingHero() {
+interface LandingHeroProps {
+  heroStats: HeroStat[];
+}
+
+export function LandingHero({ heroStats }: LandingHeroProps) {
   const sectionRef = useParallax(0);
 
   return (
@@ -301,13 +304,14 @@ export function LandingHero() {
             data-parallax-speed="0.36"
           >
             <div className="h-px flex-1 max-w-[40px]" style={{ background: 'color-mix(in oklch, var(--tc-primary) 40%, transparent)' }} />
-            {HERO_STATS.map(({ label, value }, i) => (
+            {heroStats.map(({ label, value }, i) => (
               <div key={label} className="flex items-baseline gap-1.5">
-                {i > 0 && <span className="text-muted-foreground text-xs">·</span>}
+                {i > 0 && <span aria-hidden className="text-muted-foreground text-xs">·</span>}
                 <span className="text-xs text-muted-foreground font-medium">{label}</span>
                 <span
                   className="text-lg font-bold"
                   style={{ color: 'var(--tc-primary)' }}
+                  aria-label={`${value} ${label}`}
                 >
                   {value}
                 </span>

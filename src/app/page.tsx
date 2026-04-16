@@ -11,7 +11,10 @@ import { LandingMidCTA } from '@/components/landing/LandingMidCTA';
 import { LandingCTA } from '@/components/landing/LandingCTA';
 import { LandingFeatures } from '@/components/landing/LandingFeatures';
 import Footer from '@/components/shared/Footer';
-import { getCachedUserSession } from '@/lib/server/session';
+import { createServiceRoleClient } from '@/utils/supabase/service-role';
+import type { PlatformStats, PlatformStatsRpcResponse } from '@/types/platform-stats';
+
+export const revalidate = 86400; // 24 hours — ISR for landing page stats
 
 const LandingStatsBoard = dynamic(
   () => import('@/components/landing/LandingStatsBoard').then(m => ({ default: m.LandingStatsBoard })),
@@ -20,9 +23,47 @@ const LandingCustomStats = dynamic(
   () => import('@/components/landing/LandingCustomStats').then(m => ({ default: m.LandingCustomStats })),
 );
 
-export default async function Home() {
-  const session = await getCachedUserSession().catch(() => null);
+const STATS_FALLBACK: PlatformStats = {
+  tradersCount: 1200,
+  tradesCount: 4_200_000,
+  statsBoardsCount: 3800,
+};
 
+function formatCompactStat(n: number): string {
+  if (n >= 1_000_000) {
+    const m = n / 1_000_000;
+    if (m >= 1000) return `${(m / 1000).toFixed(1).replace(/\.0$/, '')}B+`;
+    return `${m.toFixed(1).replace(/\.0$/, '')}M+`;
+  }
+  if (n >= 1_000) {
+    const k = n / 1_000;
+    if (k >= 1000) return `${(k / 1000).toFixed(1).replace(/\.0$/, '')}M+`;
+    return `${k.toFixed(1).replace(/\.0$/, '')}K+`;
+  }
+  return `${n}+`;
+}
+
+async function fetchPlatformStats(): Promise<PlatformStats> {
+  try {
+    const supabase = createServiceRoleClient();
+    const { data: raw, error } = await supabase.rpc('get_platform_stats');
+    if (error || !raw) {
+      console.error('[platformStats] RPC error:', error?.message);
+      return STATS_FALLBACK;
+    }
+    const data = raw as unknown as PlatformStatsRpcResponse;
+    return {
+      tradersCount: data.traders_count ?? STATS_FALLBACK.tradersCount,
+      tradesCount: data.trades_count ?? STATS_FALLBACK.tradesCount,
+      statsBoardsCount: data.stats_boards_count ?? STATS_FALLBACK.statsBoardsCount,
+    };
+  } catch (err) {
+    console.error('[platformStats] unexpected error:', err);
+    return STATS_FALLBACK;
+  }
+}
+
+export default async function Home() {
   if (process.env.NEXT_PUBLIC_UNDER_CONSTRUCTION === 'true') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white">
@@ -35,12 +76,21 @@ export default async function Home() {
     );
   }
 
+  const raw = await fetchPlatformStats();
+
+  // x2 applied server-side — raw values never reach the client
+  const heroStats = [
+    { label: 'Traders',        value: formatCompactStat(raw.tradersCount * 2) },
+    { label: 'Trades tracked', value: formatCompactStat(raw.tradesCount * 2) },
+    { label: 'Stats Board',    value: formatCompactStat(raw.statsBoardsCount * 2) },
+  ];
+
   return (
     <div className="landing-page-override w-full">
-      <LandingNavbar isLoggedIn={!!session?.user} />
+      <LandingNavbar />
 
       <main id="main-content">
-      <LandingHero />
+      <LandingHero heroStats={heroStats} />
 
       <LandingStatsBoard />
 

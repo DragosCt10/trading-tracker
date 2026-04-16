@@ -508,7 +508,10 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      get_platform_stats: {
+        Args: { p_compare_interval?: string | null };
+        Returns: Json;
+      };
     };
     Enums: {
       [_ in never]: never;
