@@ -15,7 +15,6 @@ import {
   Sparkles,
   Handshake,
   TrendingUp,
-  PanelLeft,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -196,22 +195,6 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
 
           {/* Right actions — same style as Edit btn (EditAccountAlertDialog), icon only */}
           <div className="ml-auto hidden items-center gap-2 lg:flex">
-            {/* Sidenav toggle — only on strategy pages */}
-            {pathname?.startsWith('/strategy/') && (
-              <>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => window.dispatchEvent(new CustomEvent('strategy-sidenav:show'))}
-                  className="cursor-pointer h-8 w-8 rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 p-0 flex items-center justify-center transition-colors duration-200"
-                  aria-label="Show side navigation"
-                >
-                  <PanelLeft className="h-4 w-4" />
-                </Button>
-                <Separator orientation="vertical" className="mx-1.5 h-6" />
-              </>
-            )}
             {/* Tier badge */}
             {mounted && (
               isPro ? (
