@@ -20,7 +20,7 @@ function CommentRowSkeleton() {
 
 export default function PostDetailLoading() {
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-0 py-6 space-y-4">
+    <div className="mx-auto w-full max-w-5xl sm:px-0 py-6 space-y-4">
       {/* Back link placeholder */}
       <div className="inline-flex items-center gap-1.5 text-sm text-slate-400 dark:text-slate-500">
         <ArrowLeft className="w-4 h-4" />

@@ -262,47 +262,49 @@ export default function InlineCreatePostCard({
               </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-3 border-t border-slate-200/80 pt-3 dark:border-slate-700/40">
-              <span className="text-[11px] text-slate-400 dark:text-slate-500 mr-auto">
+            <div className="mt-4 flex flex-col-reverse sm:flex-row sm:items-center gap-2 sm:gap-3 border-t border-slate-200/80 pt-3 dark:border-slate-700/40">
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 sm:mr-auto">
                 TradingView links are auto-embedded
               </span>
-              {canAttach && (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setAttachModalOpen(true)}
-                    className="h-9 px-4 rounded-xl border border-slate-300/80 dark:border-slate-700/70 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-100/80 dark:bg-slate-900/30 transition-colors inline-flex items-center gap-2 text-sm"
-                  >
-                    <Link2 className="w-4 h-4" />
-                    <span className="font-semibold">
-                      {selectedTrade ? `${selectedTrade.market} (${selectedTrade.outcome.toUpperCase()})` : 'Attach Trade'}
-                    </span>
-                  </button>
-                  {selectedTrade && (
+              <div className="flex items-center justify-end gap-2 ml-auto sm:ml-0">
+                {canAttach && (
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setSelectedTrade(null)}
-                      className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                      aria-label="Remove trade"
+                      onClick={() => setAttachModalOpen(true)}
+                      className="h-9 px-4 rounded-xl border border-slate-300/80 dark:border-slate-700/70 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-100/80 dark:bg-slate-900/30 transition-colors inline-flex items-center gap-2 text-sm"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <Link2 className="w-4 h-4 shrink-0" />
+                      <span className="font-semibold whitespace-nowrap">
+                        {selectedTrade ? `${selectedTrade.market} (${selectedTrade.outcome.toUpperCase()})` : 'Attach Trade'}
+                      </span>
                     </button>
-                  )}
-                </div>
-              )}
+                    {selectedTrade && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTrade(null)}
+                        className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        aria-label="Remove trade"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                )}
 
-              <Button
-                onClick={handleSubmit}
-                disabled={!content.trim() || isSubmitting || limitReached}
-                className="themed-btn-primary h-9 px-5 cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold group border-0 disabled:opacity-60"
-              >
-                <span className="relative z-10 flex items-center gap-2 text-sm">
-                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {!isSubmitting && <PlusCircle className="w-4 h-4" />}
-                  {isSubmitting ? 'Posting…' : 'Post'}
-                </span>
-                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-              </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!content.trim() || isSubmitting || limitReached}
+                  className="themed-btn-primary h-9 px-5 cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold group border-0 disabled:opacity-60"
+                >
+                  <span className="relative z-10 flex items-center gap-2 text-sm">
+                    {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {!isSubmitting && <PlusCircle className="w-4 h-4" />}
+                    {isSubmitting ? 'Posting…' : 'Post'}
+                  </span>
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>

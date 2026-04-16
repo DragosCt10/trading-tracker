@@ -20,14 +20,14 @@ export default async function SocialLayout({ children }: { children: ReactNode }
 
   return (
     <div className="max-w-(--breakpoint-xl) mx-auto min-h-screen flex flex-col">
-      <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-5xl will-change-transform">
+      <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-5xl px-4 sm:px-0 will-change-transform">
         <div className="relative rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40">
           <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
           <div className="relative flex items-center px-3 py-2 sm:px-4 sm:py-2.5">
             {/* Logo */}
-            <Link href="/" className="flex items-center font-semibold text-slate-900 dark:text-slate-50">
-              <Logo className="absolute top-2.5 lg:w-8.5 lg:h-8.5 w-12 h-12" width={48} height={48} />
-              <div className="hidden lg:flex items-center ml-9 gap-2.5">
+            <Link href="/" className="flex items-center gap-2 shrink-0 font-semibold text-slate-900 dark:text-slate-50">
+              <Logo className="w-8.5 sm:h-8.5 pt-1 shrink-0" />
+              <div className="hidden lg:flex items-center gap-2.5">
                 <span className="text-sm font-semibold tracking-widest text-slate-900 dark:text-slate-50">
                   AlphaStats
                 </span>

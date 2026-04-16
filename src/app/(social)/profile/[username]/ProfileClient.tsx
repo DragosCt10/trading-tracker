@@ -87,7 +87,7 @@ export default function ProfileClient({
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-0 py-6 space-y-6">
+    <div className="mx-auto w-full max-w-5xl sm:px-0 py-6 space-y-6">
       <h1 className="sr-only">{profile.display_name} — Profile</h1>
       <Link
         href="/feed"

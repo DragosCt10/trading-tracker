@@ -74,7 +74,7 @@ export default function ChannelClient({ channel, initialFeed, initialMembership,
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-0 py-6 space-y-4">
+    <div className="mx-auto w-full max-w-5xl sm:px-0 py-6 space-y-4">
       {/* Back link */}
       <Link href="/feed" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors">
         <ArrowLeft className="w-3.5 h-3.5" />
@@ -83,7 +83,7 @@ export default function ChannelClient({ channel, initialFeed, initialMembership,
 
       {/* Channel header — matches SettingsClient page title + description */}
       <div className="space-y-2 mb-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-11 h-11 rounded-xl shadow-sm themed-header-icon-box shrink-0 flex items-center justify-center overflow-hidden">
               {channel.logo_url ? (
@@ -112,7 +112,7 @@ export default function ChannelClient({ channel, initialFeed, initialMembership,
             </div>
           </div>
           {/* Right side: member count + buttons */}
-          <div className="flex flex-col items-end gap-4 shrink-0 ml-4">
+          <div className="flex flex-col items-start sm:items-end gap-4 shrink-0">
             {/* Buttons */}
             <div className="flex items-center gap-2">
               <Button

@@ -184,7 +184,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-0 py-6">
+    <div className="mx-auto w-full max-w-5xl sm:px-0 py-6">
       <h1 className="sr-only">Feed</h1>
       <a href="#feed-main" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-slate-900 focus:rounded-xl focus:shadow-lg focus:outline-none">
         Skip to feed
@@ -404,6 +404,13 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                     />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Activity card — mobile only (desktop shows it in the sidebar) */}
+            {initialProfile && (
+              <div className="lg:hidden">
+                <ActivityProgressCard profileId={initialProfile.id} initialCount={initialActivityCount} isPro={isPro} initialDiscount={initialActivityDiscount} initialApplied={initialActivityApplied} />
               </div>
             )}
             </div>

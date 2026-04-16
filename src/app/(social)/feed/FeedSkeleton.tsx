@@ -32,7 +32,7 @@ function ChannelRowSkeleton({ size = 'md' }: { size?: 'sm' | 'md' }) {
 
 export function FeedSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-0 py-6">
+    <div className="mx-auto w-full max-w-5xl sm:px-0 py-6">
       <div className="flex gap-6 items-stretch min-h-0 h-[calc(100dvh-8rem)] max-h-[calc(100dvh-8rem)]">
 
         {/* ── Main feed column ── */}

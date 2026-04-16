@@ -3,7 +3,7 @@ import PostCardSkeleton from '@/components/feed/PostCardSkeleton';
 
 export default function ChannelLoading() {
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-0 py-6 space-y-4">
+    <div className="mx-auto w-full max-w-5xl sm:px-0 py-6 space-y-4">
       {/* Back link */}
       <Skeleton className="h-4 w-24 rounded" />
 

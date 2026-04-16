@@ -42,7 +42,7 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
   const postWithLiveComments = { ...(livePost ?? post), comment_count: commentCount };
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-0 py-6 space-y-4">
+    <div className="mx-auto w-full max-w-5xl sm:px-0 py-6 space-y-4">
       <h1 className="sr-only">Post</h1>
       <Link
         href="/feed"

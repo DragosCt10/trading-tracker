@@ -151,20 +151,12 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
           <div className="relative flex items-center px-3 py-2 sm:px-4 sm:py-2.5">
             <Link
               href="/"
-              className="flex items-center font-semibold text-slate-900 dark:text-slate-50"
+              className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-50 shrink-0"
             >
-              <Logo className="absolute top-2.5 lg:w-8.5 lg:h-8.5 w-12 h-12" />
-              <div className="hidden lg:flex flex-col ml-9 leading-none">
-                <span className="text-sm font-semibold tracking-widest text-slate-900 dark:text-slate-50">
-                  AlphaStats
-                </span>
-                {/* <span
-                  className="text-[9px] font-bold uppercase tracking-widest bg-clip-text text-transparent"
-                  style={{ backgroundImage: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent))' }}
-                >
-                  {mounted ? tierDef.badge.label : starterBadgeLabel}
-                </span> */}
-              </div>
+              <Logo className="w-8.5 sm:h-8.5 pt-1 shrink-0" />
+              <span className="hidden lg:inline text-sm font-semibold tracking-widest text-slate-900 dark:text-slate-50">
+                AlphaStats
+              </span>
             </Link>
 
           <Separator orientation="vertical" className="mx-3 hidden h-6 lg:flex" />
