@@ -15,6 +15,7 @@ import {
   Sparkles,
   Handshake,
   TrendingUp,
+  PanelLeft,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -26,8 +27,8 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
   Sheet,
+  SheetClose,
   SheetContent,
-  SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
@@ -203,6 +204,22 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
 
           {/* Right actions — same style as Edit btn (EditAccountAlertDialog), icon only */}
           <div className="ml-auto hidden items-center gap-2 lg:flex">
+            {/* Sidenav toggle — only on strategy pages */}
+            {pathname?.startsWith('/strategy/') && (
+              <>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => window.dispatchEvent(new CustomEvent('strategy-sidenav:show'))}
+                  className="cursor-pointer h-8 w-8 rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 p-0 flex items-center justify-center transition-colors duration-200"
+                  aria-label="Show side navigation"
+                >
+                  <PanelLeft className="h-4 w-4" />
+                </Button>
+                <Separator orientation="vertical" className="mx-1.5 h-6" />
+              </>
+            )}
             {/* Tier badge */}
             {mounted && (
               isPro ? (
@@ -364,37 +381,61 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-80">
-              <SheetHeader>
-                <SheetTitle>Menu</SheetTitle>
-              </SheetHeader>
+            <SheetContent
+              side="right"
+              hideClose
+              className="w-80 p-0 border-l border-slate-300/40 dark:border-slate-700/50 bg-slate-50/90 dark:bg-slate-800/30 backdrop-blur-xl shadow-xl shadow-slate-900/10 dark:shadow-black/50"
+            >
+              <SheetTitle className="sr-only">Navigation menu</SheetTitle>
 
-              <div className="mt-4 space-y-2">
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200/60 dark:border-slate-700/40">
+                <div className="flex items-center gap-2.5">
+                  <Logo className="w-8 h-8" />
+                  <span className="text-sm font-semibold tracking-widest text-slate-900 dark:text-slate-50">
+                    AlphaStats
+                  </span>
+                </div>
+                <SheetClose asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-xl border border-slate-200/70 dark:border-slate-700/60 bg-slate-100/60 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-50 hover:bg-slate-200/70 dark:hover:bg-slate-800/60"
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Close</span>
+                  </Button>
+                </SheetClose>
+              </div>
+
+              <div className="flex flex-col gap-1 px-4 py-4 overflow-y-auto h-[calc(100%-65px)]">
+                {/* Navigation */}
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 dark:text-slate-500 px-1 mb-1">
+                  Navigation
+                </p>
                 <NavPillLink
                   href="/stats"
                   active={isStrategiesActive}
-                  className="h-auto min-h-8 w-full justify-start py-2"
+                  className="h-11 w-full justify-start px-3 text-sm"
                   onClick={closeMobileMenu}
                 >
                   <Target className="h-4 w-4" />
                   Stats Center
                 </NavPillLink>
-
                 <NavPillLink
                   href="/insight-vault"
                   active={isInsightVaultActive}
-                  className="h-auto min-h-8 w-full justify-start py-2"
+                  className="h-11 w-full justify-start px-3 text-sm"
                   onClick={closeMobileMenu}
                 >
                   <Lightbulb className="h-4 w-4" />
                   Insight Vault
                 </NavPillLink>
-
                 {userId ? (
                   <NavPillLink
                     href="/affiliates#apply"
                     active={isAffiliatesActive}
-                    className="h-auto min-h-8 w-full justify-start py-2"
+                    className="h-11 w-full justify-start px-3 text-sm"
                     onClick={closeMobileMenu}
                   >
                     <Handshake className="h-4 w-4" />
@@ -403,66 +444,62 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                 ) : null}
 
                 {mobileMenuExtra ? (
-                  <div className="w-full">{mobileMenuExtra}</div>
+                  <>
+                    <Separator className="my-3" />
+                    <div className="w-full">{mobileMenuExtra}</div>
+                  </>
                 ) : null}
 
-                {mobileMenuExtra ? <Separator className="my-2" /> : null}
+                <Separator className="my-3" />
 
-                {/* Mobile color theme picker */}
+                {/* Appearance */}
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 dark:text-slate-500 px-1 mb-1">
+                  Appearance
+                </p>
                 <button
                   onClick={openThemePickerAndCloseMenu}
-                  className="w-full flex items-center gap-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/60 dark:bg-slate-900/60 px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition-all"
+                  className="w-full flex items-center gap-3 rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-100/40 dark:bg-slate-900/30 px-3 h-11 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:border-slate-300/70 dark:hover:border-slate-600/60 transition-all"
                 >
-                  <Palette className="h-4 w-4" />
+                  <Palette className="h-4 w-4 shrink-0" />
                   <span>Color Theme</span>
                 </button>
-
-                {/* Mobile theme toggle — same style as Edit btn, icon only */}
                 <Button
                   type="button"
-                  size="sm"
                   variant="ghost"
                   onClick={toggleTheme}
-                  className="w-full cursor-pointer h-9 rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 p-0 flex items-center justify-center transition-colors duration-200 group"
+                  className="w-full h-11 cursor-pointer rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-100/40 dark:bg-slate-900/30 text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:border-slate-300/70 dark:hover:border-slate-600/60 flex items-center justify-start gap-3 px-3 text-sm font-medium transition-all"
                   aria-label="Toggle theme"
                 >
                   {!mounted ? (
-                    <svg
-                      className="h-4 w-4 text-slate-700 dark:text-slate-100 group-hover:rotate-180 transition-transform duration-500"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
+                    <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
                     </svg>
                   ) : theme === 'dark' ? (
-                    <svg
-                      className="h-4 w-4 text-amber-400 group-hover:rotate-180 transition-transform duration-500"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                      />
+                    <svg className="h-4 w-4 shrink-0 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fillRule="evenodd" clipRule="evenodd" />
                     </svg>
                   ) : (
-                    <svg
-                      className="h-4 w-4 text-slate-700 dark:text-slate-100 group-hover:rotate-180 transition-transform duration-500"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
+                    <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
                     </svg>
                   )}
+                  <span>{mounted && theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
                 </Button>
 
-                {/* Mobile tier badge */}
+                <Separator className="my-3" />
+
+                {/* Account */}
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 dark:text-slate-500 px-1 mb-1">
+                  Account
+                </p>
+
+                {/* Tier row */}
                 {mounted && (
-                  <div className="w-full flex items-center justify-center py-0.5">
+                  <div className="rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-100/40 dark:bg-slate-900/30 px-3 h-11 flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Plan</span>
                     {isPro ? (
                       <span
-                        className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 select-none"
+                        className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 select-none"
                         style={{ border: `1px solid ${proBorderColor}` }}
                       >
                         <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
@@ -471,9 +508,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                         </span>
                       </span>
                     ) : isStarterPlus ? (
-                      <span
-                        className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 select-none border border-zinc-700"
-                      >
+                      <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 select-none border border-zinc-700">
                         <TrendingUp className="h-3 w-3 shrink-0 text-zinc-400" />
                         <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                           {tierDef.badge.label}
@@ -482,7 +517,8 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                     ) : (
                       <Link
                         href="/settings?tab=billing"
-                        className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={closeMobileMenu}
+                        className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 cursor-pointer hover:opacity-80 transition-opacity"
                         style={{ border: '1px solid var(--tc-border)' }}
                       >
                         <Sparkles className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
@@ -502,58 +538,47 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   </div>
                 )}
 
-                <Separator className="my-2" />
-
-                <div className="flex justify-center">
-                  <NotificationBell userId={userId} />
+                {/* Notifications + Settings row */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-100/40 dark:bg-slate-900/30 h-11 flex items-center justify-center">
+                    <NotificationBell userId={userId} />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    asChild
+                    className={cn(
+                      'h-11 w-full rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-100/40 dark:bg-slate-900/30 flex items-center justify-center gap-2 text-sm font-medium',
+                      navPillButtonClass(isSettingsActive)
+                    )}
+                    aria-label="Settings"
+                  >
+                    <Link href={settingsHref} onClick={closeMobileMenu}>
+                      <Settings className="h-4 w-4" />
+                      <span>Settings</span>
+                    </Link>
+                  </Button>
                 </div>
 
-                <Button
-                  variant="ghost"
-                  asChild
-                  className={cn('w-full justify-center', navPillButtonClass(isSettingsActive))}
-                  aria-label="Settings"
-                >
-                  <Link href={settingsHref} onClick={closeMobileMenu} className="flex items-center justify-center">
-                    <Settings className="h-4 w-4" />
-                  </Link>
-                </Button>
+                <Separator className="my-3" />
 
-                <Separator className="my-2" />
-
+                {/* Sign out */}
                 <Button
                   variant="destructive"
-                  size="icon"
-                  className="relative h-9 w-9 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
+                  className="relative w-full h-11 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 flex items-center justify-center gap-2 text-sm font-semibold"
                   onClick={handleSignOutMobile}
                   disabled={isSigningOut}
                   aria-label={isSigningOut ? 'Signing out' : 'Sign Out'}
                 >
-                  <span className="relative z-10 flex items-center justify-center">
+                  <span className="relative z-10 flex items-center gap-2">
                     {isSigningOut ? (
-                      <svg
-                        className="h-4 w-4 animate-spin"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
+                      <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
                     ) : (
                       <LogOut className="h-4 w-4" />
                     )}
+                    <span>{isSigningOut ? 'Signing out…' : 'Sign Out'}</span>
                   </span>
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 </Button>

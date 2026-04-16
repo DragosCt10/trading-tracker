@@ -19,7 +19,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "bench": "vitest bench tests/benchmark --reporter=verbose --run",
-    "bench:ci": "vitest bench tests/benchmark --reporter=json --outputFile=tests/benchmark/results/latest.json --run"
+    "bench:ci": "vitest bench tests/benchmark --reporter=json --outputFile=tests/benchmark/results/latest.json --run",
+    "test:responsive": "playwright test tests/e2e/responsive/ --workers=4",
+    "test:responsive:update": "playwright test tests/e2e/responsive/ --update-snapshots --workers=4"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

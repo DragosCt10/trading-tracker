@@ -1,15 +1,22 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright config for feed performance e2e tests.
- * Only covers RT1 (realtime latency) and C2 (optimistic like accuracy).
- * Other categories are manual tests or k6 load tests.
+ * Playwright config.
+ *
+ * Projects:
+ *   feed-e2e          — original feed/auth performance tests (headed, sequential)
+ *   setup             — auth setup for responsive tests (saves .auth/user.json)
+ *   responsive-mobile  — visual regression at 375×812  (iPhone 12)
+ *   responsive-tablet  — visual regression at 768×1024
+ *   responsive-desktop — visual regression at 1024×768 (lg breakpoint)
+ *   responsive-wide    — visual regression at 1440×900
  */
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 30_000,
   retries: 0, // No retries — flaky tests should be fixed, not masked
-  workers: 1, // Sequential — tests share Supabase state
+  workers: 1, // Sequential default — tests share Supabase state
+              // Override with --workers=4 for responsive tests (stateless, safe)
 
   use: {
     baseURL: process.env.K6_APP_URL ?? 'http://localhost:3000',
@@ -23,9 +30,77 @@ export default defineConfig({
   },
 
   projects: [
+    // ── Original feed/auth tests (unaffected) ──────────────────────────────
     {
       name: 'feed-e2e',
       use: { ...devices['Desktop Chrome'] },
+      testDir: './tests/e2e',
+      testIgnore: ['**/responsive/**'],
+    },
+
+    // ── Auth setup for responsive tests ───────────────────────────────────
+    {
+      name: 'setup',
+      testDir: './tests/e2e/responsive',
+      testMatch: ['auth.setup.ts'],
+    },
+
+    // ── Responsive visual regression projects ─────────────────────────────
+    // All use Chromium (headless: true) for consistent font rendering.
+    // devices['iPhone 12'] uses WebKit — replaced with Chromium + iPhone 12 dimensions.
+    {
+      name: 'responsive-mobile',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 375, height: 812 },
+        isMobile: true,
+        hasTouch: true,
+        headless: true,
+        storageState: 'tests/e2e/.auth/user.json',
+      },
+      testDir: './tests/e2e/responsive',
+      testIgnore: ['auth.setup.ts'],
+      dependencies: ['setup'],
+      snapshotDir: 'tests/e2e/responsive/snapshots',
+    },
+    {
+      name: 'responsive-tablet',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 768, height: 1024 },
+        headless: true,
+        storageState: 'tests/e2e/.auth/user.json',
+      },
+      testDir: './tests/e2e/responsive',
+      testIgnore: ['auth.setup.ts'],
+      dependencies: ['setup'],
+      snapshotDir: 'tests/e2e/responsive/snapshots',
+    },
+    {
+      name: 'responsive-desktop',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1024, height: 768 },
+        headless: true,
+        storageState: 'tests/e2e/.auth/user.json',
+      },
+      testDir: './tests/e2e/responsive',
+      testIgnore: ['auth.setup.ts'],
+      dependencies: ['setup'],
+      snapshotDir: 'tests/e2e/responsive/snapshots',
+    },
+    {
+      name: 'responsive-wide',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1440, height: 900 },
+        headless: true,
+        storageState: 'tests/e2e/.auth/user.json',
+      },
+      testDir: './tests/e2e/responsive',
+      testIgnore: ['auth.setup.ts'],
+      dependencies: ['setup'],
+      snapshotDir: 'tests/e2e/responsive/snapshots',
     },
   ],
 
