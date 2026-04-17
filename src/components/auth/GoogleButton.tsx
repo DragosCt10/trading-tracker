@@ -6,13 +6,16 @@ import { createClient } from '@/utils/supabase/client';
 interface GoogleButtonProps {
   /** Forwarded as ?next= to the OAuth callback — must be a relative path. */
   redirectTo?: string | null;
+  /** Called right before the OAuth redirect to persist client-side state (e.g. newsletter preference). */
+  onBeforeRedirect?: () => void;
 }
 
-export default function GoogleButton({ redirectTo }: GoogleButtonProps) {
+export default function GoogleButton({ redirectTo, onBeforeRedirect }: GoogleButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
+    onBeforeRedirect?.();
     const supabase = createClient();
 
     const callbackUrl = new URL('/api/auth/callback', window.location.origin);

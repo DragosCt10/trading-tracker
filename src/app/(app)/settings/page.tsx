@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCachedUserSession } from '@/lib/server/session';
 import { resolveSubscription } from '@/lib/server/subscription';
 import { getCachedSocialProfile } from '@/lib/server/socialProfile';
+import { getSettings } from '@/lib/server/settings';
 import SettingsClient from './SettingsClient';
 
 export type SettingsTab = 'billing' | 'account' | 'profile' | 'sharedTrades' | 'review';
@@ -58,9 +59,10 @@ export default async function SettingsPage({
 
   const tab = normalizeTab(resolvedSearch.tab);
 
-  const [subscription, socialProfile] = await Promise.all([
+  const [subscription, socialProfile, settings] = await Promise.all([
     resolveSubscription(user.id),
     getCachedSocialProfile(user.id),
+    getSettings(user.id),
   ]);
 
   // Server-verify the "Payment successful!" banner. A URL with ?success=1 alone
@@ -80,6 +82,7 @@ export default async function SettingsPage({
       userEmail={user.email ?? ''}
       userId={user.id}
       socialProfile={socialProfile}
+      initialNewsletterSubscribed={settings.newsletter_subscribed}
     />
   );
 }

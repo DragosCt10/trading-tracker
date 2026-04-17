@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { headers } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { ensureDefaultAccount } from '@/lib/server/accounts';
+import { persistNewsletterForUser } from '@/lib/server/settings';
 import { isPasswordStrong } from '@/utils/passwordValidation';
 
 // Schemas at the server-action trust boundary. Explicit per-action shapes
@@ -14,7 +15,7 @@ const PasswordField = z.string().min(1, 'Password is required');
 const RedirectToField = z.string().url('Invalid redirect URL');
 
 const LoginSchema = z.object({ email: EmailField, password: PasswordField });
-const SignupSchema = z.object({ email: EmailField, password: PasswordField, redirectTo: RedirectToField });
+const SignupSchema = z.object({ email: EmailField, password: PasswordField, redirectTo: RedirectToField, newsletterSubscribed: z.string().optional() });
 const ResetPasswordSchema = z.object({ email: EmailField, redirectTo: RedirectToField });
 const UpdatePasswordSchema = z.object({ password: PasswordField });
 const UpdateEmailSchema = z.object({ email: EmailField });
@@ -120,7 +121,8 @@ export async function signupAction(
 ): Promise<AuthResult> {
   const parsed = SignupSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstZodError(parsed) };
-  const { email, password, redirectTo } = parsed.data;
+  const { email, password, redirectTo, newsletterSubscribed } = parsed.data;
+  const wantsNewsletter = newsletterSubscribed !== 'false';
 
   if (!await isValidRedirectTo(redirectTo)) {
     return { error: 'Invalid redirect URL' };
@@ -140,6 +142,13 @@ export async function signupAction(
   if (error) {
     console.error('[auth] signupAction error:', error.message);
     return { error: sanitizeAuthError(error) };
+  }
+
+  // Persist newsletter preference best-effort (admin client — no session needed).
+  try {
+    if (data.user?.id) persistNewsletterForUser(data.user.id, wantsNewsletter);
+  } catch (err) {
+    console.error('[auth] persistNewsletterForUser (post-signup) failed:', err);
   }
 
   // session is null when email confirmation is required; ensureDefaultAccount

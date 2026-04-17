@@ -4,14 +4,18 @@ import { createAdminClient } from './supabaseAdmin';
 import { getCachedUserSession } from '@/lib/server/session';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { FeatureFlagsSchema, type FeatureFlags } from '@/types/featureFlags';
+import { z } from 'zod';
+
 export interface SettingsRow {
   saved_news: SavedNewsItem[];
   saved_markets: string[];
+  newsletter_subscribed: boolean;
 }
 
 const DEFAULT_SETTINGS: SettingsRow = {
   saved_news: [],
   saved_markets: [],
+  newsletter_subscribed: true,
 };
 
 /**
@@ -23,7 +27,7 @@ export async function getSettings(userId: string): Promise<SettingsRow> {
   const supabase = await createClient();
   const { data, error } = await (supabase as any)
     .from('user_settings')
-    .select('saved_news, saved_markets')
+    .select('saved_news, saved_markets, newsletter_subscribed')
     .eq('user_id', userId)
     .single();
 
@@ -37,12 +41,14 @@ export async function getSettings(userId: string): Promise<SettingsRow> {
   const raw = data as {
     saved_news?: unknown;
     saved_markets?: unknown;
+    newsletter_subscribed?: unknown;
   };
   const rawNews = raw?.saved_news;
   const rawMarkets = raw?.saved_markets;
   return {
     saved_news: Array.isArray(rawNews) ? (rawNews as SavedNewsItem[]) : [],
     saved_markets: Array.isArray(rawMarkets) ? (rawMarkets as string[]) : [],
+    newsletter_subscribed: typeof raw?.newsletter_subscribed === 'boolean' ? raw.newsletter_subscribed : true,
   };
 }
 
@@ -105,6 +111,73 @@ export async function updateSavedMarkets(
   }
 
   return { error: null };
+}
+
+// ─── Newsletter ─────────────────────────────────────────────────────────────
+
+/**
+ * Persist newsletter preference for the current authenticated user.
+ * Called from the OAuth sync hook and settings page toggle.
+ */
+export async function persistNewsletterPreference(
+  subscribed: boolean
+): Promise<{ error: { message: string } | null }> {
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: { message: 'Unauthorized' } };
+
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from('user_settings')
+    .update({ newsletter_subscribed: subscribed })
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('Error updating newsletter preference:', error);
+    return { error: { message: error.message ?? 'Failed to update newsletter preference' } };
+  }
+  return { error: null };
+}
+
+/**
+ * Persist newsletter preference using admin client with an explicit userId.
+ * Used during signup (email-confirmation path where no session exists yet).
+ */
+export async function persistNewsletterForUser(
+  userId: string,
+  subscribed: boolean
+): Promise<void> {
+  if (!userId) return;
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from('user_settings')
+    .upsert(
+      { user_id: userId, newsletter_subscribed: subscribed },
+      { onConflict: 'user_id' }
+    );
+  if (error) console.error('[newsletter] persistNewsletterForUser failed:', error);
+}
+
+const UnsubscribeTokenSchema = z.string().uuid();
+
+/**
+ * Unsubscribe a user by their unique unsubscribe token.
+ * Uses admin client — no authentication required.
+ * Always returns { success: true } to prevent token enumeration via response oracle.
+ * SECURITY: The token is a bearer credential — never log it.
+ */
+export async function unsubscribeByToken(
+  token: string
+): Promise<{ success: boolean }> {
+  const parsed = UnsubscribeTokenSchema.safeParse(token);
+  if (!parsed.success) return { success: true };
+
+  const supabase = createAdminClient();
+  await supabase
+    .from('user_settings')
+    .update({ newsletter_subscribed: false })
+    .eq('newsletter_unsubscribe_token', parsed.data);
+
+  return { success: true };
 }
 
 // ─── Feature Flags ──────────────────────────────────────────────────────────

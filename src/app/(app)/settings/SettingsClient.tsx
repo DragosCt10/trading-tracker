@@ -6,6 +6,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { Award, CreditCard, Link2, Loader2, Settings, Star, User, Users } from 'lucide-react';
 import { PanelSkeleton } from '@/components/settings/PanelSkeleton';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Tab panels are lazy-loaded so users viewing one tab don't download the other
 // two tabs' JavaScript upfront. Chunk-load failures are caught by the scoped
@@ -37,6 +38,7 @@ import { cn } from '@/lib/utils';
 import type { ResolvedSubscription } from '@/types/subscription';
 import type { SocialProfile } from '@/types/social';
 import { updateEmailAction, updatePasswordAction } from '@/lib/server/auth';
+import { persistNewsletterPreference } from '@/lib/server/settings';
 import { PASSWORD_RULES, getPasswordStrength } from '@/utils/passwordValidation';
 import type { SettingsTab } from './page';
 
@@ -48,6 +50,7 @@ interface SettingsClientProps {
   userEmail: string;
   userId: string;
   socialProfile: SocialProfile | null;
+  initialNewsletterSubscribed: boolean;
 }
 
 export default function SettingsClient({
@@ -58,6 +61,7 @@ export default function SettingsClient({
   userEmail,
   userId,
   socialProfile,
+  initialNewsletterSubscribed,
 }: SettingsClientProps) {
   const [newEmail, setNewEmail] = useState(userEmail);
   const [emailError, setEmailError] = useState('');
@@ -70,6 +74,10 @@ export default function SettingsClient({
   const [passwordError, setPasswordError] = useState('');
   const [passwordMessage, setPasswordMessage] = useState('');
   const [isPasswordPending, startPasswordTransition] = useTransition();
+
+  const [newsletterSubscribed, setNewsletterSubscribed] = useState(initialNewsletterSubscribed);
+  const [newsletterMessage, setNewsletterMessage] = useState('');
+  const [isNewsletterPending, startNewsletterTransition] = useTransition();
 
   const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
   const allRulesPassed = passwordStrength === PASSWORD_RULES.length;
@@ -370,6 +378,50 @@ export default function SettingsClient({
                     <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                   </Button>
                 </form>
+              </div>
+
+              <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-6">
+                <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50 mb-1">
+                  Newsletter
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
+                  Manage your newsletter subscription.
+                </p>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="newsletter-toggle"
+                    checked={newsletterSubscribed}
+                    disabled={isNewsletterPending}
+                    onCheckedChange={(checked) => {
+                      const value = !!checked;
+                      setNewsletterSubscribed(value);
+                      setNewsletterMessage('');
+                      startNewsletterTransition(async () => {
+                        const result = await persistNewsletterPreference(value);
+                        if (result.error) {
+                          setNewsletterSubscribed(!value);
+                          setNewsletterMessage('Failed to update preference.');
+                        } else {
+                          setNewsletterMessage(
+                            value ? 'Subscribed to newsletter.' : 'Unsubscribed from newsletter.'
+                          );
+                        }
+                      });
+                    }}
+                    className="themed-checkbox h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 transition-colors duration-150 data-[state=checked]:!text-white"
+                  />
+                  <Label htmlFor="newsletter-toggle" className="text-sm font-normal cursor-pointer text-slate-700 dark:text-slate-300 select-none">
+                    Subscribe to newsletter
+                  </Label>
+                  {isNewsletterPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                  ) : null}
+                </div>
+
+                {newsletterMessage ? (
+                  <p className="mt-3 text-sm text-green-500">{newsletterMessage}</p>
+                ) : null}
               </div>
             </div>
           )}

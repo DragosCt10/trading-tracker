@@ -16,6 +16,7 @@ import { Footer } from '@/components/shared/Footer';
 import ActionBar from '@/components/shared/ActionBar';
 import { CreateAccountAlertDialog } from '@/components/CreateAccountModal';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useNewsletterOAuthSync } from '@/hooks/useNewsletterOAuthSync';
 
 export type InitialUserDetails = { user: { id: string } | null; session: object | null };
 
@@ -42,6 +43,7 @@ export default function AppLayout({
   const router = useRouter();
   const userId = initialUserDetails?.user?.id;
   const { subscription } = useSubscription({ userId });
+  useNewsletterOAuthSync();
   const showActionBar = pathname === '/stats' || (pathname?.startsWith('/strategy/') ?? false);
 
   const [actionBarVisible, setActionBarVisible] = useState(true);

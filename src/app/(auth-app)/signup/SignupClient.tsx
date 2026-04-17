@@ -16,6 +16,7 @@ import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
 import { GradientSubmitButton } from '@/components/auth/GradientSubmitButton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NewsletterCheckbox } from '@/components/auth/NewsletterCheckbox';
 import { isPasswordStrong } from '@/utils/passwordValidation';
 
 export default function SignupClient() {
@@ -24,6 +25,7 @@ export default function SignupClient() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [newsletterSubscribed, setNewsletterSubscribed] = useState(true);
   const router = useRouter();
   const { setIsLoading } = useLoading();
   const { data: userData } = useUserDetails();
@@ -34,6 +36,15 @@ export default function SignupClient() {
       router.push('/stats');
     }
   }, [userData, router]);
+
+  // Write newsletter preference to localStorage right before Google OAuth redirect.
+  // Only called when user clicks "Continue with Google" — not on every render.
+  const handleBeforeGoogleRedirect = () => {
+    localStorage.setItem(
+      'newsletter_preference',
+      JSON.stringify({ subscribed: newsletterSubscribed, ts: Date.now() })
+    );
+  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +57,7 @@ export default function SignupClient() {
       formData.set('email', email);
       formData.set('password', password);
       formData.set('redirectTo', `${window.location.origin}/api/auth/callback?next=/stats`);
+      formData.set('newsletterSubscribed', String(newsletterSubscribed));
       const result = await signupAction(null, formData);
 
       if (result.error) {
@@ -95,7 +107,7 @@ export default function SignupClient() {
       subtitle="Start tracking your trades and improve your performance"
     >
       <div className="mb-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-400">
-        <GoogleButton />
+        <GoogleButton onBeforeRedirect={handleBeforeGoogleRedirect} />
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-border/60" />
           <span className="text-xs text-muted-foreground font-medium">or continue with email</span>
@@ -151,6 +163,11 @@ export default function SignupClient() {
             />
             <PasswordStrengthMeter password={password} />
           </motion.div>
+
+          <NewsletterCheckbox
+            checked={newsletterSubscribed}
+            onCheckedChange={setNewsletterSubscribed}
+          />
         </div>
 
         {error && <ErrorBanner message={error} />}

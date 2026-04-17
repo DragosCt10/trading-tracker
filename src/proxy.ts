@@ -7,7 +7,7 @@ import { checkShareRateLimit } from '@/lib/shareRateLimit';
 const AUTH_PATHS = ['/login', '/signup', '/reset-password', '/update-password', '/api/auth'];
 
 /** Public, read-only paths that should never force login (e.g. shared analytics). */
-const PUBLIC_PATHS = ['/', '/share', '/pricing', '/terms-of-service', '/privacy-policy', '/refund-policy', '/contact', '/help', '/affiliates'];
+const PUBLIC_PATHS = ['/', '/share', '/pricing', '/terms-of-service', '/privacy-policy', '/refund-policy', '/contact', '/help', '/affiliates', '/unsubscribe'];
 
 function isAuthPath(pathname: string): boolean {
   return AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
