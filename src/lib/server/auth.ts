@@ -77,7 +77,13 @@ async function getAppOrigin(): Promise<string> {
 /** Validate that redirectTo points at this app's origin (not a foreign host). */
 async function isValidRedirectTo(redirectTo: string): Promise<boolean> {
   try {
-    return new URL(redirectTo).origin === await getAppOrigin();
+    const redirectOrigin = new URL(redirectTo).origin;
+    const appOrigin = await getAppOrigin();
+    const valid = redirectOrigin === appOrigin;
+    if (!valid) {
+      console.error('[auth] redirect origin mismatch:', { redirectOrigin, appOrigin, envUrl: process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL });
+    }
+    return valid;
   } catch {
     return false;
   }
@@ -156,8 +162,12 @@ export async function resetPasswordAction(
   _prev: AuthResult | null,
   formData: FormData
 ): Promise<AuthResult> {
-  const parsed = ResetPasswordSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { error: firstZodError(parsed) };
+  const raw = Object.fromEntries(formData);
+  const parsed = ResetPasswordSchema.safeParse(raw);
+  if (!parsed.success) {
+    console.error('[auth] resetPassword zod failed:', parsed.error.issues, { redirectTo: raw.redirectTo });
+    return { error: firstZodError(parsed) };
+  }
   const { email, redirectTo } = parsed.data;
 
   if (!await isValidRedirectTo(redirectTo)) {
