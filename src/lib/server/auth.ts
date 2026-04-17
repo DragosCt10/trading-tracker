@@ -58,12 +58,17 @@ function sanitizeAuthError(error: { message: string }): string {
 
 /** Resolve the trusted app origin: env var first, then request headers as fallback. */
 async function getAppOrigin(): Promise<string> {
-  const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+  // APP_URL (server-only, read at runtime) takes priority over NEXT_PUBLIC_APP_URL
+  // (baked in at build time). This avoids stale origins when the env var is changed
+  // in the hosting dashboard without a redeploy.
+  const envUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
   if (envUrl) {
     try { return new URL(envUrl).origin; } catch { /* malformed env var */ }
   }
   const h = await headers();
-  const proto = h.get('x-forwarded-proto') ?? 'https';
+  // x-forwarded-proto may contain multiple values (e.g. "https, https") when
+  // behind chained proxies — take only the first.
+  const proto = (h.get('x-forwarded-proto') ?? 'https').split(',')[0].trim();
   const host = h.get('host');
   if (host) return `${proto}://${host}`;
   return 'http://localhost:3000';
