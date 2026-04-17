@@ -58,10 +58,7 @@ function sanitizeAuthError(error: { message: string }): string {
 
 /** Resolve the trusted app origin: env var first, then request headers as fallback. */
 async function getAppOrigin(): Promise<string> {
-  // APP_URL (server-only, read at runtime) takes priority over NEXT_PUBLIC_APP_URL
-  // (baked in at build time). This avoids stale origins when the env var is changed
-  // in the hosting dashboard without a redeploy.
-  const envUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL;
   if (envUrl) {
     try { return new URL(envUrl).origin; } catch { /* malformed env var */ }
   }
@@ -74,16 +71,17 @@ async function getAppOrigin(): Promise<string> {
   return 'http://localhost:3000';
 }
 
+/** Strip www. prefix from a URL origin for comparison (www vs non-www are the same site). */
+function normalizeOrigin(origin: string): string {
+  return origin.replace('://www.', '://');
+}
+
 /** Validate that redirectTo points at this app's origin (not a foreign host). */
 async function isValidRedirectTo(redirectTo: string): Promise<boolean> {
   try {
-    const redirectOrigin = new URL(redirectTo).origin;
-    const appOrigin = await getAppOrigin();
-    const valid = redirectOrigin === appOrigin;
-    if (!valid) {
-      console.error('[auth] redirect origin mismatch:', { redirectOrigin, appOrigin, envUrl: process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL });
-    }
-    return valid;
+    const redirectOrigin = normalizeOrigin(new URL(redirectTo).origin);
+    const appOrigin = normalizeOrigin(await getAppOrigin());
+    return redirectOrigin === appOrigin;
   } catch {
     return false;
   }
@@ -162,12 +160,8 @@ export async function resetPasswordAction(
   _prev: AuthResult | null,
   formData: FormData
 ): Promise<AuthResult> {
-  const raw = Object.fromEntries(formData);
-  const parsed = ResetPasswordSchema.safeParse(raw);
-  if (!parsed.success) {
-    console.error('[auth] resetPassword zod failed:', parsed.error.issues, { redirectTo: raw.redirectTo });
-    return { error: firstZodError(parsed) };
-  }
+  const parsed = ResetPasswordSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: firstZodError(parsed) };
   const { email, redirectTo } = parsed.data;
 
   if (!await isValidRedirectTo(redirectTo)) {
