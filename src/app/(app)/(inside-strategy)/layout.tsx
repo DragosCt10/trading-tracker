@@ -17,7 +17,9 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
   const pathname = usePathname();
   const [newTradeModalOpen, setNewTradeModalOpen] = useState(false);
   const [isNavHidden, setIsNavHidden] = useState(() => {
-    if (typeof window === 'undefined') return false;
+    if (typeof window === 'undefined') return true;
+    // Mobile: always start hidden (ephemeral). Desktop: restore from localStorage.
+    if (window.innerWidth < 1024) return true;
     return localStorage.getItem('sidebar-nav-hidden') === 'true';
   });
 
@@ -50,6 +52,17 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
       startTransition(() => setIsNavHidden(true));
     }
   }, [pathname]);
+
+  // Auto-close nav when viewport shrinks below the desktop breakpoint
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 1023.98px)');
+    const handle = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches) setIsNavHidden(true);
+    };
+    handle(mql);
+    mql.addEventListener('change', handle);
+    return () => mql.removeEventListener('change', handle);
+  }, []);
 
   // Extract strategy slug from routes: /strategy/[strategy] or /strategy/[strategy]/my-trades etc.
   const currentStrategySlug = useMemo(() => {
