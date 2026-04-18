@@ -93,10 +93,25 @@ export function TradeLedgerClient({
         {templates.list.isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[0, 1, 2].map((i) => (
-              <div
+              <Card
                 key={i}
-                className="h-44 rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm animate-pulse"
-              />
+                className="rounded-xl border text-card-foreground relative border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm"
+              >
+                <div className="relative p-4 sm:p-6 flex flex-col h-full animate-pulse">
+                  {/* Title + delete */}
+                  <div className="flex items-start justify-between mb-4 gap-3">
+                    <div className="h-5 w-2/3 rounded-md bg-slate-200/70 dark:bg-slate-700/60" />
+                    <div className="h-8 w-8 shrink-0 rounded-xl bg-slate-200/70 dark:bg-slate-700/60" />
+                  </div>
+                  {/* Filler line — mimics the visual weight of the title block */}
+                  <div className="h-3 w-1/2 rounded-md bg-slate-200/60 dark:bg-slate-700/50" />
+                  {/* Meta + load action */}
+                  <div className="flex items-center justify-between gap-2 mt-auto pt-4 border-t border-slate-200/60 dark:border-slate-700/50">
+                    <div className="h-3 w-24 rounded-md bg-slate-200/60 dark:bg-slate-700/50" />
+                    <div className="h-8 w-16 rounded-xl bg-slate-200/70 dark:bg-slate-700/60" />
+                  </div>
+                </div>
+              </Card>
             ))}
           </div>
         ) : templates.list.data && templates.list.data.length > 0 ? (
