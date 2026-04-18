@@ -4,7 +4,8 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useQueryClient } from '@tanstack/react-query';
-import { createAccount, setActiveAccount } from '@/lib/server/accounts';
+import { createAccount } from '@/lib/server/accounts';
+import type { AccountRow } from '@/lib/server/accounts';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAllAccounts, patchAllAccounts } from '@/hooks/useAllAccounts';
@@ -150,16 +151,28 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
 
       // Mark the new row active. Use the RETURN VALUE as the canonical row —
       // `data` from createAccount has is_active=false (the insert default),
-      // whereas setActiveAccount's return is the row after the UPDATE + the
+      // whereas set-active's return is the row after the UPDATE + the
       // BEFORE UPDATE trigger fired, so is_active=true and any sibling in the
       // same mode has been cleared. Using the stale createAccount row here
       // would leak is_active=false into the selection store and break the
       // PERF-1 short-circuit in ActionBar's applyWith on the next switch.
-      const { data: activatedRow, error: activationError } = await setActiveAccount(
-        createdAccount.mode,
-        createdAccount.id
-      );
-      if (activationError || !activatedRow) {
+      //
+      // Uses the dedicated /api/accounts/set-active route rather than a Server
+      // Action so creating an account doesn't trigger an RSC re-render of the
+      // current heavy page on top of the DB write.
+      const activationResponse = await fetch('/api/accounts/set-active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: createdAccount.mode, accountId: createdAccount.id }),
+      });
+      const activationPayload = (await activationResponse.json().catch(() => null)) as
+        | { data: AccountRow | null; error: { message: string } | null }
+        | null;
+      const activatedRow = activationPayload?.data ?? null;
+      const activationError =
+        activationPayload?.error ??
+        (activationResponse.ok ? null : { message: activationResponse.statusText });
+      if (!activationResponse.ok || activationError || !activatedRow) {
         setError(activationError?.message ?? 'Failed to activate new account. Please try again.');
         setSubmitting(false);
         return;
