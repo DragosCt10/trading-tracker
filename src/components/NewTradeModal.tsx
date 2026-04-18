@@ -689,7 +689,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   return (
     <>
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className="max-w-3xl max-h-[90vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl p-0 flex flex-col overflow-hidden">
+      <AlertDialogContent className="max-w-3xl max-h-[90vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl p-0 flex flex-col overflow-hidden focus:outline-none focus-visible:outline-none">
         {/* Gradient orbs background - fixed to modal (theme-aware via --orb-1/--orb-2) */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
           <div
@@ -836,17 +836,17 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
             {/* Date & Time Section */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0">
                 <Label htmlFor="trade-date" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Trade Date *
                 </Label>
-                <div className="relative">
+                <div className="relative min-w-0">
                   <Input
                     id="trade-date"
                     type="date"
                     value={trade.trade_date}
                     onChange={(e) => updateTrade('trade_date', e.target.value)}
-                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 pr-12 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-12 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    className="h-12 min-w-0 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 pr-12 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-12 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                     required
                   />
                   <Calendar className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-slate-500 shrink-0" strokeWidth={1.75} />
