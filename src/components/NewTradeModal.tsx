@@ -748,7 +748,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         </div>
 
         {/* Scrollable content wrapper */}
-        <div className="relative overflow-y-auto flex-1 px-6 py-5">
+        <div className="relative overflow-y-auto overflow-x-hidden flex-1 px-6 py-5">
 
           <form onSubmit={handleSubmit} className="space-y-5 mt-0">
             {/* Trade Screens Section */}
@@ -836,17 +836,17 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
             {/* Date & Time Section */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="space-y-2 min-w-0">
+              <div className="space-y-2 min-w-0 w-full">
                 <Label htmlFor="trade-date" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Trade Date *
                 </Label>
-                <div className="relative min-w-0">
+                <div className="relative min-w-0 w-full">
                   <Input
                     id="trade-date"
                     type="date"
                     value={trade.trade_date}
                     onChange={(e) => updateTrade('trade_date', e.target.value)}
-                    className="h-12 min-w-0 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 pr-12 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-12 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    className="h-12 w-full min-w-0 max-w-full block rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 pr-12 appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-12 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-date-and-time-value]:text-left [&::-webkit-date-and-time-value]:min-h-0"
                     required
                   />
                   <Calendar className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-slate-500 shrink-0" strokeWidth={1.75} />
