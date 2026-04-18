@@ -11,6 +11,7 @@ interface UseSettingsOptions {
 const DEFAULT_SETTINGS: SettingsRow = {
   saved_news: [],
   saved_markets: [],
+  newsletter_subscribed: true,
 };
 
 export function useSettings({ userId }: UseSettingsOptions) {
