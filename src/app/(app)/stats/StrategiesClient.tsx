@@ -125,7 +125,6 @@ export function StrategiesClient({
   // render finds cached data and isFetching stays false — no skeleton flash.
   const {
     data: strategiesOverview,
-    isFetching: tradesLoading,
     isLoading: strategiesOverviewInitialLoading,
   } = useQuery<StrategiesOverviewResult>({
     queryKey: queryKeys.strategiesOverview(userId, activeAccount?.id, mode),
@@ -302,7 +301,7 @@ export function StrategiesClient({
         strategies={sortedStrategies}
         strategiesLoading={strategiesLoading}
         strategiesOverview={strategiesOverview}
-        overviewLoading={tradesLoading}
+        overviewLoading={strategiesOverviewInitialLoading}
         activeAccount={activeAccount}
         mode={mode}
         userId={userId ?? ''}
