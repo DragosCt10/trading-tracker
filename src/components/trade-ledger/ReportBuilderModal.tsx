@@ -21,6 +21,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { PeriodPicker, type Period } from './builder/PeriodPicker';
 import { AccountPicker, type AccountOption } from './builder/AccountPicker';
+import { MarketPicker } from './builder/MarketPicker';
 import { SectionPicker } from './builder/SectionPicker';
 import {
   createReportConfigSchema,
@@ -133,6 +134,7 @@ export function ReportBuilderModal({
       accountIds: config.accountIds,
       period: config.period,
       strategyId: config.strategyId,
+      markets: config.markets,
     },
     open,
   );
@@ -404,10 +406,27 @@ export function ReportBuilderModal({
           />
         </section>
 
-        {/* Step 3: Sections */}
+        {/* Step 3: Markets */}
         <section className="space-y-3">
           <StepHeading
             step={3}
+            title="Markets (optional)"
+            description="Pick one or more to generate a segmented report. Leave empty to include every market."
+          />
+          <MarketPicker
+            mode={config.mode}
+            accountIds={config.accountIds}
+            period={config.period}
+            strategyId={config.strategyId}
+            selected={config.markets}
+            onChange={(next) => updateConfig({ markets: next })}
+          />
+        </section>
+
+        {/* Step 4: Sections */}
+        <section className="space-y-3">
+          <StepHeading
+            step={4}
             title="Sections"
             description="Account Summary and Transaction Ledger are always included."
           />
@@ -431,9 +450,9 @@ export function ReportBuilderModal({
           </div>
         </section>
 
-        {/* Step 4: Notes */}
+        {/* Step 5: Notes */}
         <section className="space-y-3">
-          <StepHeading step={4} title="Footer notes (optional)" />
+          <StepHeading step={5} title="Footer notes (optional)" />
           <Textarea
             placeholder="E.g. 'Q2 prop firm audit report'"
             maxLength={250}
@@ -451,9 +470,9 @@ export function ReportBuilderModal({
           </p>
         </section>
 
-        {/* Step 5: Save as template */}
+        {/* Step 6: Save as template */}
         <section className="space-y-3 pt-4 border-t border-slate-200/60 dark:border-slate-700/50">
-          <StepHeading step={5} title="Save as template (optional)" />
+          <StepHeading step={6} title="Save as template (optional)" />
           <div className="flex gap-2">
             <Input
               placeholder="e.g. Monthly prop firm audit"
@@ -482,10 +501,10 @@ export function ReportBuilderModal({
           </p>
         </section>
 
-        {/* Step 6: Share link */}
+        {/* Step 7: Share link */}
         <section className="space-y-3 pt-4 border-t border-slate-200/60 dark:border-slate-700/50">
           <StepHeading
-            step={6}
+            step={7}
             title="Share as a public link (optional)"
             description="Freezes the report at this moment so a prop firm, mentor, or accountant can view it without a login. The integrity hash is preserved forever."
           />

@@ -1,8 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Check, ChevronDown, ChevronRight, Search } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import {
   SECTION_CATEGORIES,
@@ -136,30 +137,13 @@ function CategoryBlock({
         ) : (
           <ChevronRight className="h-4 w-4 text-slate-400" />
         )}
-        <span
-          role="checkbox"
-          aria-checked={enabled}
-          tabIndex={0}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleEnabled(!enabled);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === ' ' || e.key === 'Enter') {
-              e.preventDefault();
-              e.stopPropagation();
-              onToggleEnabled(!enabled);
-            }
-          }}
-          className={cn(
-            'flex h-5 w-5 items-center justify-center rounded-md border-2 shadow-sm cursor-pointer transition-colors duration-150',
-            enabled
-              ? 'themed-header-icon-box border-transparent text-white'
-              : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800',
-          )}
-        >
-          {enabled && <Check className="h-3.5 w-3.5" />}
-        </span>
+        <Checkbox
+          checked={enabled}
+          onCheckedChange={(checked) => onToggleEnabled(checked === true)}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Enable ${label}`}
+          className="themed-checkbox h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 transition-colors duration-150 data-[state=checked]:!text-white"
+        />
         <div className="flex-1">
           <div className="text-sm font-semibold text-slate-900 dark:text-slate-50">
             {label}
@@ -206,16 +190,13 @@ function CategoryBlock({
                     : 'text-slate-700 dark:text-slate-300',
                 )}
               >
-                <span
-                  className={cn(
-                    'flex h-5 w-5 items-center justify-center rounded-md border-2 shadow-sm transition-colors duration-150',
-                    checked
-                      ? 'themed-header-icon-box border-transparent text-white'
-                      : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800',
-                  )}
-                >
-                  {checked && <Check className="h-3.5 w-3.5" />}
-                </span>
+                <Checkbox
+                  checked={checked}
+                  onCheckedChange={() => onTogglePick(s.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={s.label}
+                  className="themed-checkbox h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 transition-colors duration-150 data-[state=checked]:!text-white"
+                />
                 <span>{s.label}</span>
               </button>
             );

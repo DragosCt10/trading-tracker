@@ -17,6 +17,8 @@ interface CoverPageProps {
   generatedAt: Date;
   referenceCode: string;
   mode: 'live' | 'demo' | 'backtesting';
+  /** Optional markets filter — rendered as a labeled slice line when set. */
+  markets?: string[] | null;
 }
 
 export function CoverPage({
@@ -27,7 +29,9 @@ export function CoverPage({
   generatedAt,
   referenceCode,
   mode,
+  markets,
 }: CoverPageProps) {
+  const hasMarketFilter = !!markets && markets.length > 0;
   return (
     <View style={pdfStyles.coverPage}>
       {/* Brand lockup — logo + wordmark + badge centered on the same optical axis */}
@@ -52,11 +56,18 @@ export function CoverPage({
       <View style={{ paddingBottom: 4 }}>
         <Text style={pdfStyles.coverAccount}>{accountLabel}</Text>
       </View>
-      <View style={{ paddingBottom: 40 }}>
+      <View style={{ paddingBottom: hasMarketFilter ? 4 : 40 }}>
         <Text style={pdfStyles.coverPeriod}>
           {formatPdfPeriod(period.start, period.end)}
         </Text>
       </View>
+      {hasMarketFilter && (
+        <View style={{ paddingBottom: 40 }}>
+          <Text style={pdfStyles.coverPeriod}>
+            Markets: {markets!.join(', ')}
+          </Text>
+        </View>
+      )}
 
       <View style={pdfStyles.coverHeroGrid}>
         {heroStats.map((s) => (

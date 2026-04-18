@@ -44,6 +44,13 @@ const baseShape = {
   accountIds: z.array(z.string().uuid()).min(1),
   mode: z.enum(TRADE_MODES),
   strategyId: z.string().uuid().nullable(),
+  /**
+   * Optional market whitelist (e.g. ['EURUSD', 'GBPUSD']). `null` or an empty
+   * array means "all markets". When set, the trade query, stats pipeline, and
+   * PDF header all respect this slice so the ledger reads as a labeled
+   * segment rather than a full account statement.
+   */
+  markets: z.array(z.string().min(1).max(50)).nullable().default(null),
   sections: sectionsSchema,
 };
 
@@ -100,6 +107,7 @@ export function defaultReportConfig(
     accountIds: [accountId],
     mode,
     strategyId: null,
+    markets: null,
     sections: {
       coverPage: true,
       accountSummary: true,

@@ -83,6 +83,7 @@ export function LedgerDocument(props: LedgerDocumentProps) {
           generatedAt={integrity.generatedAt}
           referenceCode={integrity.referenceCode}
           mode={config.mode}
+          markets={config.markets}
         />
         <PageFooter integrity={integrity} context={context} />
       </Page>

@@ -6,10 +6,26 @@ export type SectionCategoryId =
   | 'performanceRatios'
   | 'tradePerformance';
 
+/**
+ * Derived metrics not covered by `Stats` / `MacroStats` but exposed in the
+ * app's analytics cards. Computed once per report and handed to every
+ * registry extractor.
+ */
+export interface StatExtras {
+  avgWin: number;
+  avgLoss: number;
+  winLossRatio: number;
+  expectancy: number;
+  /** 0–100 normalized expectancy score. */
+  expectancyNormalized: number;
+  recoveryFactor: number;
+}
+
 export interface StatExtractInput {
   stats: Stats;
   macroStats: MacroStats;
   currency: string;
+  extras: StatExtras;
 }
 
 export interface StatExtractOutput {
@@ -212,6 +228,17 @@ export const SECTION_REGISTRY: readonly StatDefinition[] = [
     }),
   },
 
+  {
+    id: 'recovery_factor',
+    label: 'Recovery factor',
+    category: 'consistencyDrawdown',
+    help: 'Total P&L % ÷ Max Drawdown %',
+    extract: ({ extras }) => ({
+      value: extras.recoveryFactor,
+      formatted: fmtNumber(extras.recoveryFactor),
+    }),
+  },
+
   // ── Performance Ratios ──
   {
     id: 'profit_factor',
@@ -220,6 +247,56 @@ export const SECTION_REGISTRY: readonly StatDefinition[] = [
     extract: ({ macroStats }) => ({
       value: macroStats.profitFactor,
       formatted: fmtNumber(macroStats.profitFactor),
+    }),
+  },
+  {
+    id: 'avg_win',
+    label: 'Average win',
+    category: 'performanceRatios',
+    extract: ({ extras, currency }) => ({
+      value: extras.avgWin,
+      formatted: fmtCurrency(extras.avgWin, currency),
+    }),
+  },
+  {
+    id: 'avg_loss',
+    label: 'Average loss',
+    category: 'performanceRatios',
+    extract: ({ extras, currency }) => ({
+      value: extras.avgLoss,
+      formatted: fmtCurrency(extras.avgLoss, currency),
+    }),
+  },
+  {
+    id: 'win_loss_ratio',
+    label: 'Win/Loss ratio',
+    category: 'performanceRatios',
+    help: 'Average win ÷ Average loss',
+    extract: ({ extras }) => ({
+      value: extras.winLossRatio,
+      formatted: Number.isFinite(extras.winLossRatio)
+        ? fmtNumber(extras.winLossRatio)
+        : '∞',
+    }),
+  },
+  {
+    id: 'expectancy',
+    label: 'Expectancy / trade',
+    category: 'performanceRatios',
+    help: '(WR × AvgWin) − (LR × AvgLoss)',
+    extract: ({ extras, currency }) => ({
+      value: extras.expectancy,
+      formatted: fmtCurrency(extras.expectancy, currency),
+    }),
+  },
+  {
+    id: 'expectancy_score',
+    label: 'Expectancy score',
+    category: 'performanceRatios',
+    help: '0 = worst, 50 = breakeven, 100 = best',
+    extract: ({ extras }) => ({
+      value: extras.expectancyNormalized,
+      formatted: fmtNumber(extras.expectancyNormalized, 0),
     }),
   },
   {
@@ -288,12 +365,30 @@ export const SECTION_REGISTRY: readonly StatDefinition[] = [
     }),
   },
   {
+    id: 'partial_be_trades',
+    label: 'Partial break-even trades',
+    category: 'tradePerformance',
+    extract: ({ stats }) => ({
+      value: stats.partialBETrades,
+      formatted: fmtInteger(stats.partialBETrades),
+    }),
+  },
+  {
     id: 'total_partials_count',
     label: 'Total partials',
     category: 'tradePerformance',
     extract: ({ stats }) => ({
       value: stats.totalPartialTradesCount,
       formatted: fmtInteger(stats.totalPartialTradesCount),
+    }),
+  },
+  {
+    id: 'total_partials_be',
+    label: 'Partials ending BE',
+    category: 'tradePerformance',
+    extract: ({ stats }) => ({
+      value: stats.totalPartialsBECount,
+      formatted: fmtInteger(stats.totalPartialsBECount),
     }),
   },
   {

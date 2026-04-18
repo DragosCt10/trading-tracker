@@ -9,6 +9,7 @@ export interface CountTradesInput {
   accountIds: string[];
   period: { start: string; end: string };
   strategyId?: string | null;
+  markets?: string[] | null;
 }
 
 export interface CountTradesResult {
@@ -49,6 +50,9 @@ export async function countTradesInPeriod(
 
   if (input.strategyId) {
     query = query.eq('strategy_id', input.strategyId);
+  }
+  if (input.markets && input.markets.length > 0) {
+    query = query.in('market', input.markets);
   }
 
   const { count, error } = await query;

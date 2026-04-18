@@ -4,6 +4,12 @@ import { pdfFonts } from '@/components/trade-ledger/pdf/pdfStyles';
 import { computeAllDashboardStats } from '@/utils/computeAllDashboardStats';
 import { buildRunningBalance } from '@/utils/tradeLedger/buildRunningBalance';
 import {
+  calculateAverageDrawdown,
+  calculateAvgWinLoss,
+  calculateExpectancy,
+  computeRecoveryFactorAndDrawdownCount,
+} from '@/utils/analyticsCalculations';
+import {
   buildCanonicalPayload,
   buildReferenceCode,
   sha256Hex,
@@ -12,6 +18,7 @@ import {
   SECTION_CATEGORIES,
   SECTION_REGISTRY_BY_ID,
   type SectionCategoryId,
+  type StatExtras,
 } from '@/lib/tradeLedger/sectionRegistry';
 import type { ReportConfig } from '@/lib/tradeLedger/reportConfig';
 import type { MacroStats, Stats } from '@/types/dashboard';
@@ -84,8 +91,29 @@ export async function renderReport(
     'executed',
     'all',
   );
-  const stats = adaptStats(apiResponse);
+  const executedTrades = trades.filter((t) => t.executed === true);
+  const averageDrawdown = calculateAverageDrawdown(executedTrades, aggregateBalance);
+  const stats = adaptStats(apiResponse, averageDrawdown);
   const macroStats = adaptMacro(apiResponse);
+
+  // Extras not surfaced directly by computeAllDashboardStats — computed once
+  // here so the registry can stay a pure projection over `stats` / `macroStats`
+  // plus this sidecar bundle.
+  const avgWL = calculateAvgWinLoss(executedTrades);
+  const expectancy = calculateExpectancy(executedTrades);
+  const { recoveryFactor } = computeRecoveryFactorAndDrawdownCount({
+    averagePnLPercentage: stats.averagePnLPercentage,
+    maxDrawdown: stats.maxDrawdown,
+    drawdownCount: stats.drawdownCount,
+  });
+  const extras: StatExtras = {
+    avgWin: avgWL.avgWin,
+    avgLoss: avgWL.avgLoss,
+    winLossRatio: avgWL.winLossRatio,
+    expectancy: expectancy.expectancy,
+    expectancyNormalized: expectancy.normalized,
+    recoveryFactor,
+  };
 
   // ── 2. Running balance (and per-account sub-tables in consolidated mode) ─
   const { rows, totals } = buildRunningBalance(trades, aggregateBalance);
@@ -118,7 +146,7 @@ export async function renderReport(
       const def = SECTION_REGISTRY_BY_ID[statId];
       if (!def) continue; // dangling ref — silent skip
       try {
-        const out = def.extract({ stats, macroStats, currency });
+        const out = def.extract({ stats, macroStats, currency, extras });
         items.push({ label: def.label, formatted: out.formatted });
       } catch {
         // A single bad extract doesn't kill the whole report.
@@ -301,7 +329,7 @@ function resolveStandardFont(family: string): StandardFonts {
 
 type ApiResponse = ReturnType<typeof computeAllDashboardStats>;
 
-function adaptStats(r: ApiResponse): Stats {
+function adaptStats(r: ApiResponse, averageDrawdown: number): Stats {
   return {
     totalTrades: r.core.totalTrades,
     totalWins: r.core.totalWins,
@@ -311,7 +339,7 @@ function adaptStats(r: ApiResponse): Stats {
     averageProfit: r.core.averageProfit,
     intervalStats: {},
     maxDrawdown: r.maxDrawdown,
-    averageDrawdown: 0, // not provided by compute; caller can compute separately if needed
+    averageDrawdown,
     averagePnLPercentage: r.core.averagePnLPercentage,
     evaluationStats: [],
     winRateWithBE: r.core.winRateWithBE,

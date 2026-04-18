@@ -43,5 +43,8 @@ function serializeKey(input: CountTradesInput): string {
     input.period.start,
     input.period.end,
     input.strategyId ?? '',
+    input.markets && input.markets.length > 0
+      ? [...input.markets].sort().join(',')
+      : '',
   ].join('|');
 }

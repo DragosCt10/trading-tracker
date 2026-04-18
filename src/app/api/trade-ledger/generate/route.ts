@@ -124,6 +124,9 @@ export async function POST(request: Request) {
   if (config.strategyId) {
     tradeQuery = tradeQuery.eq('strategy_id', config.strategyId);
   }
+  if (config.markets && config.markets.length > 0) {
+    tradeQuery = tradeQuery.in('market', config.markets);
+  }
 
   const { data: tradesRaw, error: tradesError } = await tradeQuery;
 
