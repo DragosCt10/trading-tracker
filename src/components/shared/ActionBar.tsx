@@ -3,7 +3,6 @@
 import * as React from 'react';
 import clsx from 'clsx';
 import { useQueryClient } from '@tanstack/react-query';
-import { setActiveAccount } from '@/lib/server/accounts';
 import type { AccountRow } from '@/lib/server/accounts';
 import { useCallback, useEffect, useRef } from 'react';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
@@ -109,8 +108,11 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
   //      mount when the server-side hydration already matches).
   //   2. CWV1 optimistic: update the selection store IMMEDIATELY so the UI
   //      lights up without waiting on the server round trip.
-  //   3. Call setActiveAccount. On error, roll back the store and show an
-  //      inline banner via useProgressDialog (auto-dismisses after 3s).
+  //   3. POST /api/accounts/set-active. On error, roll back the store and
+  //      show an inline banner via useProgressDialog (auto-dismisses after 3s).
+  //      Using a dedicated API route instead of a Server Action avoids the
+  //      implicit RSC refresh of the current page, which was adding 3-5s of
+  //      latency on top of the DB UPDATE on heavy routes.
   //   4. On success, patch the shared `accounts:all` cache in place using
   //      the row the server returned — no refetchAccounts, no extra RTT.
   //   5. Invalidate trade query caches so dashboards refetch under the new
@@ -143,8 +145,18 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
       if (index >= 0) setLastAccountPreference(userId, mode, index);
 
       try {
-        const { data, error } = await setActiveAccount(mode, resolvedAccount.id);
-        if (error || !data) {
+        const response = await fetch('/api/accounts/set-active', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode, accountId: resolvedAccount.id }),
+        });
+        const payload = (await response.json().catch(() => null)) as
+          | { data: AccountRow | null; error: { message: string } | null }
+          | null;
+        const data = payload?.data ?? null;
+        const error = payload?.error ?? (response.ok ? null : { message: response.statusText });
+
+        if (!response.ok || error || !data) {
           // CQ-2: rollback + user-visible error
           setSelection(previous);
           setSwitchError('Could not switch account. Try again.');
@@ -326,7 +338,7 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
             disabled={applying}
             variant="default"
             loading={applying}
-            triggerLabel={applying ? 'Applying…' : (accountDisplayName ?? undefined)}
+            triggerLabel={accountDisplayName ?? undefined}
           />
 
           {isInitializing ? (
