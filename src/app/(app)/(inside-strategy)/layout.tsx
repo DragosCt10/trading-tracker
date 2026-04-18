@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useState, useMemo, useEffect, startTransition } from 'react';
+import { ReactNode, useState, useMemo, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { PlusCircle, TrendingUp, BarChart3, NotebookPen, LayoutGrid, ChevronRight, ChevronLeft, Bot, PanelLeft } from 'lucide-react';
@@ -46,10 +46,10 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
     return () => window.removeEventListener('strategy-sidenav:show', handler);
   }, []);
 
-  // Auto-close nav on mobile when the route changes (after link tap)
+  // Auto-close nav on mobile when the route changes (safety net; link onClick closes synchronously)
   useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-      startTransition(() => setIsNavHidden(true));
+      setIsNavHidden(true);
     }
   }, [pathname]);
 
@@ -172,7 +172,15 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
             <ChevronLeft className="h-4 w-4 transition-transform duration-300 ease-in-out group-hover/hide:-translate-x-0.5 group-hover/hide:scale-110 group-hover/hide:text-slate-600 dark:group-hover/hide:text-slate-300" />
           </button>
 
-          <div className="relative flex flex-col gap-2 p-3">
+          <div
+            className="relative flex flex-col gap-2 p-3"
+            onClick={(e) => {
+              if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                const target = e.target as HTMLElement;
+                if (target.closest('a')) setIsNavHidden(true);
+              }
+            }}
+          >
             <Button variant="ghost" asChild size="sm" className={navButtonClass(isActive('/analytics'))}>
               <Link href={analyticsUrl} className="block w-full h-full relative min-h-[40px]">
                 <BarChart3 className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
