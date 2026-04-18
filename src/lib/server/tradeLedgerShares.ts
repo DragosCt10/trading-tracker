@@ -17,6 +17,7 @@ import {
   buildReferenceCode,
   sha256Hex,
 } from '@/lib/tradeLedger/integrityHash';
+import { resolveTraderName } from '@/lib/server/tradeLedger/resolveTraderName';
 import type { Trade } from '@/types/trade';
 
 const SHARE_RATE_LIMITS = {
@@ -185,6 +186,8 @@ export async function createShare(
   const token = nanoid(21);
   const expiresAt = new Date(Date.now() + expiryDays * 86_400_000).toISOString();
 
+  const traderName = await resolveTraderName(user);
+
   const { error: insertError } = await supabase.from('trade_ledger_shares').insert({
     user_id: user.id,
     token,
@@ -192,6 +195,7 @@ export async function createShare(
     trades_snapshot: trades,
     aggregates: aggregates as unknown as Record<string, unknown>,
     integrity_hash: integrityHash,
+    trader_name: traderName,
     expires_at: expiresAt,
   });
 
@@ -297,6 +301,7 @@ export async function getSharedReport(token: string): Promise<{
   tradesSnapshot: Trade[];
   aggregates: Record<string, unknown>;
   integrityHash: string;
+  traderName: string | null;
   createdAt: string;
   expiresAt: string | null;
 } | null> {
@@ -320,7 +325,7 @@ export async function getSharedReport(token: string): Promise<{
 
   const { data, error } = await admin
     .from('trade_ledger_shares')
-    .select('id, config, trades_snapshot, aggregates, integrity_hash, expires_at, revoked_at, view_count, created_at')
+    .select('id, config, trades_snapshot, aggregates, integrity_hash, trader_name, expires_at, revoked_at, view_count, created_at')
     .eq('token', token)
     .is('revoked_at', null)
     .single();
@@ -340,6 +345,7 @@ export async function getSharedReport(token: string): Promise<{
     tradesSnapshot: data.trades_snapshot as Trade[],
     aggregates: data.aggregates as Record<string, unknown>,
     integrityHash: data.integrity_hash,
+    traderName: (data.trader_name as string | null) ?? null,
     createdAt: data.created_at,
     expiresAt: data.expires_at as string | null,
   };

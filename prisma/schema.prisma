@@ -1254,6 +1254,9 @@ model trade_ledger_shares {
   trades_snapshot Json
   aggregates      Json
   integrity_hash  String    @db.VarChar(64)
+  /// Display name captured at share creation. Anonymous viewers read this
+  /// instead of the auth row so the cover page shows the real name.
+  trader_name     String?   @db.VarChar(120)
   expires_at      DateTime? @db.Timestamptz(6)
   revoked_at      DateTime? @db.Timestamptz(6)
   view_count      Int       @default(0)

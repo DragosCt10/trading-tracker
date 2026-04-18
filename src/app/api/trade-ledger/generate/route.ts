@@ -5,6 +5,7 @@ import { checkRateLimit } from '@/lib/rateLimit';
 import { baseReportConfigSchema } from '@/lib/tradeLedger/reportConfig';
 import { renderReport, type AccountMeta } from '@/lib/server/tradeLedger/renderReport';
 import { getTradeLedgerQuota, recordTradeLedgerGeneration } from '@/lib/server/subscription';
+import { resolveTraderName } from '@/lib/server/tradeLedger/resolveTraderName';
 import type { Trade } from '@/types/trade';
 
 export const runtime = 'nodejs';
@@ -153,9 +154,7 @@ export async function POST(request: Request) {
   }
 
   // ── 3. Trader display name ──────────────────────────────────────────────
-  const traderName =
-    (user.user_metadata?.full_name as string | undefined) ??
-    (user.email ? user.email.split('@')[0] : 'Trader');
+  const traderName = await resolveTraderName(user);
 
   // ── 4. Render ───────────────────────────────────────────────────────────
   try {

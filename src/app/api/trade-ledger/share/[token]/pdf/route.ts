@@ -38,9 +38,10 @@ export async function GET(_request: Request, context: RouteContext) {
     return new NextResponse('Share references accounts that no longer exist', { status: 410 });
   }
 
-  // Trader name is derived from the user on the share row — for privacy on
-  // public links, show a generic label instead of leaking the real name.
-  const traderName = 'Alpha Stats Trader';
+  // Trader name is frozen into the share row at creation time (display name
+  // from Settings → Profile, then auth `full_name`, then email local-part).
+  // Old rows predating the column fall back to a generic label.
+  const traderName = shared.traderName?.trim() || 'Alpha Stats Trader';
 
   try {
     const result = await renderReport({
