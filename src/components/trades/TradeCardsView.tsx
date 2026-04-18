@@ -535,7 +535,7 @@ export function TradeCardsView({
         ) : currentViewMode === 'table' ? (
           <>
             {showTableBulkActions && selectedIds.size > 0 && (
-              <div className="mb-4 flex items-center gap-4 rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-3">
+              <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-4 rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-3">
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   {selectedIds.size} trade{selectedIds.size !== 1 ? 's' : ''} selected
                 </span>
