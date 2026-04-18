@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
-import { Lock, Share2 } from 'lucide-react';
+import { Download, ExternalLink, Lock, Share2 } from 'lucide-react';
 import { getSharedReport } from '@/lib/server/tradeLedgerShares';
 import { Badge } from '@/components/ui/badge';
 import { Footer } from '@/components/shared/Footer';
@@ -90,7 +90,43 @@ export default async function PublicTradeLedgerSharePage({ params }: PageProps) 
 
         <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
 
-        <div className="aspect-[1/1.414] w-full rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+        {/*
+          Mobile browsers (especially iOS Safari / Chrome) only render the
+          first page of a multi-page PDF inside an `<iframe>` and don't
+          expose the PDF toolbar. Always surface explicit Open / Download
+          actions so viewers on any device can reach the full document.
+        */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <a
+            href={pdfUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white themed-btn-primary cursor-pointer relative overflow-hidden group"
+          >
+            <ExternalLink className="h-4 w-4" />
+            <span>Open full PDF</span>
+            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+          </a>
+          <a
+            href={pdfUrl}
+            download
+            className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium border border-slate-200/80 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+          >
+            <Download className="h-4 w-4" />
+            <span>Download</span>
+          </a>
+          <p className="basis-full sm:basis-auto sm:ml-auto text-[11px] text-slate-500 dark:text-slate-400">
+            Best viewed on a desktop browser.
+          </p>
+        </div>
+
+        {/*
+          On ≥sm screens we keep the inline A4 preview (desktop PDF viewers
+          scroll through every page). On mobile we collapse to a short
+          teaser — the native PDF viewer (opened via the buttons above) is
+          the reliable way to read a multi-page file.
+        */}
+        <div className="w-full rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[70vh] sm:h-auto sm:aspect-[1/1.414]">
           <iframe
             src={pdfUrl}
             title="Shared Trade Ledger report"
