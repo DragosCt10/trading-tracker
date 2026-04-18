@@ -9,6 +9,12 @@ export const PRICING_FEATURES: FeatureItem[] = [
   { label: 'Trade Performance Analysis', values: ['Basic', 'Basic', 'Full suite'] },
   { label: 'Social Trading Feed', values: ['Basic', 'Basic', 'Full (attach trades, edit, channels)'] },
   { label: 'Extra Trade Performance Cards', values: ['Basic', 'Full suite', 'Full suite'] },
+  {
+    label: 'Trade Ledger PDFs',
+    values: [false, '5 / month', 'Unlimited'],
+    tooltip:
+      'Banking-style PDF statements of your trading activity — cover page, key metrics, and the full trade ledger. Share a read-only link with prop firms, mentors, or your accountant.',
+  },
   { label: 'Export Trades', values: [true, true, true] },
   { label: 'Public Stats Sharing', values: [true, true, true] },
   { label: 'Equity Curve Chart', values: [true, true, true] },

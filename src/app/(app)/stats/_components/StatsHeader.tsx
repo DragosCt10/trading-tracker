@@ -1,6 +1,7 @@
 'use client';
 
-import { Target, Archive } from 'lucide-react';
+import Link from 'next/link';
+import { Target, Archive, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { STATS_DEFAULT_DESCRIPTION } from './constants';
 import type { AccountRow } from '@/lib/server/accounts';
@@ -49,17 +50,30 @@ export function StatsHeader({
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          onClick={onOpenArchived}
-          aria-expanded={isArchivedSheetOpen}
-          aria-controls="stats-archived-dialog"
-          aria-label="Open archived Stats Boards"
-          className="flex cursor-pointer items-center gap-2 h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-colors duration-200 shrink-0"
-        >
-          <Archive className="h-4 w-4" aria-hidden="true" />
-          <span className="hidden sm:inline">Archived</span>
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            asChild
+            variant="outline"
+            aria-label="Open Trade Ledger"
+            className="flex cursor-pointer items-center gap-2 h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-colors duration-200"
+          >
+            <Link href="/trade-ledger">
+              <FileText className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Trade Ledger</span>
+            </Link>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={onOpenArchived}
+            aria-expanded={isArchivedSheetOpen}
+            aria-controls="stats-archived-dialog"
+            aria-label="Open archived Stats Boards"
+            className="flex cursor-pointer items-center gap-2 h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-colors duration-200"
+          >
+            <Archive className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Archived</span>
+          </Button>
+        </div>
       </div>
     </div>
   );

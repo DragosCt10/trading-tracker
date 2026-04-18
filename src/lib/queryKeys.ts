@@ -180,6 +180,12 @@ export const queryKeys = {
     approved: () => ['reviews', 'approved'] as const,
   },
 
+  /** Trade Ledger — saved report templates and shared reports per user. */
+  tradeLedger: {
+    templates: (userId?: string) => ['trade-ledger:templates', userId] as const,
+    shares:    (userId?: string) => ['trade-ledger:shares',    userId] as const,
+  },
+
   /** Full Trade[] for a single calendar month (for calendar display). */
   calendarTrades: (
     mode: TradingMode,

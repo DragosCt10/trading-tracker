@@ -532,3 +532,52 @@ export async function getRemainingTrades(
 
   return Math.max(0, max - (count ?? 0));
 }
+
+export interface TradeLedgerQuota {
+  /** Current calendar-month generation count. */
+  used: number;
+  /** Monthly cap. null = unlimited. */
+  limit: number | null;
+  /** null = unlimited. Otherwise `max(0, limit - used)`. */
+  remaining: number | null;
+}
+
+/** First instant of the current UTC calendar month, as ISO. */
+function startOfMonthIso(): string {
+  const d = new Date();
+  d.setUTCDate(1);
+  d.setUTCHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+/**
+ * Trade Ledger PDF generations in the current calendar month (UTC).
+ * `limit === null` means unlimited (Pro / Elite).
+ */
+export async function getTradeLedgerQuota(userId: string): Promise<TradeLedgerQuota> {
+  const sub = await getCachedSubscription(userId);
+  const limit = sub.definition.limits.maxMonthlyTradeLedgers;
+
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from('trade_ledger_generations')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .gte('created_at', startOfMonthIso());
+
+  const used = count ?? 0;
+  const remaining = limit === null ? null : Math.max(0, limit - used);
+  return { used, limit, remaining };
+}
+
+/**
+ * Logs a successful generation. Call only AFTER the PDF renders so failed
+ * attempts don't burn a slot.
+ */
+export async function recordTradeLedgerGeneration(
+  userId: string,
+): Promise<TradeLedgerQuota> {
+  const supabase = await createClient();
+  await supabase.from('trade_ledger_generations').insert({ user_id: userId });
+  return getTradeLedgerQuota(userId);
+}

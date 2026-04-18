@@ -34,7 +34,7 @@ function buildCsp(nonce: string): string {
     "img-src 'self' data: https: https://www.googletagmanager.com",
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live https://www.googletagmanager.com https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com",
     "font-src 'self'",
-    "frame-src https://www.googletagmanager.com",
+    "frame-src 'self' https://www.googletagmanager.com",
     "frame-ancestors 'none'",
   ].join('; ');
 }

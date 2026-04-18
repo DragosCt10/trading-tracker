@@ -20,6 +20,13 @@ export interface TierLimits {
   maxPostContentLength: number;
   /** null = unlimited. 50 for starter. */
   maxMonthlyTrades: number | null;
+  /**
+   * Trade Ledger PDF generations permitted per calendar month.
+   * null = unlimited (pro / elite). 5 for starter_plus. 0 for starter
+   * (starter is already blocked by `features.tradeLedger` — kept as 0 for
+   * clarity so the gate works even if that flag is ever flipped).
+   */
+  maxMonthlyTradeLedgers: number | null;
 }
 
 export interface TierFeatureFlags {
@@ -40,6 +47,8 @@ export interface TierFeatureFlags {
   allExtraCards: boolean;
   /** Elite tier only */
   alphaHub: boolean;
+  /** Trade Ledger — banking-style PDF reports. Starter Plus and above. */
+  tradeLedger: boolean;
   // ── Social Feed ──
   /** Can attach trades to posts (PRO only) */
   socialFeedTradeAttach: boolean;

@@ -1,8 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, BarChart3, Loader2, TrendingUp, Zap, type LucideIcon } from 'lucide-react';
+import { ArrowRight, BarChart3, Info, Loader2, TrendingUp, Zap, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { TIER_DEFINITIONS } from '@/constants/tiers';
 import { PRICING_FEATURES } from '@/constants/pricingFeatures';
@@ -392,14 +398,39 @@ export function PricingComparison({
           </PricingTableRow>
         </PricingTableHeader>
         <PricingTableBody>
-          {PRICING_FEATURES.map((feature, index) => (
-            <PricingTableRow key={index}>
-              <PricingTableHead>{feature.label}</PricingTableHead>
-              {feature.values.map((value, i) => (
-                <PricingTableCell key={i}>{value}</PricingTableCell>
-              ))}
-            </PricingTableRow>
-          ))}
+          <TooltipProvider delayDuration={150}>
+            {PRICING_FEATURES.map((feature, index) => (
+              <PricingTableRow key={index}>
+                <PricingTableHead>
+                  <span className="inline-flex items-center gap-1.5">
+                    {feature.label}
+                    {feature.tooltip ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            aria-label={`What is ${feature.label}?`}
+                            className="inline-flex items-center text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60 rounded-full"
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="top"
+                          className="max-w-[260px] rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 px-3 py-2 text-xs leading-snug"
+                        >
+                          {feature.tooltip}
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : null}
+                  </span>
+                </PricingTableHead>
+                {feature.values.map((value, i) => (
+                  <PricingTableCell key={i}>{value}</PricingTableCell>
+                ))}
+              </PricingTableRow>
+            ))}
+          </TooltipProvider>
         </PricingTableBody>
       </PricingTable>
     </div>

@@ -24,6 +24,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       maxPostsPerDay: 50,
       maxPostContentLength: 280,
       maxMonthlyTrades: 50,
+      maxMonthlyTradeLedgers: 0,
     },
     features: {
       dailyJournal: false,
@@ -38,6 +39,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       allTradePerformanceAnalysis: false,
       allExtraCards: false,
       alphaHub: false,
+      tradeLedger: false,
       socialFeedTradeAttach: false,
       socialFeedEditPosts: false,
       socialFeedChannels: false,
@@ -68,6 +70,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       maxPostsPerDay: 50,
       maxPostContentLength: 280,
       maxMonthlyTrades: 250,
+      maxMonthlyTradeLedgers: 5,
     },
     features: {
       dailyJournal: false,
@@ -82,6 +85,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       allTradePerformanceAnalysis: false,
       allExtraCards: true,
       alphaHub: false,
+      tradeLedger: true,
       socialFeedTradeAttach: false,
       socialFeedEditPosts: false,
       socialFeedChannels: false,
@@ -123,6 +127,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       maxPostsPerDay: 50,
       maxPostContentLength: 500,
       maxMonthlyTrades: null,
+      maxMonthlyTradeLedgers: null,
     },
     features: {
       dailyJournal: true,
@@ -137,6 +142,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       allTradePerformanceAnalysis: true,
       allExtraCards: true,
       alphaHub: false,
+      tradeLedger: true,
       socialFeedTradeAttach: true,
       socialFeedEditPosts: true,
       socialFeedChannels: true,
@@ -160,6 +166,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       maxPostsPerDay: 50,
       maxPostContentLength: 500,
       maxMonthlyTrades: null,
+      maxMonthlyTradeLedgers: null,
     },
     features: {
       dailyJournal: true,
@@ -174,6 +181,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       allTradePerformanceAnalysis: true,
       allExtraCards: true,
       alphaHub: true,
+      tradeLedger: true,
       socialFeedTradeAttach: true,
       socialFeedEditPosts: true,
       socialFeedChannels: true,

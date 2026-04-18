@@ -134,7 +134,10 @@ export default async function RootLayout({
           <Script src="https://lmsqueezy.com/affiliate.js" strategy="afterInteractive" />
         </>
       )}
-      <body className={`${inter.className} app-gradient min-h-screen relative`}>
+      <body
+        className={`${inter.className} app-gradient min-h-screen relative`}
+        suppressHydrationWarning
+      >
         {/* Theme-aware gradient orbs (use --orb-1 / --orb-2 from color theme) — static, no animation */}
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden>
           <div className="absolute top-0 left-1/4 w-[500px] h-[500px] orb-bg-1 rounded-full blur-3xl" />

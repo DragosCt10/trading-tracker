@@ -462,6 +462,9 @@ model users {
   user_discounts                            user_discounts[]
   social_profiles                           social_profiles?
   reviews                                   reviews?
+  trade_ledger_templates                    trade_ledger_templates[]
+  trade_ledger_shares                       trade_ledger_shares[]
+  trade_ledger_generations                  trade_ledger_generations[]
 
   @@index([instance_id])
   @@index([is_anonymous])
@@ -1224,6 +1227,54 @@ model reviews {
 
   @@index([status], map: "idx_reviews_status")
   @@index([user_id], map: "idx_reviews_user_id")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model trade_ledger_templates {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  name       String   @db.VarChar(255)
+  config     Json
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  users users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_trade_ledger_templates_user_id")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model trade_ledger_shares {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String    @db.Uuid
+  token           String    @unique @db.VarChar(32)
+  config          Json
+  trades_snapshot Json
+  aggregates      Json
+  integrity_hash  String    @db.VarChar(64)
+  expires_at      DateTime? @db.Timestamptz(6)
+  revoked_at      DateTime? @db.Timestamptz(6)
+  view_count      Int       @default(0)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  users users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_trade_ledger_shares_user_id")
+  @@index([token], map: "idx_trade_ledger_shares_token")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model trade_ledger_generations {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  users users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, created_at(sort: Desc)], map: "idx_trade_ledger_generations_user_created")
   @@schema("public")
 }
 

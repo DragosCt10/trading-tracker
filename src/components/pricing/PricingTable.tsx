@@ -182,6 +182,8 @@ type FeatureValue = boolean | string;
 type FeatureItem = {
 	label: string;
 	values: FeatureValue[];
+	/** Optional helper text shown in an info tooltip next to the label. */
+	tooltip?: string;
 };
 
 export {

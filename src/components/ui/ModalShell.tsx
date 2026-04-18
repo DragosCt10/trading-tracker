@@ -22,6 +22,8 @@ type ModalShellProps = {
   mode?: 'live' | 'backtesting' | 'demo';
   belowScrollContent?: React.ReactNode;
   footer?: React.ReactNode;
+  /** Tailwind max-width class. Defaults to `max-w-lg`. */
+  maxWidth?: string;
   children: React.ReactNode;
 };
 
@@ -34,11 +36,15 @@ export function ModalShell({
   mode,
   belowScrollContent,
   footer,
+  maxWidth = 'max-w-lg',
   children,
 }: ModalShellProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-lg max-h-[90vh] flex flex-col fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl px-6 py-5">
+      <AlertDialogContent className={cn(
+        maxWidth,
+        'max-h-[90vh] flex flex-col fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl px-6 py-5'
+      )}>
         {/* Gradient orbs background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
           <div className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl" />
