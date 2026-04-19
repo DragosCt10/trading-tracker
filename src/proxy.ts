@@ -36,6 +36,11 @@ function buildCsp(nonce: string): string {
     "font-src 'self'",
     "frame-src 'self' https://www.googletagmanager.com",
     "frame-ancestors 'none'",
+    // Prevents injected <base> tags from redirecting relative URLs to an
+    // attacker-controlled domain. Lighthouse "Ensure CSP is effective against XSS" HIGH.
+    "base-uri 'none'",
+    // Restrict <form action> to same-origin to prevent form hijacking.
+    "form-action 'self'",
   ].join('; ');
 }
 
@@ -48,6 +53,10 @@ function setSecurityHeaders(response: NextResponse, nonce: string): void {
     'Permissions-Policy',
     'camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()'
   );
+  // Origin isolation (Lighthouse "Ensure proper origin isolation with COOP" HIGH).
+  // `same-origin-allow-popups` preserves OAuth / Lemon Squeezy checkout popups while
+  // isolating the top-level window from other docs.
+  response.headers.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
   response.headers.set('Content-Security-Policy', buildCsp(nonce));
 }
 
@@ -151,7 +160,8 @@ export const config = {
      * - update-password (password update page)
      * - reset-password (password reset page)
      * - api (API routes do their own auth; avoids duplicate Supabase auth calls)
+     * - robots.txt, sitemap.xml (SEO: crawlers must see raw content, not an auth redirect)
      */
-    '/((?!_next/static|_next/image|favicon.ico|update-password|signup|reset-password|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp|webmanifest)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|update-password|signup|reset-password|api|robots\\.txt|sitemap\\.xml|sitemap/.*\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|webmanifest)$).*)',
   ],
 };
