@@ -21,10 +21,10 @@ import Logo from '@/components/shared/Logo';
 import { ThemePickerModal } from '@/components/shared/ThemePickerModal';
 
 const BASE_NAV_LINKS = [
-  { label: 'Features', href: '#stats-board' },
-  { label: 'Pricing', href: '/pricing' },
-  { label: 'Testimonials', href: '#testimonials' },
   { label: 'Earn with us', href: '/affiliates' },
+  { label: 'Pricing', href: '/pricing' },
+  { label: 'Feed', href: '/feed' },
+  { label: 'Testimonials', href: '#testimonials' },
 ] as const;
 
 interface LandingNavbarProps {
