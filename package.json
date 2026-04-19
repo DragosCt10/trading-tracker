@@ -23,6 +23,12 @@
     "test:responsive": "playwright test tests/e2e/responsive/ --workers=4",
     "test:responsive:update": "playwright test tests/e2e/responsive/ --update-snapshots --workers=4"
   },
+  "browserslist": [
+    "chrome >= 93",
+    "firefox >= 93",
+    "safari >= 15.4",
+    "edge >= 93"
+  ],
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@lemonsqueezy/lemonsqueezy.js": "^4.0.0",
