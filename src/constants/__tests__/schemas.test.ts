@@ -69,4 +69,14 @@ describe('buildPricingProductSchema', () => {
       expect(offer.priceCurrency).toBe('USD');
     }
   });
+
+  it('includes an absolute `image` URL (required by Google for Product rich results)', () => {
+    const result = buildPricingProductSchema();
+    const images = result!.image as string[];
+    expect(Array.isArray(images)).toBe(true);
+    expect(images.length).toBeGreaterThan(0);
+    for (const img of images) {
+      expect(img).toMatch(/^https:\/\//);
+    }
+  });
 });
