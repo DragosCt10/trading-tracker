@@ -17,6 +17,7 @@ export const PRICING_FEATURES: FeatureItem[] = [
   },
   { label: 'Export Trades', values: [true, true, true] },
   { label: 'Public Stats Sharing', values: [true, true, true] },
+  { label: 'Public Trade Share', values: [true, true, true] },
   { label: 'Equity Curve Chart', values: [true, true, true] },
   { label: 'Trades Calendar', values: [true, true, true] },
   { label: 'Custom Stats Builder', values: [false, false, true] },
