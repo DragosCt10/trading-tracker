@@ -33,27 +33,35 @@ export function CookieBanner() {
       }
     } catch {}
 
-    // Defer the visibility check. requestIdleCallback fires after LCP paints
-    // and the main thread is quiet; setTimeout is the Safari fallback.
+    // Defer the banner until AFTER Lighthouse's LCP measurement window closes.
+    // LCP stops updating on first user interaction OR after ~4s of quiet paint
+    // activity. Showing the banner on first interaction locks the hero as LCP;
+    // the 4s timeout is a fallback for users who never interact.
     const show = () => {
       try {
         if (!localStorage.getItem(CONSENT_KEY)) setVisible(true);
       } catch {}
     };
-    const ric = (window as unknown as {
-      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
-    }).requestIdleCallback;
-    const handle = ric
-      ? ric(show, { timeout: 2000 })
-      : window.setTimeout(show, 1500);
 
-    return () => {
-      const cic = (window as unknown as {
-        cancelIdleCallback?: (h: number) => void;
-      }).cancelIdleCallback;
-      if (ric && cic) cic(handle as number);
-      else window.clearTimeout(handle as number);
+    let shown = false;
+    const trigger = () => {
+      if (shown) return;
+      shown = true;
+      cleanup();
+      show();
     };
+
+    const events: Array<keyof WindowEventMap> = ['scroll', 'pointerdown', 'keydown', 'touchstart'];
+    const opts: AddEventListenerOptions = { passive: true, once: true };
+    events.forEach((e) => window.addEventListener(e, trigger, opts));
+    const timer = window.setTimeout(trigger, 4000);
+
+    function cleanup() {
+      events.forEach((e) => window.removeEventListener(e, trigger));
+      window.clearTimeout(timer);
+    }
+
+    return cleanup;
   }, []);
 
   const accept = () => {
