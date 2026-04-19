@@ -15,6 +15,7 @@ import {
   Sparkles,
   Handshake,
   TrendingUp,
+  Rss,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -97,6 +98,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
   const isActive = useCallback((path: string) => {
     if (path === '/stats') return pathname.startsWith('/stats');
     if (path === '/insight-vault') return pathname.startsWith('/insight-vault');
+    if (path === '/feed') return pathname.startsWith('/feed');
     return pathname === path;
   }, [pathname]);
 
@@ -115,6 +117,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
 
   const isStrategiesActive = useMemo(() => isActive('/stats'), [isActive]);
   const isInsightVaultActive = useMemo(() => isActive('/insight-vault'), [isActive]);
+  const isFeedActive = useMemo(() => isActive('/feed'), [isActive]);
   const isAffiliatesActive = useMemo(() => isActive('/affiliates'), [isActive]);
   const isSettingsActive = useMemo(
     () => pathname.startsWith('/settings') || pathname.startsWith('/billing'),
@@ -175,6 +178,14 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   <span>Insight Vault</span>
                 </NavPillLink>
               </li>
+              {userId ? (
+                <li>
+                  <NavPillLink href="/feed" active={isFeedActive}>
+                    <Rss className="h-4 w-4" />
+                    <span>Feed</span>
+                  </NavPillLink>
+                </li>
+              ) : null}
               {userId ? (
                 <li>
                   <NavPillLink href="/affiliates#apply" active={isAffiliatesActive}>
@@ -406,6 +417,17 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   <Lightbulb className="h-4 w-4" />
                   Insight Vault
                 </NavPillLink>
+                {userId ? (
+                  <NavPillLink
+                    href="/feed"
+                    active={isFeedActive}
+                    className="h-11 w-full justify-start px-3 text-sm"
+                    onClick={closeMobileMenu}
+                  >
+                    <Rss className="h-4 w-4" />
+                    Feed
+                  </NavPillLink>
+                ) : null}
                 {userId ? (
                   <NavPillLink
                     href="/affiliates#apply"
