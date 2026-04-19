@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { LoadingProvider } from '@/context/LoadingContext';
@@ -11,16 +11,30 @@ import { GoogleTagManager } from '@next/third-parties/google';
 import Script from 'next/script';
 import { headers } from 'next/headers';
 import { CookieBanner } from '@/components/CookieBanner';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { SITE_URL, SITE_NAME, DEFAULT_DESCRIPTION } from '@/constants/seo';
+import { organizationSchema, softwareApplicationSchema } from '@/constants/schemas';
 
 const inter = Inter({ subsets: ['latin'] });
 
+const DEFAULT_TITLE = 'AlphaStats — Trading Journal & Analytics for Serious Traders';
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://alpha-stats.com'),
-  title: 'AlphaStats',
-  description: 'Built for traders, by traders. Stop guessing, start improving.',
-  keywords: ['trading journal', 'trade tracker', 'trading analytics', 'trading statistics', 'forex journal', 'stock journal', 'crypto journal', 'trading performance'],
-  authors: [{ name: 'AlphaStats', url: 'https://alpha-stats.com' }],
-  creator: 'AlphaStats',
+  metadataBase: new URL(SITE_URL),
+  title: { default: DEFAULT_TITLE, template: '%s | AlphaStats' },
+  description: DEFAULT_DESCRIPTION,
+  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  creator: SITE_NAME,
+  alternates: {
+    canonical: '/',
+    languages: { en: '/' },
+  },
+  verification: {
+    google: process.env.GSC_VERIFICATION_TOKEN,
+    other: process.env.BING_VERIFICATION_TOKEN
+      ? { 'msvalidate.01': process.env.BING_VERIFICATION_TOKEN }
+      : undefined,
+  },
   icons: {
     icon: [
       { url: '/icon-light.png', type: 'image/png', media: '(prefers-color-scheme: light)' },
@@ -30,19 +44,29 @@ export const metadata: Metadata = {
   },
   manifest: '/site.webmanifest',
   openGraph: {
-    title: 'AlphaStats',
-    description: 'Built for traders, by traders. Stop guessing, start improving.',
-    url: 'https://alpha-stats.com',
-    siteName: 'AlphaStats',
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_NAME,
     images: [{ url: '/thumbnail.jpg', width: 1200, height: 630 }],
     type: 'website',
+    locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AlphaStats',
-    description: 'Built for traders, by traders. Stop guessing, start improving.',
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
     images: ['/thumbnail.jpg'],
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0d0a12' },
+  ],
 };
 
 export default async function RootLayout({
@@ -138,6 +162,8 @@ export default async function RootLayout({
         className={`${inter.className} app-gradient min-h-screen relative`}
         suppressHydrationWarning
       >
+        <JsonLd payload={organizationSchema} />
+        <JsonLd payload={softwareApplicationSchema} />
         {/* Theme-aware gradient orbs (use --orb-1 / --orb-2 from color theme) — static, no animation */}
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden>
           <div className="absolute top-0 left-1/4 w-[500px] h-[500px] orb-bg-1 rounded-full blur-3xl" />

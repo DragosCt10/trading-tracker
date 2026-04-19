@@ -1,5 +1,8 @@
 'use client';
 
+// Error boundary is a client component; metadata export is not supported on
+// client components. Render <meta> and <title> inline — React 19 / Next 14
+// hoists them into the document head automatically.
 export default function Error({
   reset,
 }: {
@@ -8,6 +11,8 @@ export default function Error({
 }) {
   return (
     <div className="min-h-screen flex items-center justify-center text-foreground">
+      <title>Something went wrong | AlphaStats</title>
+      <meta name="robots" content="noindex, nofollow" />
       <div className="flex flex-col items-center gap-4 text-center px-4">
         <h1 className="text-2xl font-semibold">Something went wrong</h1>
         <p className="text-muted-foreground text-sm max-w-sm">

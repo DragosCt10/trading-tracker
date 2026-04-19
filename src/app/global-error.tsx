@@ -1,5 +1,7 @@
 'use client';
 
+// Global error must re-render <html> / <head> / <body>. Inline <meta robots>
+// so the error page is never indexed.
 export default function GlobalError({
   reset,
 }: {
@@ -8,6 +10,10 @@ export default function GlobalError({
 }) {
   return (
     <html lang="en">
+      <head>
+        <title>Something went wrong | AlphaStats</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </head>
       <body className="min-h-screen flex items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center gap-4 text-center px-4">
           <h1 className="text-2xl font-semibold">Something went wrong</h1>

@@ -1,11 +1,13 @@
-import { Metadata } from "next";
-import { PrivacyPolicyClient } from "./PrivacyPolicyClient";
+import type { Metadata } from 'next';
+import { PrivacyPolicyClient } from './PrivacyPolicyClient';
+import { buildPageMetadata } from '@/constants/seo';
 
-export const metadata: Metadata = {
-  title: "Privacy Policy | AlphaStats",
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Privacy Policy',
   description:
-    "Privacy Policy for AlphaStats — learn how we collect, use, and protect your data.",
-};
+    'Privacy Policy for AlphaStats — learn how we collect, use, and protect your data.',
+  path: '/privacy-policy',
+});
 
 export default function PrivacyPolicyPage() {
   return <PrivacyPolicyClient />;

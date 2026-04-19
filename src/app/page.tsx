@@ -1,4 +1,5 @@
 import dynamic from 'next/dynamic';
+import type { Metadata } from 'next';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { LandingHero } from '@/components/landing/LandingHero';
 import { LandingModes } from '@/components/landing/LandingModes';
@@ -13,8 +14,16 @@ import { LandingFeatures } from '@/components/landing/LandingFeatures';
 import Footer from '@/components/shared/Footer';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import type { PlatformStats, PlatformStatsRpcResponse } from '@/types/platform-stats';
+import { buildPageMetadata } from '@/constants/seo';
 
 export const revalidate = 86400; // 24 hours — ISR for landing page stats
+
+export const metadata: Metadata = buildPageMetadata({
+  title: 'AlphaStats — Trading Journal & Analytics for Serious Traders',
+  description:
+    'Track every trade, find your edge, and improve faster. AlphaStats is the trading journal built by traders for traders — forex, stocks, crypto, futures.',
+  path: '/',
+});
 
 const LandingStatsBoard = dynamic(
   () => import('@/components/landing/LandingStatsBoard').then(m => ({ default: m.LandingStatsBoard })),
