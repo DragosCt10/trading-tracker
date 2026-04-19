@@ -13,6 +13,7 @@ import { getFilteredTrades, deleteTrades, moveTradestoStrategy, bulkUpdateTradeT
 import { getStrategiesOverview } from '@/lib/server/strategiesOverview';
 import type { Database } from '@/types/supabase';
 import { TradeCardsView } from '@/components/trades/TradeCardsView';
+import { TradeTagsFilter } from '@/components/trades/TradeTagsFilter';
 import {
   createAllTimeRange,
   DateRangeState,
@@ -104,6 +105,7 @@ export default function MyTradesClient({
   });
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [cardViewMode, setCardViewMode] = useState<'grid-4' | 'grid-2' | 'split' | 'table'>('grid-4');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -258,6 +260,18 @@ export default function MyTradesClient({
     });
     return list;
   }, [filteredTrades, sortConfig, getOutcomeValue]);
+
+  const availableTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const trade of trades) {
+      const tt = trade.tags;
+      if (!tt) continue;
+      for (const tag of tt) {
+        if (tag && tag.trim().length > 0) set.add(tag);
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [trades]);
 
   const currencySymbol = useMemo(
     () => getCurrencySymbolFromAccount(activeAccount ?? undefined),
@@ -730,6 +744,12 @@ export default function MyTradesClient({
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+            <TradeTagsFilter
+              availableTags={availableTags}
+              selectedTags={selectedTags}
+              onChange={setSelectedTags}
+              savedTags={liveSavedTags}
+            />
             <div className="flex items-center gap-2">
               <label htmlFor="sort-by" className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
                 Sort by:
@@ -843,6 +863,7 @@ export default function MyTradesClient({
           onCardViewModeChange={setCardViewMode}
           suppressHeaderControls
           savedTags={liveSavedTags}
+          tagsFilter={{ selectedTags, onSelectedTagsChange: setSelectedTags }}
         />
       </div>
 
