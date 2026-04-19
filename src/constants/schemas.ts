@@ -62,6 +62,9 @@ export function buildPricingProductSchema(): Record<string, unknown> | null {
       'Full analytics, AI Vision, daily journal, unlimited trades, public sharing, and priority support.',
     brand: { '@type': 'Brand', name: SITE_NAME },
     url: canonicalUrl('/pricing'),
+    // Required by Google for Product rich-result eligibility.
+    // thumbnail.jpg is the 1200x630 branded marketing asset in /public.
+    image: [`${SITE_URL}/thumbnail.jpg`],
     offers: [
       {
         '@type': 'Offer',
