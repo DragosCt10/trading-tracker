@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface AdminUser {
-  id: string;
+  id: string; 
   email: string;
   subscription?: ResolvedSubscription;
 }
