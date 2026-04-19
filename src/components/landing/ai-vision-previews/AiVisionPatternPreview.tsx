@@ -145,7 +145,7 @@ export function AiVisionPatternPreview() {
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-2 mb-1">
-        <h4 className="text-sm font-semibold text-white/90">Patterns</h4>
+        <h3 className="text-sm font-semibold text-white/90">Patterns</h3>
         <span
           className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/10 text-white/50 transition-opacity duration-300"
           style={{ opacity: isTransitioning ? 0 : 1 }}

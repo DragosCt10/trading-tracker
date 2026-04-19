@@ -49,7 +49,7 @@ export function AiVisionScorePreview() {
   return (
     <div className="flex flex-col items-center">
       <div className="flex items-center gap-2 mb-2 self-start">
-        <h4 className="text-sm font-semibold text-white/90">Composite Health Score</h4>
+        <h3 className="text-sm font-semibold text-white/90">Composite Health Score</h3>
       </div>
 
       <div className="rounded-xl border border-slate-700/50 bg-slate-800/40 backdrop-blur-sm p-4 w-full">

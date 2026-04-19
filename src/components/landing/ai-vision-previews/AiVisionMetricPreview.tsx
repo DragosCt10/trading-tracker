@@ -152,7 +152,7 @@ export function AiVisionMetricPreview() {
   return (
     <div className="flex flex-col">
       <div className="flex items-center gap-2 mb-2">
-        <h4 className="text-sm font-semibold text-white/90">Performance Metrics</h4>
+        <h3 className="text-sm font-semibold text-white/90">Performance Metrics</h3>
       </div>
 
       <div className="rounded-xl border border-slate-700/50 bg-slate-800/40 backdrop-blur-sm overflow-hidden">
