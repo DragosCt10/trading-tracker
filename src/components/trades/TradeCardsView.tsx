@@ -36,6 +36,7 @@ import TradeDetailsPanel from '@/components/TradeDetailsPanel';
 import NotesModal from '@/components/NotesModal';
 import { TradeCard } from '@/components/trades/TradeCard';
 import { TradesTableView } from '@/components/trades/TradesTableView';
+import { TradeTagsFilter } from '@/components/trades/TradeTagsFilter';
 import { Columns2, Eye, LayoutGrid, Loader2, MoveRight, PanelLeft, Tag, Trash2 } from 'lucide-react';
 
 type CardViewMode = 'grid-4' | 'grid-2' | 'split' | 'table';
@@ -66,6 +67,15 @@ export type TradeCardsViewProps = {
     selectedMarket: string;
     onSelectedMarketChange: (market: string) => void;
     markets: string[];
+  };
+  /**
+   * Parent-controlled tag filter. When provided, parent owns the selection state
+   * and is responsible for rendering the filter UI (e.g. via <TradeTagsFilter/>).
+   * When omitted, TradeCardsView manages state + renders its own inline popover.
+   */
+  tagsFilter?: {
+    selectedTags: string[];
+    onSelectedTagsChange: (tags: string[]) => void;
   };
   /**
    * When true and view is table, show checkboxes and bulk delete bar.
@@ -111,6 +121,7 @@ export function TradeCardsView({
   emptyMessage = 'No trades found for the selected period.',
   initialViewMode = 'grid-4',
   marketFilter,
+  tagsFilter,
   enableBulkDeleteInTableView = false,
   onBulkDelete,
   onBulkTag,
@@ -139,6 +150,17 @@ export function TradeCardsView({
   const [pendingTagSelection, setPendingTagSelection] = useState<string[]>([]);
   const [notesModalOpen, setNotesModalOpen] = useState(false);
   const [notesModalContent, setNotesModalContent] = useState('');
+  const [internalSelectedTags, setInternalSelectedTags] = useState<string[]>([]);
+
+  const isTagsControlled = tagsFilter !== undefined;
+  const selectedTags = isTagsControlled ? tagsFilter!.selectedTags : internalSelectedTags;
+  const setSelectedTags = (next: string[]) => {
+    if (isTagsControlled) {
+      tagsFilter!.onSelectedTagsChange(next);
+    } else {
+      setInternalSelectedTags(next);
+    }
+  };
 
   // Use prop if provided (controlled), otherwise use internal state (uncontrolled)
   const currentViewMode = cardViewMode !== undefined ? cardViewMode : internalCardViewMode;
@@ -159,13 +181,44 @@ export function TradeCardsView({
     setSelectedTrade(null);
     setIsModalOpen(false);
     setSelectedIds(new Set());
-  }, [resetKey, itemsPerLoad, externalPagination]);
+    if (!isTagsControlled) setInternalSelectedTags([]);
+  }, [resetKey, itemsPerLoad, externalPagination, isTagsControlled]);
+
+  const availableTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const trade of trades) {
+      const tt = trade.tags;
+      if (!tt) continue;
+      for (const tag of tt) {
+        if (tag && tag.trim().length > 0) set.add(tag);
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [trades]);
+
+  const filteredByTags = useMemo(() => {
+    if (selectedTags.length === 0) return trades;
+    const wanted = new Set(selectedTags);
+    return trades.filter((t) => {
+      const tt = t.tags;
+      if (!tt || tt.length === 0) return false;
+      for (const tag of tt) {
+        if (wanted.has(tag)) return true;
+      }
+      return false;
+    });
+  }, [trades, selectedTags]);
+
+  useEffect(() => {
+    if (externalPagination) return;
+    setDisplayedCount(itemsPerLoad);
+  }, [selectedTags, externalPagination, itemsPerLoad]);
 
   const displayedTrades = useMemo(
-    () => (externalPagination ? trades : trades.slice(0, displayedCount)),
-    [trades, displayedCount, externalPagination]
+    () => (externalPagination ? filteredByTags : filteredByTags.slice(0, displayedCount)),
+    [filteredByTags, displayedCount, externalPagination]
   );
-  const hasMore = externalPagination ? false : displayedCount < trades.length;
+  const hasMore = externalPagination ? false : displayedCount < filteredByTags.length;
 
   // ── Virtual scrolling for grid views ────────────────────────────────────
   const gridListRef = useRef<HTMLDivElement>(null);
@@ -286,7 +339,7 @@ export function TradeCardsView({
         if (!entries[0].isIntersecting) return;
         if (!hasMore) return;
         if (isLoading || isFetching) return;
-        setDisplayedCount((prev) => Math.min(prev + itemsPerLoad, trades.length));
+        setDisplayedCount((prev) => Math.min(prev + itemsPerLoad, filteredByTags.length));
       },
       { threshold: 0.1 }
     );
@@ -294,7 +347,7 @@ export function TradeCardsView({
     const currentTarget = observerTarget.current;
     if (currentTarget) observer.observe(currentTarget);
     return () => observer.disconnect();
-  }, [externalPagination, mounted, hasMore, isLoading, isFetching, itemsPerLoad, trades.length]);
+  }, [externalPagination, mounted, hasMore, isLoading, isFetching, itemsPerLoad, filteredByTags.length]);
 
   const openModal = (trade: Trade) => {
     setSelectedTrade(trade);
@@ -340,7 +393,15 @@ export function TradeCardsView({
 
           {!suppressHeaderControls && (
           <div className="flex items-center justify-end gap-3">
-            {sortControl && (
+            {!isTagsControlled && (
+              <TradeTagsFilter
+                availableTags={availableTags}
+                selectedTags={selectedTags}
+                onChange={setSelectedTags}
+                savedTags={savedTags}
+              />
+            )}
+            {sortControl && trades.length > 0 && (
               <div className="flex items-center gap-2">
                 {sortControl}
               </div>
