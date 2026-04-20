@@ -1,21 +1,15 @@
-'use client';
-
-import Script from 'next/script';
-import { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
-declare global {
-  interface Window {
-    Trustpilot?: {
-      loadFromElement: (el: HTMLElement, opts?: { forceReload?: boolean }) => void;
-    };
-  }
-}
+const TRUSTPILOT_REVIEW_URL = 'https://www.trustpilot.com/evaluate/alpha-stats.com';
+const TRUSTPILOT_GREEN = '#00B67A';
 
-const TRUSTPILOT_URL = 'https://www.trustpilot.com/review/alpha-stats.com';
-const TRUSTPILOT_BUSINESS_UNIT_ID = '69e5fe4960202033b33a72f6';
-const TRUSTPILOT_TEMPLATE_ID = '56278e9abfbbba0bdcd568bc'; // Review Collector
-const TRUSTPILOT_TOKEN = '6a6bd363-72fb-42c8-9696-b4442e669cdb';
+function TrustpilotStar({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className} style={style}>
+      <path d="M12 2l2.9 7.1 7.6.6-5.8 5 1.8 7.4L12 18.3 5.5 22.1l1.8-7.4-5.8-5 7.6-.6L12 2z" />
+    </svg>
+  );
+}
 
 interface TrustpilotWidgetProps {
   className?: string;
@@ -24,51 +18,46 @@ interface TrustpilotWidgetProps {
 }
 
 /**
- * Official Trustpilot TrustBox (Review Collector template).
- * Production-only: Trustpilot refuses to render on non-verified domains (localhost),
- * leaving a broken placeholder, so the widget is stripped from dev builds.
+ * Custom "Review us on Trustpilot" CTA — opens Trustpilot's review-submission flow
+ * for alpha-stats.com in a new tab. No iframe, no third-party script, no CSP impact.
  */
 export function TrustpilotWidget({ className, parallaxSpeed }: TrustpilotWidgetProps) {
-  const widgetRef = useRef<HTMLDivElement>(null);
-  const isProd = process.env.NODE_ENV === 'production';
-
-  // Re-init on mount (covers client-side nav where the bootstrap script has already loaded).
-  useEffect(() => {
-    if (!isProd) return;
-    if (typeof window !== 'undefined' && window.Trustpilot && widgetRef.current) {
-      window.Trustpilot.loadFromElement(widgetRef.current, { forceReload: true });
-    }
-  }, [isProd]);
-
-  if (!isProd) return null;
-
   return (
-    <>
-      <Script
-        id="trustpilot-bootstrap"
-        src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js"
-        strategy="lazyOnload"
-        onLoad={() => {
-          if (window.Trustpilot && widgetRef.current) {
-            window.Trustpilot.loadFromElement(widgetRef.current, { forceReload: true });
-          }
-        }}
-      />
-      <div
-        ref={widgetRef}
-        className={cn('trustpilot-widget', className)}
-        data-locale="en-US"
-        data-template-id={TRUSTPILOT_TEMPLATE_ID}
-        data-businessunit-id={TRUSTPILOT_BUSINESS_UNIT_ID}
-        data-style-height="52px"
-        data-style-width="100%"
-        data-token={TRUSTPILOT_TOKEN}
-        data-parallax-speed={parallaxSpeed}
+    <div
+      data-parallax-speed={parallaxSpeed}
+      className={cn('w-fit will-change-transform', className)}
+    >
+      <a
+        href={TRUSTPILOT_REVIEW_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Review AlphaStats on Trustpilot"
+        className="group inline-flex items-start gap-3"
       >
-        <a href={TRUSTPILOT_URL} target="_blank" rel="noopener noreferrer">
-          Trustpilot
-        </a>
-      </div>
-    </>
+        {/* Left: "Review on" */}
+        <span className="text-base font-bold text-white">
+          Review <span className="font-normal">on</span>
+        </span>
+
+        {/* Right: stars stacked over ★ Trustpilot */}
+        <div className="flex flex-col items-start gap-1">
+          <div className="flex items-center gap-0.5 mt-1" aria-hidden>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <span
+                key={i}
+                className="flex h-4 w-4 items-center justify-center rounded-[2px]"
+                style={{ backgroundColor: TRUSTPILOT_GREEN }}
+              >
+                <TrustpilotStar className="h-3 w-3 text-white" />
+              </span>
+            ))}
+          </div>
+          <span className="inline-flex items-center gap-1.5">
+            <TrustpilotStar className="h-4 w-4" style={{ color: TRUSTPILOT_GREEN }} />
+            <span className="font-semibold text-white tracking-tight">Trustpilot</span>
+          </span>
+        </div>
+      </a>
+    </div>
   );
 }
