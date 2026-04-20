@@ -311,10 +311,10 @@ export function LandingFeatures() {
           </p>
           <Link
             href="/login"
-            className="group inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-medium text-white transition-all duration-300 hover:brightness-110 hover:scale-[1.03]"
+            className="group inline-flex items-center gap-2 rounded-xl px-7 py-3 text-sm font-medium text-white transition-all duration-300 hover:brightness-110 hover:scale-[1.03]"
             style={{
-              background: 'linear-gradient(135deg, var(--tc-primary), var(--tc-accent-end))',
-              boxShadow: '0 0 24px color-mix(in oklch, var(--tc-primary) 30%, transparent)',
+              background: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))',
+              boxShadow: '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
             }}
           >
             Start tracking like a PRO

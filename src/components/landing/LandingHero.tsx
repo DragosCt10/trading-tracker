@@ -39,7 +39,7 @@ interface LandingHeroProps {
 }
 
 export function LandingHero({ heroStats }: LandingHeroProps) {
-  const sectionRef = useParallax(0);
+  const sectionRef = useParallax(0, true);
 
   return (
     <section ref={sectionRef} className="relative overflow-hidden">
@@ -264,7 +264,7 @@ export function LandingHero({ heroStats }: LandingHeroProps) {
         }}
       />
 
-      <div className="relative mx-auto max-w-6xl px-4 pb-30 pt-30 lg:pt-40">
+      <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-30">
         <div className="max-w-xl">
 
           {/* Badge */}
@@ -353,7 +353,7 @@ export function LandingHero({ heroStats }: LandingHeroProps) {
             </button>
           </div>
 
-          <TrustpilotWidget className="mt-8" parallaxSpeed={0.1} />
+          <TrustpilotWidget className="mt-8" parallaxSpeed={0.16} />
         </div>
       </div>
 

@@ -15,6 +15,8 @@ import Footer from '@/components/shared/Footer';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import type { PlatformStats, PlatformStatsRpcResponse } from '@/types/platform-stats';
 import { buildPageMetadata } from '@/constants/seo';
+import { getEarlyBirdSlotsUsed } from '@/lib/server/earlyBird';
+import { GeneralOfferBanner } from '@/components/landing/GeneralOfferBanner';
 
 export const revalidate = 86400; // 24 hours — ISR for landing page stats
 
@@ -95,7 +97,10 @@ export default async function Home() {
     );
   }
 
-  const raw = await fetchPlatformStats();
+  const [raw, earlyBirdSlotsUsed] = await Promise.all([
+    fetchPlatformStats(),
+    getEarlyBirdSlotsUsed(),
+  ]);
 
   // x2 applied server-side — raw values never reach the client
   const heroStats = [
@@ -105,7 +110,9 @@ export default async function Home() {
   ];
 
   return (
-    <div className="landing-page-override w-full">
+    <>
+      <GeneralOfferBanner slotsUsed={earlyBirdSlotsUsed} />
+      <div className="landing-page-override w-full">
       <LandingNavbar />
 
       <main id="main-content">
@@ -135,6 +142,7 @@ export default async function Home() {
       </main>
 
       <Footer />
-    </div>
+      </div>
+    </>
   );
-} 
+}

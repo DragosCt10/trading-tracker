@@ -7,8 +7,13 @@ import { useEffect, useRef, useCallback } from 'react';
  *
  * @param entranceDelay — ms to wait before enabling parallax (lets entrance
  *   animations finish). Default 0 (no entrance animations).
+ * @param topAnchored — when true, parallax progresses with `window.scrollY`
+ *   directly (starts reacting from pixel 0) instead of waiting for the
+ *   section to reach the viewport top. Use for the first section of the
+ *   page (e.g. the hero) so parallax reacts immediately, even when there's
+ *   a banner or sticky header above it. Default false.
  */
-export function useParallax(entranceDelay = 0) {
+export function useParallax(entranceDelay = 0, topAnchored = false) {
   const sectionRef = useRef<HTMLElement>(null);
   const rafRef = useRef<number>(0);
   const layoutRef = useRef({ top: 0, height: 0 });
@@ -30,7 +35,9 @@ export function useParallax(entranceDelay = 0) {
       if (!section) return;
 
       const { top, height } = layoutRef.current;
-      const relativeScroll = Math.max(window.scrollY - top, 0);
+      const relativeScroll = topAnchored
+        ? window.scrollY
+        : Math.max(window.scrollY - top, 0);
       const progress = Math.min(relativeScroll / height, 1);
 
       const els = section.querySelectorAll<HTMLElement>('[data-parallax-speed]');
@@ -42,7 +49,7 @@ export function useParallax(entranceDelay = 0) {
         el.style.opacity = String(opacity);
       });
     });
-  }, []);
+  }, [topAnchored]);
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;

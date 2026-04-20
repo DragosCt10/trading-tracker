@@ -40,7 +40,7 @@ function CallToAction1() {
         {/* CTA button */}
         <Link
           href="/login"
-          className="group relative overflow-hidden inline-flex items-center gap-2 px-8 py-3 text-sm font-semibold uppercase tracking-wide rounded-full mt-8 transition-all duration-300 bg-white text-slate-900 hover:bg-white/90"
+          className="group relative overflow-hidden inline-flex items-center gap-2 px-8 py-3 text-sm font-semibold uppercase tracking-wide rounded-xl mt-8 transition-all duration-300 bg-white text-slate-900 hover:bg-white/90"
           style={{
             boxShadow: '0 10px 25px -5px color-mix(in oklch, var(--tc-primary) 50%, transparent)',
           }}

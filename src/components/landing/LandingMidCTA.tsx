@@ -163,12 +163,12 @@ export function LandingMidCTA() {
               {/* Button side */}
               <Link
                 href="/login"
-                className="group/button flex-shrink-0 inline-flex items-center justify-center gap-2 px-8 py-4 font-semibold text-white rounded-full transition-all duration-300 ease-in-out hover:brightness-110"
+                className="group/button flex-shrink-0 inline-flex items-center justify-center gap-2 px-8 py-4 font-semibold text-white rounded-xl transition-all duration-300 ease-in-out hover:brightness-110"
                 style={{
                   background:
-                    'linear-gradient(135deg, var(--tc-primary), var(--tc-accent))',
+                    'linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))',
                   boxShadow:
-                    '0 10px 25px -5px color-mix(in oklch, var(--tc-primary) 40%, transparent)',
+                    '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
                 }}
               >
                 Get started free

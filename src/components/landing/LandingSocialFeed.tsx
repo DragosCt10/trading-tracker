@@ -114,8 +114,8 @@ export function LandingSocialFeed() {
             href="/feed"
             className="scroll-reveal mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 group"
             style={{
-              background: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent))',
-              boxShadow: '0 4px 20px color-mix(in oklch, var(--tc-primary) 30%, transparent)',
+              background: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))',
+              boxShadow: '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
               '--reveal-delay': '250ms',
             } as React.CSSProperties}
           >

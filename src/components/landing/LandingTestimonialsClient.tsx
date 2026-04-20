@@ -92,7 +92,7 @@ export function LandingTestimonialsClient() {
         >
           <Link
             href="/settings?tab=profile"
-            className="group relative overflow-hidden inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold text-white border-0 transition-all duration-300 themed-btn-primary"
+            className="group relative overflow-hidden inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white border-0 transition-all duration-300 themed-btn-primary"
           >
             <span className="relative z-10 flex items-center gap-2">
               Share your experience

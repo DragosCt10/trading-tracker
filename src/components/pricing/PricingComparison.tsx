@@ -176,6 +176,15 @@ const TIER_CARD_CONFIG: Record<TierId, TierCardConfig> = {
 };
 
 /**
+ * Formats the daily-equivalent cost so users can anchor on a small "per day"
+ * number (e.g. "~$0.21/day"). Annual divides by 365, monthly by 30.
+ */
+function formatDailyCost(amount: number, period: BillingPeriod): string {
+  const daily = amount / (period === 'annual' ? 365 : 30);
+  return `~$${daily.toFixed(2)}/day`;
+}
+
+/**
  * Resolves `{ price, compareAt?, billingNote? }` for a paid tier card, honouring
  * the Pro early-bird promo when applicable.
  */
@@ -200,22 +209,28 @@ function resolveTierPricing(
       : isAnnual
         ? `$${PRO_MONTHLY_PRICE}/mo`
         : undefined;
-    const billingNote = useEarlyBird
-      ? isAnnual
-        ? `$${EARLY_BIRD_ANNUAL_PRICE} billed annually`
-        : undefined
-      : isAnnual
-        ? `$${PRO_ANNUAL_PRICE} billed annually`
-        : undefined;
+    const annualAmount = useEarlyBird ? EARLY_BIRD_ANNUAL_PRICE : PRO_ANNUAL_PRICE;
+    const monthlyAmount = useEarlyBird ? EARLY_BIRD_MONTHLY_PRICE : PRO_MONTHLY_PRICE;
+    const dailyCost = formatDailyCost(
+      isAnnual ? annualAmount : monthlyAmount,
+      billingPeriod,
+    );
+    const billingNote = isAnnual
+      ? `$${annualAmount} billed annually · ${dailyCost}`
+      : dailyCost;
     return { price, compareAt, billingNote };
   }
   // starter_plus — no early-bird path
   const price = isAnnual
     ? `$${SP_ANNUAL_MONTHLY_EQUIV}/mo`
     : `$${SP_MONTHLY_PRICE}/mo`;
+  const dailyCost = formatDailyCost(
+    isAnnual ? SP_ANNUAL_PRICE : SP_MONTHLY_PRICE,
+    billingPeriod,
+  );
   const billingNote = isAnnual
-    ? `$${SP_ANNUAL_PRICE} billed annually`
-    : undefined;
+    ? `$${SP_ANNUAL_PRICE} billed annually · ${dailyCost}`
+    : dailyCost;
   return { price, billingNote };
 }
 

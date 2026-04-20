@@ -1624,6 +1624,16 @@ html.dark[data-color-theme="violet"] {
 /* Landing page: neutralize body gradient so grid + right-side glow shine through */
 .landing-page-override {
   position: relative;
+  /* Reserves vertical space at the bottom when a fixed announcement banner
+   * is mounted there, so the footer isn't covered. Transition smooths the
+   * expansion when the banner animates in. */
+  padding-bottom: var(--tt-banner-h, 0px);
+  transition: padding-bottom 500ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-page-override {
+    transition: none;
+  }
 }
 body:has(.landing-page-override),
 body.app-gradient:has(.landing-page-override) {
