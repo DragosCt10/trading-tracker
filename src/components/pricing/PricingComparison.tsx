@@ -243,10 +243,14 @@ interface PricingComparisonProps {
   /** Currently-pending checkout tier, used to disable only that button. */
   pendingCheckoutTier?: PaidTierId | null;
   /**
-   * When true, replaces the Starter "Get started" CTA with "Your current plan"
-   * label (for authenticated settings context where user is already logged in).
+   * The tier the logged-in user is currently on. When set:
+   *  - The matching card shows a disabled "Current plan" button instead of its CTA.
+   *  - The Starter card's "Get started" login link is suppressed (the user is
+   *    already authenticated). If `currentTier` is on a paid tier, the Starter
+   *    card shows a disabled "Free plan" label.
+   * Leave undefined for anonymous visitors (public pricing / landing pages).
    */
-  hideStarterCTA?: boolean;
+  currentTier?: TierId;
   /** Hide the built-in billing toggle (caller renders it externally). */
   hideToggle?: boolean;
   /**
@@ -268,15 +272,17 @@ function renderPlanCard(params: {
   variant: 'mobile' | 'desktop';
   billingPeriod: BillingPeriod;
   useEarlyBird: boolean;
-  hideStarterCTA: boolean;
+  currentTier: TierId | undefined;
   onCheckout: (tier: PaidTierId) => void;
   pendingCheckoutTier: PaidTierId | null;
 }) {
-  const { tier, variant, billingPeriod, useEarlyBird, hideStarterCTA, onCheckout, pendingCheckoutTier } = params;
+  const { tier, variant, billingPeriod, useEarlyBird, currentTier, onCheckout, pendingCheckoutTier } = params;
   const cfg = TIER_CARD_CONFIG[tier];
   const isMobile = variant === 'mobile';
   const noteClass = isMobile ? 'text-[10px] -mt-1 mb-2' : 'text-xs -mt-1 mb-3';
   const buttonSize: 'sm' | 'default' = isMobile ? 'sm' : 'default';
+  const isCurrentTier = currentTier === tier;
+  const isAuthenticated = currentTier !== undefined;
 
   if (tier === 'starter') {
     return (
@@ -289,26 +295,28 @@ function renderPlanCard(params: {
         icon={cfg.icon}
       >
         <p className={cn(noteClass, 'text-muted-foreground')}>No credit card required</p>
-        {hideStarterCTA ? (
-          <Button
-            variant="outline"
-            disabled
-            className={cn('w-full rounded-lg', isMobile ? 'text-xs' : 'text-sm')}
-            size={buttonSize}
-          >
-            Current plan
-          </Button>
-        ) : (
-          <Link href="/login">
+        <div className="mt-auto">
+          {isAuthenticated ? (
             <Button
               variant="outline"
-              className={cn('w-full rounded-lg cursor-pointer', isMobile ? 'text-xs' : 'text-sm')}
+              disabled
+              className={cn('w-full rounded-lg', isMobile ? 'text-xs' : 'text-sm')}
               size={buttonSize}
             >
-              Get started
+              {isCurrentTier ? 'Current plan' : 'Free plan'}
             </Button>
-          </Link>
-        )}
+          ) : (
+            <Link href="/login" className="block">
+              <Button
+                variant="outline"
+                className={cn('w-full rounded-lg cursor-pointer', isMobile ? 'text-xs' : 'text-sm')}
+                size={buttonSize}
+              >
+                Get started
+              </Button>
+            </Link>
+          )}
+        </div>
       </PricingTablePlan>
     );
   }
@@ -338,11 +346,24 @@ function renderPlanCard(params: {
       <p className={cn(noteClass, billingNote ? 'text-muted-foreground' : 'invisible')}>
         {billingNote || '\u00A0'}
       </p>
-      <BuyNowButton
-        size={buttonSize}
-        onCheckout={() => onCheckout(paidTier)}
-        isCheckoutPending={isPendingThisTier}
-      />
+      <div className="mt-auto">
+        {isCurrentTier ? (
+          <Button
+            variant="outline"
+            disabled
+            className={cn('w-full rounded-lg', isMobile ? 'text-xs' : 'text-sm')}
+            size={buttonSize}
+          >
+            Current plan
+          </Button>
+        ) : (
+          <BuyNowButton
+            size={buttonSize}
+            onCheckout={() => onCheckout(paidTier)}
+            isCheckoutPending={isPendingThisTier}
+          />
+        )}
+      </div>
     </PricingTablePlan>
   );
 }
@@ -353,7 +374,7 @@ export function PricingComparison({
   isCheckoutPending,
   onCheckout,
   pendingCheckoutTier = null,
-  hideStarterCTA = false,
+  currentTier,
   hideToggle = false,
   useEarlyBird = false,
   className,
@@ -367,7 +388,7 @@ export function PricingComparison({
     variant,
     billingPeriod,
     useEarlyBird,
-    hideStarterCTA,
+    currentTier,
     onCheckout,
     pendingCheckoutTier: effectivePendingTier,
   });
@@ -390,13 +411,18 @@ export function PricingComparison({
       {/* Feature comparison table */}
       <PricingTable className="mx-auto my-5 w-full">
         <PricingTableHeader>
-          {/* Desktop: full plan cards in header */}
+          {/* Desktop: plan cards live inside the table header so they align
+              with the feature value columns below. `style={{ height: 1 }}` on
+              each <th> is the classic trick that makes `h-full` on the child
+              card resolve to the stretched row height, giving equal-height
+              cards without yanking them out of the table layout. */}
           <PricingTableRow className="hidden sm:table-row">
             <th className="w-[25%]" />
             {visibleTiers.map((tier) => (
               <th
                 key={tier}
-                className="w-[25%] p-1 sticky top-20 z-20"
+                className="w-[25%] p-1 sticky top-20 z-20 align-top"
+                style={{ height: 1 }}
               >
                 {renderPlanCard({ tier, ...cardParams('desktop') })}
               </th>

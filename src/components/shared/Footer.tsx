@@ -35,7 +35,8 @@ const footerLinks = {
   ],
   feed: [
     { label: "Posts", href: "/feed" },
-    { label: "Rules", href: "/feed/rules" },
+    { label: "Channels", href: "/feed#channels" },
+    { label: "Following", href: "/feed#following" },
   ],
   legal: [
     { label: "Privacy Policy", href: "/privacy-policy" },

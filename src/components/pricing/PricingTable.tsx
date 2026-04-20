@@ -129,40 +129,45 @@ function PricingTablePlan({
 	return (
 		<div
 			className={cn(
-				'relative h-full overflow-hidden rounded-xl sm:rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-2 sm:p-3 font-normal',
+				'relative h-full overflow-hidden rounded-xl sm:rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm font-normal',
 				className,
 			)}
 			{...props}
 		>
-			<div className="flex items-center gap-1.5 sm:gap-2">
-				<div className="flex items-center justify-center rounded-full border p-1 sm:p-1.5">
-					{Icon && <Icon className="h-3 w-3" />}
+			{/* Inner flex-col wrapper keeps layout duties OFF the element that
+			    owns `backdrop-filter` — combining them breaks blur rendering on
+			    sticky table cells in Chrome/Safari. */}
+			<div className="flex h-full flex-col p-2 sm:p-3">
+				<div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+					<div className="flex shrink-0 items-center justify-center rounded-full border p-1 sm:p-1.5">
+						{Icon && <Icon className="h-3 w-3" />}
+					</div>
+					<h3 className="text-muted-foreground font-mono text-xs sm:text-sm whitespace-nowrap">{name}</h3>
+					<Badge
+						variant="secondary"
+						className={cn(
+							'ml-auto shrink-0 whitespace-nowrap rounded-full border bg-transparent px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-normal pointer-events-none',
+							badgeClassName,
+						)}
+					>
+						{badge}
+					</Badge>
 				</div>
-				<h3 className="text-muted-foreground font-mono text-xs sm:text-sm">{name}</h3>
-				<Badge
-					variant="secondary"
-					className={cn(
-						'ml-auto rounded-full border bg-transparent px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-normal pointer-events-none',
-						badgeClassName,
-					)}
-				>
-					{badge}
-				</Badge>
-			</div>
 
-			{description && (
-				<p className="mt-1.5 sm:mt-2 text-[11px] sm:text-xs text-left text-muted-foreground leading-relaxed">{description}</p>
-			)}
-
-			<div className="mt-3 sm:mt-4 flex items-baseline gap-1.5 sm:gap-2">
-				<span className="text-2xl sm:text-3xl font-bold">{price}</span>
-				{compareAt && (
-					<span className="text-muted-foreground text-xs sm:text-sm line-through">
-						{compareAt}
-					</span>
+				{description && (
+					<p className="mt-1.5 sm:mt-2 text-[11px] sm:text-xs text-left text-muted-foreground leading-relaxed">{description}</p>
 				)}
+
+				<div className="mt-3 sm:mt-4 flex items-baseline gap-1.5 sm:gap-2">
+					<span className="text-2xl sm:text-3xl font-bold">{price}</span>
+					{compareAt && (
+						<span className="text-muted-foreground text-xs sm:text-sm line-through">
+							{compareAt}
+						</span>
+					)}
+				</div>
+				<div className="relative z-10 mt-3 sm:mt-4 flex grow flex-col">{children}</div>
 			</div>
-			<div className="relative z-10 mt-3 sm:mt-4">{children}</div>
 		</div>
 	);
 }

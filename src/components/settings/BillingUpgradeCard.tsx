@@ -13,6 +13,8 @@ interface BillingUpgradeCardProps {
   isCheckoutPending: boolean;
   pendingCheckoutTier?: PaidTierId | null;
   onUpgrade: (tier: PaidTierId) => void;
+  /** The user's current tier — marks the matching card with "Current plan". */
+  currentTier?: TierId;
 }
 
 export function BillingUpgradeCard({
@@ -22,11 +24,12 @@ export function BillingUpgradeCard({
   isCheckoutPending,
   pendingCheckoutTier = null,
   onUpgrade,
+  currentTier,
 }: BillingUpgradeCardProps) {
   if (isPro) return null;
 
   return (
-    <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-6">
+    <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none p-6">
       <div className="h-0.5 w-full rounded-full bg-gradient-to-r from-[var(--tc-primary)]/0 via-[var(--tc-primary)] to-[var(--tc-primary)]/0 mb-6" />
 
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
@@ -51,7 +54,7 @@ export function BillingUpgradeCard({
         isCheckoutPending={isCheckoutPending}
         pendingCheckoutTier={pendingCheckoutTier}
         onCheckout={onUpgrade}
-        hideStarterCTA
+        currentTier={currentTier ?? 'starter'}
         hideToggle
       />
 

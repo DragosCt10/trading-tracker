@@ -275,6 +275,7 @@ export function BillingSettingsPanel({
         isCheckoutPending={isCheckoutPending}
         pendingCheckoutTier={pendingCheckoutTier}
         onUpgrade={handleUpgrade}
+        currentTier={effectiveTier}
       />
 
       <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>

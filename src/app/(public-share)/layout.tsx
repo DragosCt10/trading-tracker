@@ -9,8 +9,18 @@ export default function PublicShareLayout({
 }) {
   return (
     <>
-      <div className="w-full border-b border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/60 backdrop-blur-md">
-        <div className="max-w-(--breakpoint-xl) mx-auto w-full flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
+      <div
+        className="relative w-full border-b border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-[#050309]"
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 hidden dark:block"
+          style={{
+            background:
+              'radial-gradient(ellipse 45% 220% at 22% 50%, rgba(124, 58, 237, 0.18), transparent 72%), radial-gradient(ellipse 35% 180% at 78% 50%, rgba(109, 40, 217, 0.09), transparent 78%)',
+          }}
+        />
+        <div className="relative max-w-(--breakpoint-xl) mx-auto w-full flex flex-wrap items-center justify-between gap-3 py-2.5">
           <Link
             href="/"
             className="flex items-center gap-2 text-slate-900 dark:text-slate-50 hover:opacity-90 transition-opacity"

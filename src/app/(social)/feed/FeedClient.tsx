@@ -89,7 +89,22 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
   const [joinErrorChannelId, setJoinErrorChannelId] = useState<string | null>(null);
   const joinErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pendingChannelId, setPendingChannelId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<FeedTab>('public');
+  const [activeTab, setActiveTab] = useState<FeedTab>(() => {
+    if (typeof window === 'undefined') return 'public';
+    const hash = window.location.hash.replace('#', '');
+    return hash === 'channels' || hash === 'following' ? hash : 'public';
+  });
+
+  useEffect(() => {
+    const syncFromHash = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash === 'channels' || hash === 'following' || hash === 'public') {
+        setActiveTab(hash);
+      }
+    };
+    window.addEventListener('hashchange', syncFromHash);
+    return () => window.removeEventListener('hashchange', syncFromHash);
+  }, []);
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
