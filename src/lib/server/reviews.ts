@@ -185,7 +185,7 @@ export async function getApprovedReviews(): Promise<Testimonial[]> {
     .select('text, user_id, rating')
     .eq('status', 'approved')
     .order('reviewed_at', { ascending: false })
-    .limit(9);
+    .limit(12);
 
   if (error || !reviews || reviews.length === 0) return [];
 
