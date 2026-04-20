@@ -29,10 +29,10 @@ function isPublicPath(pathname: string): boolean {
 function buildCsp(nonce: string): string {
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://*.clarity.ms`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https: https://www.googletagmanager.com",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live https://www.googletagmanager.com https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live https://www.googletagmanager.com https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://*.clarity.ms https://c.bing.com",
     "font-src 'self'",
     "frame-src 'self' https://www.googletagmanager.com",
     "frame-ancestors 'none'",
