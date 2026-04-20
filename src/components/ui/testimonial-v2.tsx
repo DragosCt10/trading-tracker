@@ -221,16 +221,16 @@ export default function TestimonialsSection({ testimonials: external }: { testim
   return (
     <div>
       <div className="flex justify-center gap-6 mt-10 [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_90%,transparent)] max-h-[740px] overflow-hidden">
-        <TestimonialsColumn testimonials={firstColumn} duration={15} />
+        <TestimonialsColumn testimonials={firstColumn} duration={40} />
         <TestimonialsColumn
           testimonials={secondColumn}
           className="hidden md:block"
-          duration={19}
+          duration={25}
         />
         <TestimonialsColumn
           testimonials={thirdColumn}
           className="hidden lg:block"
-          duration={17}
+          duration={35}
         />
       </div>
     </div>
