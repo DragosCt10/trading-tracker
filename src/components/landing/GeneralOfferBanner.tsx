@@ -93,8 +93,14 @@ export function GeneralOfferBanner({ slotsUsed }: GeneralOfferBannerProps) {
       }`}
     >
       <div className="relative rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-white/70 dark:bg-[#08060e]/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50">
+        {/* Animated rotating-conic border — same treatment as the "Ready to own
+         * your trading results?" CTA section. */}
+        <div
+          aria-hidden
+          className="absolute -inset-[1px] rounded-2xl pointer-events-none cta-border-glow"
+        />
         <div className="relative flex items-center gap-3 px-5 py-3">
-        <p className="text-sm font-medium text-slate-900 dark:text-white">
+        <p className="text-base font-medium text-slate-900 dark:text-white">
           <span aria-hidden="true" className="mr-1.5">🔥</span>
           Early Bird Launch Offer — locked in for life
         </p>
