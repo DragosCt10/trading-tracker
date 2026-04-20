@@ -38,18 +38,28 @@ const STATS_FALLBACK: PlatformStats = {
   statsBoardsCount: 3800,
 };
 
+// Round up to a marketing-friendly ceiling: next half of the leading magnitude
+// (e.g. 12→15, 28→30, 80,400→85,000, 4,200,000→4,500,000).
+function niceCeil(n: number): number {
+  if (n <= 0) return 0;
+  const mag = Math.pow(10, Math.floor(Math.log10(n)));
+  const lead = n / mag;
+  return (Math.ceil(lead * 2) / 2) * mag;
+}
+
 function formatCompactStat(n: number): string {
-  if (n >= 1_000_000) {
-    const m = n / 1_000_000;
+  const rounded = niceCeil(n);
+  if (rounded >= 1_000_000) {
+    const m = rounded / 1_000_000;
     if (m >= 1000) return `${(m / 1000).toFixed(1).replace(/\.0$/, '')}B+`;
     return `${m.toFixed(1).replace(/\.0$/, '')}M+`;
   }
-  if (n >= 1_000) {
-    const k = n / 1_000;
+  if (rounded >= 1_000) {
+    const k = rounded / 1_000;
     if (k >= 1000) return `${(k / 1000).toFixed(1).replace(/\.0$/, '')}M+`;
     return `${k.toFixed(1).replace(/\.0$/, '')}K+`;
   }
-  return `${n}+`;
+  return `${rounded}+`;
 }
 
 async function fetchPlatformStats(): Promise<PlatformStats> {
