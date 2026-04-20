@@ -30,6 +30,6 @@ export const EARLY_BIRD_ANNUAL_PRICE_CENTS = Math.round(EARLY_BIRD_ANNUAL_PRICE 
  * Adjust `EARLY_BIRD_LAUNCH_ISO` at campaign launch so the counter starts
  * at the correct moment.
  */
-export const EARLY_BIRD_LAUNCH_ISO = '2026-04-21T00:00:00Z';
+export const EARLY_BIRD_LAUNCH_ISO = '2026-04-20T17:00:00Z';
 export const EARLY_BIRD_START_COUNT = 3;
 export const EARLY_BIRD_INTERVAL_HOURS = 2;
