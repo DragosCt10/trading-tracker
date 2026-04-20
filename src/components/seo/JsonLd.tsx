@@ -37,6 +37,10 @@ export async function JsonLd({ payload }: { payload: JsonLdPayload }) {
       type="application/ld+json"
       nonce={nonce}
       dangerouslySetInnerHTML={{ __html: serialized }}
+      // Browsers strip `nonce` from the DOM after parse for security, so React's
+      // hydration diff sees server=`""` vs client=`"<real-nonce>"`. The attribute
+      // is still applied correctly; just silence the false-positive warning.
+      suppressHydrationWarning
     />
   );
 }
