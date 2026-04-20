@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { useParallax } from '@/hooks/useParallax';
+import { TrustpilotWidget } from '@/components/landing/TrustpilotWidget';
 
 /* ── Module-level constants (avoid re-creating on every render) ── */
 
@@ -351,6 +352,8 @@ export function LandingHero({ heroStats }: LandingHeroProps) {
               See features
             </button>
           </div>
+
+          <TrustpilotWidget className="mt-8" parallaxSpeed={0.1} />
         </div>
       </div>
 
