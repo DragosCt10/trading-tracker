@@ -220,10 +220,19 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                 </span>
               ) : isStarterPlus ? (
                 <span
-                  className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 select-none border border-zinc-700"
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 select-none"
+                  style={{ border: '1px solid var(--tc-border)' }}
                 >
-                  <TrendingUp className="h-3 w-3 shrink-0 text-zinc-400" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                  <TrendingUp className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
+                  <span
+                    className="text-[10px] font-bold uppercase tracking-widest"
+                    style={{
+                      backgroundImage: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                    }}
+                  >
                     {tierDef.badge.label}
                   </span>
                 </span>
@@ -505,9 +514,20 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                         </span>
                       </span>
                     ) : isStarterPlus ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 select-none border border-zinc-700">
-                        <TrendingUp className="h-3 w-3 shrink-0 text-zinc-400" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                      <span
+                        className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 select-none"
+                        style={{ border: '1px solid var(--tc-border)' }}
+                      >
+                        <TrendingUp className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
+                        <span
+                          className="text-[10px] font-bold uppercase tracking-widest"
+                          style={{
+                            backgroundImage: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                          }}
+                        >
                           {tierDef.badge.label}
                         </span>
                       </span>
