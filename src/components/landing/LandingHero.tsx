@@ -181,32 +181,26 @@ export function LandingHero({ heroStats }: LandingHeroProps) {
             <path
               d="M-50,700 C100,680 200,650 350,620 C500,590 550,540 650,480 C750,420 800,460 900,400 C1000,340 1050,280 1150,220 C1250,160 1300,100 1450,30 L1450,800 L-50,800 Z"
               fill="url(#waveFill)"
-              className="equity-wave-fill"
             />
             <path
               d="M-50,750 C100,730 250,710 400,680 C550,650 600,620 750,560 C900,500 950,520 1050,450 C1150,380 1200,320 1350,240 C1420,200 1440,160 1460,100"
               fill="none" stroke="url(#waveGrad3)" strokeWidth="1"
-              className="equity-wave equity-wave-1"
             />
             <path
               d="M-50,720 C80,700 180,670 330,640 C480,610 540,570 660,510 C780,450 830,470 940,410 C1050,350 1100,290 1200,230 C1300,170 1350,120 1460,50"
               fill="none" stroke="url(#waveGrad3)" strokeWidth="1.2"
-              className="equity-wave equity-wave-2"
             />
             <path
               d="M-50,700 C100,680 200,650 350,620 C500,590 550,540 650,480 C750,420 800,460 900,400 C1000,340 1050,280 1150,220 C1250,160 1300,100 1450,30"
               fill="none" stroke="url(#waveGrad2)" strokeWidth="1.8"
-              className="equity-wave equity-wave-3"
             />
             <path
               d="M-50,680 C120,660 220,630 370,595 C520,560 570,510 680,450 C790,390 830,420 930,360 C1030,300 1080,240 1180,180 C1280,120 1330,70 1460,-10"
               fill="none" stroke="url(#waveGrad1)" strokeWidth="0.8"
-              className="equity-wave equity-wave-4"
             />
             <path
               d="M-50,660 C140,640 240,600 390,565 C540,530 590,480 710,420 C830,360 860,385 960,325 C1060,265 1110,205 1210,145 C1310,85 1360,40 1460,-30"
               fill="none" stroke="url(#waveGrad3)" strokeWidth="0.5"
-              className="equity-wave equity-wave-5"
             />
             {/* ── Comet 1 — primary, main equity line ── */}
             <g className="comet-1">
