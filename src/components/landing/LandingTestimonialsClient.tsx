@@ -7,11 +7,24 @@ import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { SectionBadge, SectionHeading } from '@/components/landing/shared';
 import { getApprovedReviews } from '@/lib/server/reviews';
 import { queryKeys } from '@/lib/queryKeys';
-import TestimonialsSection from '@/components/ui/testimonial-v2';
+import TestimonialsSection, {
+  FALLBACK_TESTIMONIALS,
+  TOTAL_DISPLAYED_TESTIMONIALS,
+} from '@/components/ui/testimonial-v2';
 import type { Testimonial } from '@/components/ui/testimonial-v2';
 
-function calcAvgRating(testimonials: Testimonial[]): { avg: string; count: number } | null {
-  const rated = testimonials.filter((t) => t.rating != null);
+/**
+ * Average rating shown next to the "Share your experience" CTA.
+ *
+ * The count/average must reflect what's actually on screen — the grid shows
+ * approved reviews first and pads remaining slots with fallback testimonials,
+ * up to `TOTAL_DISPLAYED_TESTIMONIALS`. So we blend approved + the fallbacks
+ * that fill the empty slots and average across that combined set.
+ */
+function calcAvgRating(approved: Testimonial[]): { avg: string; count: number } | null {
+  const remainingSlots = Math.max(0, TOTAL_DISPLAYED_TESTIMONIALS - approved.length);
+  const displayed = [...approved, ...FALLBACK_TESTIMONIALS.slice(0, remainingSlots)];
+  const rated = displayed.filter((t) => t.rating != null);
   if (rated.length === 0) return null;
   const sum = rated.reduce((acc, t) => acc + (t.rating ?? 0), 0);
   return { avg: (sum / rated.length).toFixed(1), count: rated.length };
