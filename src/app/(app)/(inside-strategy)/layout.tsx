@@ -3,7 +3,7 @@
 import { ReactNode, useState, useMemo, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { PlusCircle, TrendingUp, BarChart3, NotebookPen, LayoutGrid, ChevronRight, ChevronLeft, Bot, PanelLeft } from 'lucide-react';
+import { Plus, TrendingUp, BarChart3, NotebookPen, LayoutGrid, ChevronRight, ChevronLeft, Bot, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { NewTradeModal } from '@/components/dynamicComponents';
@@ -44,6 +44,13 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
     };
     window.addEventListener('strategy-sidenav:show', handler);
     return () => window.removeEventListener('strategy-sidenav:show', handler);
+  }, []);
+
+  // Listen for open-new-trade events dispatched from ActionBar
+  useEffect(() => {
+    const handler = () => setNewTradeModalOpen(true);
+    window.addEventListener('new-trade-modal:open', handler);
+    return () => window.removeEventListener('new-trade-modal:open', handler);
   }, []);
 
   // Auto-close nav on mobile when the route changes (safety net; link onClick closes synchronously)
@@ -219,14 +226,13 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
             <Button
               variant="ghost"
               size="sm"
-              className="group/newtrade w-full h-auto min-h-[64px] cursor-pointer transition-all duration-300 relative overflow-hidden rounded-xl themed-btn-primary text-white font-semibold border-0 !p-0 hover:text-white [&_svg]:text-white [&_span]:text-white"
+              className={cn(navButtonClass(false), 'cursor-pointer')}
               onClick={() => setNewTradeModalOpen(true)}
             >
               <div className="block w-full h-full relative min-h-[40px]">
-                <PlusCircle className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
-                <span className="absolute left-14 top-1/2 -translate-y-1/2 whitespace-nowrap opacity-100 max-w-[140px] lg:opacity-0 lg:max-w-0 overflow-hidden lg:group-hover/card:max-w-[140px] lg:group-hover/card:opacity-100 transition-all duration-300 text-white">New Trade</span>
+                <Plus className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 whitespace-nowrap opacity-100 max-w-[140px] lg:opacity-0 lg:max-w-0 overflow-hidden lg:group-hover/card:max-w-[140px] lg:group-hover/card:opacity-100 transition-all duration-300">New Trade</span>
               </div>
-              <div className="absolute inset-0 -translate-x-full group-hover/newtrade:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
             </Button>
           </div>
         </div>

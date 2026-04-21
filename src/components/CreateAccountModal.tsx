@@ -55,9 +55,11 @@ interface CreateAccountAlertDialogProps {
   onCreated?: (created: AccountSettings) => void;
   /** Optional extra class for the trigger button (e.g. w-full justify-start for lateral menu). */
   triggerClassName?: string;
+  /** 'primary' (default) = purple gradient CTA; 'ghost' = transparent inactive nav-pill style. */
+  variant?: 'primary' | 'ghost';
 }
 
-export function CreateAccountAlertDialog({ onCreated, triggerClassName }: CreateAccountAlertDialogProps) {
+export function CreateAccountAlertDialog({ onCreated, triggerClassName, variant = 'primary' }: CreateAccountAlertDialogProps) {
   const queryClient = useQueryClient();
   const { data: userId } = useUserDetails();
   const { isPro, subscription } = useSubscription({ userId: userId?.user?.id });
@@ -232,7 +234,10 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
             type="button"
             size="sm"
             className={cn(
-              'themed-btn-primary cursor-pointer w-auto shrink-0 h-8 relative overflow-hidden rounded-xl text-white font-semibold border-0 px-2.5 group [&_svg]:text-white',
+              'cursor-pointer w-auto shrink-0 h-8 relative overflow-hidden rounded-xl px-2.5 group',
+              variant === 'primary'
+                ? 'themed-btn-primary text-white font-semibold border-0 [&_svg]:text-white'
+                : 'gap-2 border bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 hover:border-slate-300/70 dark:text-slate-200 dark:hover:text-slate-50 dark:hover:bg-slate-800/70 dark:hover:border-slate-700/70',
               triggerClassName
             )}
           >
@@ -240,7 +245,9 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
               <UserPlus className="h-3.5 w-3.5" />
               <span>Add</span>
             </span>
-            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+            {variant === 'primary' && (
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+            )}
           </Button>
         </AlertDialogTrigger>
 

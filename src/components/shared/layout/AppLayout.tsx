@@ -9,12 +9,13 @@ import { queryKeys } from '@/lib/queryKeys';
 import { initSelectionFor } from '@/hooks/useActionBarSelection';
 import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode } from 'react';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2, Plus } from 'lucide-react';
 import { createPortalUrl } from '@/lib/server/subscription';
 import Navbar from '@/components/shared/Navbar';
 import { Footer } from '@/components/shared/Footer';
 import ActionBar from '@/components/shared/ActionBar';
 import { CreateAccountAlertDialog } from '@/components/CreateAccountModal';
+import { SheetClose } from '@/components/ui/sheet';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useNewsletterOAuthSync } from '@/hooks/useNewsletterOAuthSync';
 
@@ -45,6 +46,7 @@ export default function AppLayout({
   const { subscription } = useSubscription({ userId });
   useNewsletterOAuthSync();
   const showActionBar = pathname === '/stats' || (pathname?.startsWith('/strategy/') ?? false);
+  const isStrategyPage = pathname?.startsWith('/strategy/') ?? false;
 
   const [actionBarVisible, setActionBarVisible] = useState(true);
   const lastScrollY = useRef(0);
@@ -133,9 +135,26 @@ export default function AppLayout({
         <Navbar
           mobileMenuExtra={
             showActionBar ? (
-              <CreateAccountAlertDialog
-                triggerClassName="w-full justify-start h-9 px-3 text-sm"
-              />
+              isStrategyPage ? (
+                <SheetClose asChild>
+                  <button
+                    type="button"
+                    onClick={() => window.dispatchEvent(new Event('new-trade-modal:open'))}
+                    className="group relative overflow-hidden rounded-xl themed-btn-primary text-white font-semibold border-0 inline-flex items-center w-full justify-start h-11 px-3 text-sm gap-2 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 [&_svg]:text-white"
+                  >
+                    <span className="relative z-10 inline-flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      New Trade
+                    </span>
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                  </button>
+                </SheetClose>
+              ) : (
+                <CreateAccountAlertDialog
+                  variant="ghost"
+                  triggerClassName="w-full justify-start h-11 px-3 text-sm"
+                />
+              )
             ) : undefined
           }
         />

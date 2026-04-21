@@ -10,18 +10,16 @@ import { useUserDetails } from '@/hooks/useUserDetails';
 import { useAllAccounts, patchAllAccounts, invalidateAllAccounts } from '@/hooks/useAllAccounts';
 import { useProgressDialog } from '@/hooks/useProgressDialog';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { AccountModePopover } from '@/components/shared/AccountModePopover';
 import type { TradingMode } from '@/types/trade';
 import { EditAccountAlertDialog } from '../EditAccountAlertDialog';
 import { CreateAccountAlertDialog } from '../CreateAccountModal';
 import { setLastAccountPreference } from '@/utils/lastAccountCookie';
 import { StrategySelectPopover } from '@/components/shared/StrategySelectPopover';
-import { CreateStrategyModal } from '@/components/CreateStrategyModal';
 import { EmptyAccountsCTA } from '@/components/shared/EmptyAccountsCTA';
 import { useStrategies } from '@/hooks/useStrategies';
-import { queryKeys, TRADE_QUERY_PREFIXES } from '@/lib/queryKeys';
-import type { Strategy } from '@/types/strategy';
+import { TRADE_QUERY_PREFIXES } from '@/lib/queryKeys';
 import { Plus } from 'lucide-react';
 import { MODE_BADGE } from '@/constants/modeBadge';
 
@@ -49,7 +47,6 @@ interface ActionBarProps {
 
 export default function ActionBar({ initialData, showAddButton = true }: ActionBarProps) {
   const queryClient = useQueryClient();
-  const router = useRouter();
 
   // Note: no hydration useLayoutEffect — AppLayout.tsx already seeds every
   // cache key we depend on (userDetails, accounts:list, accounts:all,
@@ -59,7 +56,6 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
   const { data: userDetails } = useUserDetails();
   const { selection, setSelection } = useActionBarSelection();
   const [applying, setApplying] = React.useState(false);
-  const [isCreateStrategyOpen, setIsCreateStrategyOpen] = React.useState(false);
   const applyingRef = useRef(false);
   const { error: switchError, setError: setSwitchError } = useProgressDialog(3000);
 
@@ -232,7 +228,6 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
   });
 
   const strategyOptions = strategies.map((s) => ({ id: s.id, name: s.name, slug: s.slug }));
-  const accountId = activeAccount?.id ?? null;
 
   // True when we've finished loading and the user genuinely has zero accounts
   // across every mode. Without this branch the auto-apply effect bails and the
@@ -288,39 +283,22 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
           )}
 
           {showAddButton && (
-            <>
-              {strategiesLoading || strategyOptions.length === 0 ? (
-                <div aria-hidden="true" className="h-8 w-8 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setIsCreateStrategyOpen(true)}
-                  aria-label="Add strategy"
-                  className="flex items-center justify-center h-8 w-8 rounded-xl themed-btn-primary text-white font-semibold border-0 overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 cursor-pointer relative"
-                >
-                  <span className="relative z-10 flex items-center justify-center">
-                    <Plus className="h-4 w-4" />
-                  </span>
-                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-                </button>
-              )}
-              <CreateStrategyModal
-                accountId={accountId ?? undefined}
-                open={isCreateStrategyOpen}
-                onOpenChange={setIsCreateStrategyOpen}
-                onCreated={(newStrategy) => {
-                  setIsCreateStrategyOpen(false);
-                  // Immediately update the cache with the new strategy — no network round-trip,
-                  // no race condition between refetch and router.push.
-                  const key = queryKeys.strategies(userId, accountId ?? undefined);
-                  const cached = queryClient.getQueryData<Strategy[]>(key) ?? [];
-                  if (!cached.some((s) => s.id === newStrategy.id)) {
-                    queryClient.setQueryData(key, [...cached, newStrategy]);
-                  }
-                  router.push(`/strategy/${newStrategy.slug}`);
-                }}
-              />
-            </>
+            strategiesLoading || strategyOptions.length === 0 ? (
+              <div aria-hidden="true" className="h-8 w-8 sm:w-28 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
+            ) : (
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new Event('new-trade-modal:open'))}
+                aria-label="New trade"
+                className="flex items-center justify-center h-8 w-8 sm:w-auto rounded-xl themed-btn-primary text-white font-semibold border-0 overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 cursor-pointer relative sm:px-4 text-xs sm:text-sm shrink-0"
+              >
+                <span className="relative z-10 flex items-center gap-1.5">
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline whitespace-nowrap">New Trade</span>
+                </span>
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+              </button>
+            )
           )}
         </>
       ) : (
