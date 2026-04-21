@@ -14,10 +14,17 @@ export interface PlatformStats {
   statsBoardsCount: number;
 }
 
+export interface TradesByMode {
+  live: number;
+  demo: number;
+  backtesting: number;
+}
+
 export interface AdminPlatformStats {
   tradersCount: number;
   tradesCount: number;
   statsBoardsCount: number;
+  tradesByMode: TradesByMode;
   prev?: {
     tradersCount: number;
     tradesCount: number;
@@ -28,7 +35,7 @@ export interface AdminPlatformStats {
 export type ComparisonPeriod = '1w' | '1m' | '3m' | '6m' | '1y';
 
 export interface PlatformStatConfig {
-  key: keyof Omit<AdminPlatformStats, 'prev'>;
+  key: keyof Omit<AdminPlatformStats, 'prev' | 'tradesByMode'>;
   label: string;
   format: (n: number) => string;
 }
