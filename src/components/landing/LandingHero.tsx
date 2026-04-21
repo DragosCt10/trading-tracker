@@ -39,7 +39,7 @@ interface LandingHeroProps {
 }
 
 export function LandingHero({ heroStats }: LandingHeroProps) {
-  const sectionRef = useParallax(0, true);
+  const sectionRef = useParallax(0, true, true);
 
   return (
     <section ref={sectionRef} className="relative overflow-hidden">
