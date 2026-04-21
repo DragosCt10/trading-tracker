@@ -12,8 +12,10 @@ import { useEffect, useRef, useCallback } from 'react';
  *   section to reach the viewport top. Use for the first section of the
  *   page (e.g. the hero) so parallax reacts immediately, even when there's
  *   a banner or sticky header above it. Default false.
+ * @param disableOnMobile — when true, parallax is skipped on viewports
+ *   ≤ 767px so mobile users get static, snappier scrolling. Default false.
  */
-export function useParallax(entranceDelay = 0, topAnchored = false) {
+export function useParallax(entranceDelay = 0, topAnchored = false, disableOnMobile = false) {
   const sectionRef = useRef<HTMLElement>(null);
   const rafRef = useRef<number>(0);
   const layoutRef = useRef({ top: 0, height: 0 });
@@ -53,6 +55,7 @@ export function useParallax(entranceDelay = 0, topAnchored = false) {
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (disableOnMobile && window.matchMedia('(max-width: 767px)').matches) return;
 
     // Measure immediately so scroll calculations are always correct,
     // even if the user scrolls before entrance animations finish.
@@ -84,7 +87,7 @@ export function useParallax(entranceDelay = 0, topAnchored = false) {
       window.removeEventListener('resize', measure);
       cancelAnimationFrame(rafRef.current);
     };
-  }, [onScroll, measure, entranceDelay]);
+  }, [onScroll, measure, entranceDelay, disableOnMobile]);
 
   return sectionRef;
 }
