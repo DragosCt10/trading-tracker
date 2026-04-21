@@ -157,6 +157,33 @@ export default function PlatformStatsPanel() {
         </div>
       )}
 
+      {/* Trades by mode — exact counts */}
+      {stats && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {(
+            [
+              { key: 'live',        label: 'Live Trades' },
+              { key: 'demo',        label: 'Demo Trades' },
+              { key: 'backtesting', label: 'Backtesting Trades' },
+            ] as const
+          ).map(({ key, label }) => (
+            <Card
+              key={key}
+              className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm"
+            >
+              <CardContent className="pt-5 pb-4 px-5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
+                  {label}
+                </p>
+                <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">
+                  {formatNumber(stats.tradesByMode[key])}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {/* Stat cards */}
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
