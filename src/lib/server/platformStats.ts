@@ -27,10 +27,25 @@ export async function getAdminPlatformStats(
 
   const data = raw as unknown as PlatformStatsRpcResponse;
 
+  const [liveRes, demoRes, backtestingRes] = await Promise.all([
+    supabase.from('live_trades').select('id', { count: 'exact', head: true }),
+    supabase.from('demo_trades').select('id', { count: 'exact', head: true }),
+    supabase.from('backtesting_trades').select('id', { count: 'exact', head: true }),
+  ]);
+
+  if (liveRes.error || demoRes.error || backtestingRes.error) {
+    return { error: liveRes.error?.message ?? demoRes.error?.message ?? backtestingRes.error?.message ?? 'Failed to count trades by mode' };
+  }
+
   const result: AdminPlatformStats = {
     tradersCount: data.traders_count,
     tradesCount: data.trades_count,
     statsBoardsCount: data.stats_boards_count,
+    tradesByMode: {
+      live: liveRes.count ?? 0,
+      demo: demoRes.count ?? 0,
+      backtesting: backtestingRes.count ?? 0,
+    },
   };
 
   if (period && data.prev_traders_count != null) {
