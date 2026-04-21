@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * Attaches a parallax scroll effect to all elements with `data-parallax-speed`
@@ -17,52 +17,55 @@ import { useEffect, useRef, useCallback } from 'react';
  */
 export function useParallax(entranceDelay = 0, topAnchored = false, disableOnMobile = false) {
   const sectionRef = useRef<HTMLElement>(null);
-  const rafRef = useRef<number>(0);
-  const layoutRef = useRef({ top: 0, height: 0 });
 
-  const measure = useCallback(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-    const rect = section.getBoundingClientRect();
-    layoutRef.current = {
-      top: rect.top + window.scrollY,
-      height: section.offsetHeight,
-    };
-  }, []);
-
-  const onScroll = useCallback(() => {
-    cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(() => {
-      const section = sectionRef.current;
-      if (!section) return;
-
-      const { top, height } = layoutRef.current;
-      const relativeScroll = topAnchored
-        ? window.scrollY
-        : Math.max(window.scrollY - top, 0);
-      const progress = Math.min(relativeScroll / height, 1);
-
-      const els = section.querySelectorAll<HTMLElement>('[data-parallax-speed]');
-      els.forEach((el) => {
-        const speed = parseFloat(el.dataset.parallaxSpeed || '0');
-        const y = -(relativeScroll * speed);
-        const opacity = Math.max(1 - progress * 1.8 * Math.abs(speed), 0);
-        el.style.transform = `translateY(${y}px)`;
-        el.style.opacity = String(opacity);
-      });
-    });
-  }, [topAnchored]);
+  // Keep params in a ref so the effect can read latest values without
+  // re-subscribing (and without a variable-shape dep array that trips up
+  // the React Compiler).
+  const paramsRef = useRef({ entranceDelay, topAnchored, disableOnMobile });
+  paramsRef.current = { entranceDelay, topAnchored, disableOnMobile };
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const { entranceDelay, topAnchored, disableOnMobile } = paramsRef.current;
     if (disableOnMobile && window.matchMedia('(max-width: 767px)').matches) return;
 
-    // Measure immediately so scroll calculations are always correct,
-    // even if the user scrolls before entrance animations finish.
+    const layout = { top: 0, height: 0 };
+    let rafId = 0;
+
+    const measure = () => {
+      const section = sectionRef.current;
+      if (!section) return;
+      const rect = section.getBoundingClientRect();
+      layout.top = rect.top + window.scrollY;
+      layout.height = section.offsetHeight;
+    };
+
+    const onScroll = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const section = sectionRef.current;
+        if (!section) return;
+
+        const relativeScroll = topAnchored
+          ? window.scrollY
+          : Math.max(window.scrollY - layout.top, 0);
+        const progress = Math.min(relativeScroll / layout.height, 1);
+
+        const els = section.querySelectorAll<HTMLElement>('[data-parallax-speed]');
+        els.forEach((el) => {
+          const speed = parseFloat(el.dataset.parallaxSpeed || '0');
+          const y = -(relativeScroll * speed);
+          const opacity = Math.max(1 - progress * 1.8 * Math.abs(speed), 0);
+          el.style.transform = `translateY(${y}px)`;
+          el.style.opacity = String(opacity);
+        });
+      });
+    };
+
     measure();
     window.addEventListener('resize', measure, { passive: true });
 
-    const timer = setTimeout(() => {
+    const start = () => {
       const section = sectionRef.current;
       if (!section) return;
 
@@ -76,18 +79,25 @@ export function useParallax(entranceDelay = 0, topAnchored = false, disableOnMob
         });
       }
 
-      measure(); // Re-measure after animations settle
+      measure();
       onScroll();
       window.addEventListener('scroll', onScroll, { passive: true });
-    }, entranceDelay);
+    };
+
+    let timer = 0;
+    if (entranceDelay > 0) {
+      timer = window.setTimeout(start, entranceDelay);
+    } else {
+      start();
+    }
 
     return () => {
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', measure);
-      cancelAnimationFrame(rafRef.current);
+      cancelAnimationFrame(rafId);
     };
-  }, [onScroll, measure, entranceDelay, disableOnMobile]);
+  }, []);
 
   return sectionRef;
 }
