@@ -268,7 +268,7 @@ export function LandingHero({ heroStats }: LandingHeroProps) {
         <div className="max-w-xl">
 
           {/* Badge */}
-          <div className="mb-8" data-parallax-speed="0.6">
+          <div className="mb-8">
             <div className="inline-flex items-center gap-2.5 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none px-4 py-1.5 backdrop-blur-sm">
               <span
                 className="h-1.5 w-1.5 rounded-full animate-pulse flex-shrink-0"
@@ -283,7 +283,6 @@ export function LandingHero({ heroStats }: LandingHeroProps) {
           {/* Heading */}
           <h1
             className="bg-clip-text text-transparent text-4xl sm:text-5xl lg:text-[54px] xl:text-[62px] font-medium leading-[1.08] tracking-[-0.04em]"
-            data-parallax-speed="0.48"
             style={{
               backgroundImage: 'linear-gradient(to bottom, var(--foreground) 54%, var(--tc-accent))',
             }}
@@ -294,10 +293,7 @@ export function LandingHero({ heroStats }: LandingHeroProps) {
           </h1>
 
           {/* Divider with stats */}
-          <div
-            className="mt-8 flex items-center gap-6"
-            data-parallax-speed="0.36"
-          >
+          <div className="mt-8 flex items-center gap-6">
             <div className="h-px flex-1 max-w-[40px]" style={{ background: 'color-mix(in oklch, var(--tc-primary) 40%, transparent)' }} />
             {heroStats.map(({ label, value }, i) => (
               <div key={label} className="flex items-baseline gap-1.5">
@@ -315,18 +311,12 @@ export function LandingHero({ heroStats }: LandingHeroProps) {
           </div>
 
           {/* Subtitle */}
-          <p
-            className="mt-6 max-w-[480px] text-base sm:text-lg leading-[1.6] text-muted-foreground"
-            data-parallax-speed="0.26"
-          >
+          <p className="mt-6 max-w-[480px] text-base sm:text-lg leading-[1.6] text-muted-foreground">
             Go beyond basic stats. Get deep, actionable insights into your performance — and trade with confidence.
           </p>
 
           {/* CTA */}
-          <div
-            className="mt-10 flex items-center gap-4"
-            data-parallax-speed="0.16"
-          >
+          <div className="mt-10 flex items-center gap-4">
             <Link
               href="/login"
               className="relative overflow-hidden inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition-all duration-300 group border-0"
@@ -353,7 +343,7 @@ export function LandingHero({ heroStats }: LandingHeroProps) {
             </button>
           </div>
 
-          <TrustpilotWidget className="mt-8" parallaxSpeed={0.16} />
+          <TrustpilotWidget className="mt-15" />
         </div>
       </div>
 
