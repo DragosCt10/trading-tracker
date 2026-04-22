@@ -25,9 +25,10 @@ function formatCompact(n: number): string {
 }
 
 const STAT_CONFIG: PlatformStatConfig[] = [
-  { key: 'tradersCount',      label: 'Traders',      format: formatNumber },
-  { key: 'tradesCount',       label: 'Trades',       format: formatCompact },
-  { key: 'statsBoardsCount',  label: 'Stats Boards', format: formatNumber },
+  { key: 'tradersCount',       label: 'Traders',       format: formatNumber },
+  { key: 'tradesCount',        label: 'Trades',        format: formatCompact },
+  { key: 'statsBoardsCount',   label: 'Stats Boards',  format: formatNumber },
+  { key: 'subscriptionsCount', label: 'Subscriptions', format: formatNumber },
 ];
 
 const PERIODS: { value: ComparisonPeriod; label: string }[] = [
@@ -186,10 +187,13 @@ export default function PlatformStatsPanel() {
 
       {/* Stat cards */}
       {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {STAT_CONFIG.map((cfg) => {
             const current = stats[cfg.key];
-            const previous = stats.prev?.[cfg.key];
+            const previous =
+              cfg.key === 'subscriptionsCount'
+                ? undefined
+                : stats.prev?.[cfg.key as keyof NonNullable<typeof stats.prev>];
             const delta = previous != null ? getDelta(current, previous) : null;
 
             return (

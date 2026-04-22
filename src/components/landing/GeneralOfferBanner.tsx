@@ -5,8 +5,8 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { ArrowRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { EARLY_BIRD_LIMIT } from '@/constants/earlyBird';
-import { useDisplayedEarlyBirdSlots } from '@/utils/earlyBirdSlots';
+import { PROMO_LIMIT } from '@/constants/promo';
+import { useDisplayedPromoSlots } from '@/utils/promoSlots';
 
 const DISMISS_KEY = 'generalOfferBanner:dismissed:v1';
 const BANNER_H_VAR = '--tt-banner-h';
@@ -23,7 +23,7 @@ export function GeneralOfferBanner({ slotsUsed }: GeneralOfferBannerProps) {
   const [mounted, setMounted] = useState(false);
   const [shown, setShown] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const displayed = useDisplayedEarlyBirdSlots(slotsUsed);
+  const displayed = useDisplayedPromoSlots(slotsUsed);
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- portal target and sessionStorage are only available post-mount; required to avoid SSR hydration mismatch */
@@ -38,7 +38,7 @@ export function GeneralOfferBanner({ slotsUsed }: GeneralOfferBannerProps) {
   // Trigger the entrance animation after a short delay so the hero gets the
   // user's attention first. Runs once the banner is actually going to render.
   useEffect(() => {
-    if (!mounted || !isVisible || displayed >= EARLY_BIRD_LIMIT) return;
+    if (!mounted || !isVisible || displayed >= PROMO_LIMIT) return;
     const t = window.setTimeout(() => setShown(true), APPEAR_DELAY_MS);
     return () => window.clearTimeout(t);
   }, [mounted, isVisible, displayed]);
@@ -47,7 +47,7 @@ export function GeneralOfferBanner({ slotsUsed }: GeneralOfferBannerProps) {
   // can reserve padding-bottom and the footer isn't covered. Gated on `shown`
   // so the reserved space animates in alongside the banner's entrance.
   useEffect(() => {
-    if (!isVisible || !shown || displayed >= EARLY_BIRD_LIMIT) return;
+    if (!isVisible || !shown || displayed >= PROMO_LIMIT) return;
     const el = wrapperRef.current;
     if (!el) return;
 
@@ -77,7 +77,7 @@ export function GeneralOfferBanner({ slotsUsed }: GeneralOfferBannerProps) {
   }
 
   if (!isVisible) return null;
-  if (displayed >= EARLY_BIRD_LIMIT) return null;
+  if (displayed >= PROMO_LIMIT) return null;
   if (!mounted) return null;
 
   return createPortal(
@@ -102,13 +102,13 @@ export function GeneralOfferBanner({ slotsUsed }: GeneralOfferBannerProps) {
         <div className="relative flex items-center gap-3 px-5 py-3">
         <p className="text-base font-medium text-slate-900 dark:text-white">
           <span aria-hidden="true" className="mr-1.5">🔥</span>
-          Early Bird Launch Offer — locked in for life
+          Launch Offer — locked in for life
         </p>
         <span
           className="shrink-0 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-3.5 py-1 text-xs font-semibold tracking-wider tabular-nums text-slate-900 dark:text-white"
-          aria-label={`${displayed} of ${EARLY_BIRD_LIMIT} early-bird slots claimed`}
+          aria-label={`${displayed} of ${PROMO_LIMIT} promo slots claimed`}
         >
-          {displayed}/{EARLY_BIRD_LIMIT}
+          {displayed}/{PROMO_LIMIT}
         </span>
 
         <div className="ml-auto flex items-center gap-2">

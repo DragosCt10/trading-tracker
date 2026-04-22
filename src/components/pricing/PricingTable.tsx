@@ -120,7 +120,6 @@ function PricingTablePlan({
 	badge,
 	badgeClassName,
 	price,
-	compareAt,
 	icon: Icon,
 	children,
 	className,
@@ -160,11 +159,6 @@ function PricingTablePlan({
 
 				<div className="mt-3 sm:mt-4 flex items-baseline gap-1.5 sm:gap-2">
 					<span className="text-2xl sm:text-3xl font-bold">{price}</span>
-					{compareAt && (
-						<span className="text-muted-foreground text-xs sm:text-sm line-through">
-							{compareAt}
-						</span>
-					)}
 				</div>
 				<div className="relative z-10 mt-3 sm:mt-4 flex grow flex-col">{children}</div>
 			</div>
@@ -179,7 +173,6 @@ type PricingPlanType = {
 	badge: string;
 	badgeClassName?: string;
 	price: string;
-	compareAt?: string;
 };
 
 type FeatureValue = boolean | string;

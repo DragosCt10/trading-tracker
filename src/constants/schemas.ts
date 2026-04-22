@@ -5,7 +5,7 @@ import { TIER_DEFINITIONS } from '@/constants/tiers';
  * Schema.org payloads emitted as JSON-LD via <JsonLd /> server component.
  *
  * All prices sourced from src/constants/tiers.ts (regular prices — NOT
- * earlyBird.ts, which is temporary). Variant IDs are not prices.
+ * promo.ts, which is a temporary campaign). Variant IDs are not prices.
  */
 
 export const organizationSchema: Record<string, unknown> = {

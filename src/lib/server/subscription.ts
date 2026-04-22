@@ -7,8 +7,8 @@ import { getCachedUserSession } from './session';
 import { TIER_DEFINITIONS, TIER_ORDER } from '@/constants/tiers';
 import type { TierId, BillingPeriod, ResolvedSubscription, SubscriptionRow } from '@/types/subscription';
 import { getPaymentProvider } from '@/lib/billing';
-import { EARLY_BIRD_LIMIT } from '@/constants/earlyBird';
-import { getEarlyBirdSlotsUsed } from './earlyBird';
+import { PROMO_LIMIT } from '@/constants/promo';
+import { getPromoSlotsUsed } from './promo';
 
 const STARTER_SUBSCRIPTION: ResolvedSubscription = {
   tier: 'starter',
@@ -213,27 +213,27 @@ type PaidTierId = Extract<TierId, 'starter_plus' | 'pro'>;
 
 /**
  * Resolve the Lemon Squeezy variant ID for a given tier + billing period,
- * preferring the Pro early-bird variant when the caller requests it AND seats
+ * preferring the Pro promo variant when the caller requests it AND seats
  * remain. The slot count is re-checked against the live DB inside this
  * function so the client never controls whether the discount applies.
  *
- * Early-bird only applies to Pro. Starter Plus always uses its regular variants.
+ * Promo only applies to Pro. Starter Plus always uses its regular variants.
  */
 async function resolveTierVariantId(
   tier: PaidTierId,
   billingPeriod: BillingPeriod,
-  preferEarlyBird: boolean,
+  preferPromo: boolean,
 ): Promise<string> {
-  if (tier === 'pro' && preferEarlyBird) {
-    const earlyBird = TIER_DEFINITIONS.pro.pricing.earlyBird;
-    const used = await getEarlyBirdSlotsUsed();
-    if (earlyBird && used < EARLY_BIRD_LIMIT) {
-      const earlyId =
+  if (tier === 'pro' && preferPromo) {
+    const promo = TIER_DEFINITIONS.pro.pricing.promo;
+    const used = await getPromoSlotsUsed();
+    if (promo && used < PROMO_LIMIT) {
+      const promoId =
         billingPeriod === 'monthly'
-          ? earlyBird.monthly.productId
-          : earlyBird.annual.productId;
-      if (earlyId) return earlyId;
-      console.warn(`[billing] Early-bird variant ID not configured for ${billingPeriod} — falling back to regular variant`);
+          ? promo.monthly.productId
+          : promo.annual.productId;
+      if (promoId) return promoId;
+      console.warn(`[billing] Promo variant ID not configured for ${billingPeriod} — falling back to regular variant`);
     }
   }
   const tierDef = TIER_DEFINITIONS[tier];
@@ -254,11 +254,11 @@ async function resolveTierVariantId(
 export async function createCheckoutUrl(
   tier: PaidTierId,
   billingPeriod: BillingPeriod,
-  useEarlyBird = false,
+  usePromo = false,
 ): Promise<string> {
   const session = await getCachedUserSession();
   if (!session.user) throw new Error('Not authenticated');
-  const productId = await resolveTierVariantId(tier, billingPeriod, useEarlyBird);
+  const productId = await resolveTierVariantId(tier, billingPeriod, usePromo);
 
   const provider = getPaymentProvider();
   const appUrl = getAppUrl();
@@ -279,9 +279,9 @@ export async function createCheckoutUrl(
 export async function createPublicCheckoutUrl(
   tier: PaidTierId,
   billingPeriod: BillingPeriod,
-  useEarlyBird = false,
+  usePromo = false,
 ): Promise<string> {
-  const productId = await resolveTierVariantId(tier, billingPeriod, useEarlyBird);
+  const productId = await resolveTierVariantId(tier, billingPeriod, usePromo);
 
   const provider = getPaymentProvider();
   const appUrl = getAppUrl();

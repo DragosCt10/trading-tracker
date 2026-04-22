@@ -3,21 +3,21 @@
 import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  EARLY_BIRD_LIMIT,
-  EARLY_BIRD_MONTHLY_PRICE,
-} from '@/constants/earlyBird';
+  PROMO_LIMIT,
+  PROMO_MONTHLY_PRICE,
+} from '@/constants/promo';
 
-interface EarlyBirdBannerProps {
+interface PromoBannerProps {
   slotsUsed: number;
   className?: string;
 }
 
-export function EarlyBirdBanner({ slotsUsed, className }: EarlyBirdBannerProps) {
-  if (slotsUsed >= EARLY_BIRD_LIMIT) return null;
+export function PromoBanner({ slotsUsed, className }: PromoBannerProps) {
+  if (slotsUsed >= PROMO_LIMIT) return null;
 
   const percentClaimed = Math.min(
     100,
-    Math.max(0, Math.round((slotsUsed / EARLY_BIRD_LIMIT) * 100)),
+    Math.max(0, Math.round((slotsUsed / PROMO_LIMIT) * 100)),
   );
 
   return (
@@ -41,7 +41,7 @@ export function EarlyBirdBanner({ slotsUsed, className }: EarlyBirdBannerProps) 
           </span>
           <div>
             <p className="text-sm font-semibold text-slate-900 dark:text-white sm:text-base">
-              Launch offer — ${EARLY_BIRD_MONTHLY_PRICE}/mo
+              Launch offer — ${PROMO_MONTHLY_PRICE}/mo
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Locked in for as long as you stay subscribed. Applies to monthly and annual.
@@ -58,7 +58,7 @@ export function EarlyBirdBanner({ slotsUsed, className }: EarlyBirdBannerProps) 
 
       <div
         role="progressbar"
-        aria-label="Early bird slots claimed"
+        aria-label="Promo slots claimed"
         aria-valuenow={percentClaimed}
         aria-valuemin={0}
         aria-valuemax={100}

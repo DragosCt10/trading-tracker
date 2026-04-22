@@ -106,14 +106,14 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
         productId: process.env.LEMONSQUEEZY_PRO_VARIANT_ID_ANNUAL ?? '',
         savingsPct: 20,
       },
-      earlyBird: {
+      promo: {
         monthly: {
           usd: 9.99,
-          productId: process.env.LEMONSQUEEZY_PRO_EARLY_VARIANT_ID_MONTHLY ?? '',
+          productId: process.env.LEMONSQUEEZY_PRO_PROMO_VARIANT_ID_MONTHLY ?? '',
         },
         annual: {
           usd: 95.90,
-          productId: process.env.LEMONSQUEEZY_PRO_EARLY_VARIANT_ID_ANNUAL ?? '',
+          productId: process.env.LEMONSQUEEZY_PRO_PROMO_VARIANT_ID_ANNUAL ?? '',
           savingsPct: 20,
         },
       },

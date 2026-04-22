@@ -8,33 +8,20 @@ import type { BillingPeriod, TierId } from '@/types/subscription';
 import { PricingFAQ } from '@/components/pricing/PricingFAQ';
 import { PricingComparison } from '@/components/pricing/PricingComparison';
 import { PaymentSecuredInfo } from '@/components/pricing/PaymentSecuredInfo';
-import { EarlyBirdBanner } from '@/components/pricing/EarlyBirdBanner';
-import { EARLY_BIRD_LIMIT } from '@/constants/earlyBird';
-import { useDisplayedEarlyBirdSlots } from '@/utils/earlyBirdSlots';
 
 type PaidTierId = Exclude<TierId, 'starter' | 'elite'>;
 
-interface PricingPageClientProps {
-  earlyBirdSlotsUsed: number;
-}
-
-export function PricingPageClient({ earlyBirdSlotsUsed }: PricingPageClientProps) {
+export function PricingPageClient() {
   const router = useRouter();
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('annual');
   const [isCheckoutPending, startCheckoutTransition] = useTransition();
   const [pendingCheckoutTier, setPendingCheckoutTier] = useState<PaidTierId | null>(null);
-  // Checkout eligibility uses the REAL count so we never sell past the cap.
-  const earlyBirdAvailable = earlyBirdSlotsUsed < EARLY_BIRD_LIMIT;
-  // Banner display uses the merged real+simulated count (ticks every minute)
-  // so it stays in sync with the landing-page launch banner.
-  const displayedSlotsUsed = useDisplayedEarlyBirdSlots(earlyBirdSlotsUsed);
 
   function handleCheckout(tier: PaidTierId) {
     setPendingCheckoutTier(tier);
     startCheckoutTransition(async () => {
       try {
-        // Early-bird only applies to Pro. Starter Plus always uses its regular variants.
-        const url = await createPublicCheckoutUrl(tier, billingPeriod, tier === 'pro' && earlyBirdAvailable);
+        const url = await createPublicCheckoutUrl(tier, billingPeriod);
         router.push(url);
       } catch {
         router.push('/signup');
@@ -69,15 +56,12 @@ export function PricingPageClient({ earlyBirdSlotsUsed }: PricingPageClientProps
 
         {/* Pricing cards + table */}
         <div className="relative mx-auto max-w-6xl px-2 sm:px-4 pb-12 sm:pb-20">
-          <EarlyBirdBanner slotsUsed={displayedSlotsUsed} className="mb-6" />
-
           <PricingComparison
             billingPeriod={billingPeriod}
             setBillingPeriod={setBillingPeriod}
             isCheckoutPending={isCheckoutPending}
             pendingCheckoutTier={pendingCheckoutTier}
             onCheckout={handleCheckout}
-            useEarlyBird={earlyBirdAvailable}
           />
 
           {/* Secured payment info */}

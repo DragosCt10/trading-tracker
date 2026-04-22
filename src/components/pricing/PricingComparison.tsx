@@ -13,9 +13,9 @@ import { cn } from '@/lib/utils';
 import { TIER_DEFINITIONS } from '@/constants/tiers';
 import { PRICING_FEATURES } from '@/constants/pricingFeatures';
 import {
-  EARLY_BIRD_MONTHLY_PRICE,
-  EARLY_BIRD_ANNUAL_PRICE,
-} from '@/constants/earlyBird';
+  PROMO_MONTHLY_PRICE,
+  PROMO_ANNUAL_PRICE,
+} from '@/constants/promo';
 import type { BillingPeriod, TierId } from '@/types/subscription';
 import {
   PricingTable,
@@ -33,7 +33,7 @@ const PRO_MONTHLY_PRICE = proDef.pricing.monthly?.usd ?? 11.99;
 const PRO_ANNUAL_PRICE = proDef.pricing.annual?.usd ?? 114.99;
 const SAVINGS_PCT = proDef.pricing.annual?.savingsPct ?? 20;
 const PRO_ANNUAL_MONTHLY_EQUIV = Math.floor(PRO_ANNUAL_PRICE / 12);
-const EARLY_ANNUAL_MONTHLY_EQUIV = Math.floor(EARLY_BIRD_ANNUAL_PRICE / 12);
+const PROMO_ANNUAL_MONTHLY_EQUIV = Math.floor(PROMO_ANNUAL_PRICE / 12);
 const SP_MONTHLY_PRICE = starterPlusDef.pricing.monthly?.usd ?? 7.99;
 const SP_ANNUAL_PRICE = starterPlusDef.pricing.annual?.usd ?? 76.70;
 const SP_ANNUAL_MONTHLY_EQUIV = Math.floor(SP_ANNUAL_PRICE / 12);
@@ -145,7 +145,7 @@ const TIER_CARD_CONFIG: Record<TierId, TierCardConfig> = {
     name: 'Starter',
     badge: 'Free forever',
     badgeClassName: 'border-slate-300/50 dark:border-slate-600/50 text-slate-500 dark:text-slate-400',
-    description: 'Start free, no credit card needed.',
+    description: 'Start free, zero commitment.',
     icon: Zap,
   },
   starter_plus: {
@@ -185,32 +185,25 @@ function formatDailyCost(amount: number, period: BillingPeriod): string {
 }
 
 /**
- * Resolves `{ price, compareAt?, billingNote? }` for a paid tier card, honouring
- * the Pro early-bird promo when applicable.
+ * Resolves `{ price, billingNote? }` for a paid tier card, honouring
+ * the Pro promo when applicable.
  */
 function resolveTierPricing(
   tier: PaidTierId,
   billingPeriod: BillingPeriod,
-  useEarlyBird: boolean,
-): { price: string; compareAt?: string; billingNote?: string } {
+  usePromo: boolean,
+): { price: string; billingNote?: string } {
   const isAnnual = billingPeriod === 'annual';
   if (tier === 'pro') {
-    const price = useEarlyBird
+    const price = usePromo
       ? isAnnual
-        ? `$${EARLY_ANNUAL_MONTHLY_EQUIV}/mo`
-        : `$${EARLY_BIRD_MONTHLY_PRICE}/mo`
+        ? `$${PROMO_ANNUAL_MONTHLY_EQUIV}/mo`
+        : `$${PROMO_MONTHLY_PRICE}/mo`
       : isAnnual
         ? `$${PRO_ANNUAL_MONTHLY_EQUIV}/mo`
         : `$${PRO_MONTHLY_PRICE}/mo`;
-    const compareAt = useEarlyBird
-      ? isAnnual
-        ? `$${PRO_ANNUAL_MONTHLY_EQUIV}/mo`
-        : `$${PRO_MONTHLY_PRICE}/mo`
-      : isAnnual
-        ? `$${PRO_MONTHLY_PRICE}/mo`
-        : undefined;
-    const annualAmount = useEarlyBird ? EARLY_BIRD_ANNUAL_PRICE : PRO_ANNUAL_PRICE;
-    const monthlyAmount = useEarlyBird ? EARLY_BIRD_MONTHLY_PRICE : PRO_MONTHLY_PRICE;
+    const annualAmount = usePromo ? PROMO_ANNUAL_PRICE : PRO_ANNUAL_PRICE;
+    const monthlyAmount = usePromo ? PROMO_MONTHLY_PRICE : PRO_MONTHLY_PRICE;
     const dailyCost = formatDailyCost(
       isAnnual ? annualAmount : monthlyAmount,
       billingPeriod,
@@ -218,9 +211,9 @@ function resolveTierPricing(
     const billingNote = isAnnual
       ? `$${annualAmount} billed annually · ${dailyCost}`
       : dailyCost;
-    return { price, compareAt, billingNote };
+    return { price, billingNote };
   }
-  // starter_plus — no early-bird path
+  // starter_plus — no promo path
   const price = isAnnual
     ? `$${SP_ANNUAL_MONTHLY_EQUIV}/mo`
     : `$${SP_MONTHLY_PRICE}/mo`;
@@ -254,11 +247,11 @@ interface PricingComparisonProps {
   /** Hide the built-in billing toggle (caller renders it externally). */
   hideToggle?: boolean;
   /**
-   * When true, render the Pro card with launch-offer pricing
-   * ($9.99/mo monthly or $95.90/yr annual) and strike-through the regular
-   * price as compareAt. Caller owns the "slots remaining" decision.
+   * When true, render the Pro card with promo pricing
+   * ($9.99/mo monthly or $95.90/yr annual). Caller owns the "slots remaining"
+   * decision.
    */
-  useEarlyBird?: boolean;
+  usePromo?: boolean;
   className?: string;
 }
 
@@ -271,12 +264,12 @@ function renderPlanCard(params: {
   tier: TierId;
   variant: 'mobile' | 'desktop';
   billingPeriod: BillingPeriod;
-  useEarlyBird: boolean;
+  usePromo: boolean;
   currentTier: TierId | undefined;
   onCheckout: (tier: PaidTierId) => void;
   pendingCheckoutTier: PaidTierId | null;
 }) {
-  const { tier, variant, billingPeriod, useEarlyBird, currentTier, onCheckout, pendingCheckoutTier } = params;
+  const { tier, variant, billingPeriod, usePromo, currentTier, onCheckout, pendingCheckoutTier } = params;
   const cfg = TIER_CARD_CONFIG[tier];
   const isMobile = variant === 'mobile';
   const noteClass = isMobile ? 'text-[10px] -mt-1 mb-2' : 'text-xs -mt-1 mb-3';
@@ -328,7 +321,7 @@ function renderPlanCard(params: {
 
   // Paid tier (starter_plus or pro)
   const paidTier = tier as PaidTierId;
-  const { price, compareAt, billingNote } = resolveTierPricing(paidTier, billingPeriod, useEarlyBird);
+  const { price, billingNote } = resolveTierPricing(paidTier, billingPeriod, usePromo);
   const isPendingThisTier = pendingCheckoutTier === paidTier;
 
   return (
@@ -337,7 +330,6 @@ function renderPlanCard(params: {
       badge={cfg.badge}
       badgeClassName={cfg.badgeClassName}
       price={price}
-      compareAt={compareAt}
       description={cfg.description}
       icon={cfg.icon}
       className={cfg.className}
@@ -376,7 +368,7 @@ export function PricingComparison({
   pendingCheckoutTier = null,
   currentTier,
   hideToggle = false,
-  useEarlyBird = false,
+  usePromo = false,
   className,
 }: PricingComparisonProps) {
   const visibleTiers: TierId[] = ['starter', 'starter_plus', 'pro'];
@@ -387,7 +379,7 @@ export function PricingComparison({
   const cardParams = (variant: 'mobile' | 'desktop') => ({
     variant,
     billingPeriod,
-    useEarlyBird,
+    usePromo,
     currentTier,
     onCheckout,
     pendingCheckoutTier: effectivePendingTier,

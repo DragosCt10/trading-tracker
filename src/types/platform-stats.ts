@@ -24,6 +24,8 @@ export interface AdminPlatformStats {
   tradersCount: number;
   tradesCount: number;
   statsBoardsCount: number;
+  /** Count of real (paying) subscriptions — excludes admin_granted grants. */
+  subscriptionsCount: number;
   tradesByMode: TradesByMode;
   prev?: {
     tradersCount: number;

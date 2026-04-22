@@ -154,13 +154,13 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
 
       {/* Tabs */}
       {isSuperAdmin && (
-        <div className="flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-900/20 p-1 mb-8 backdrop-blur-sm">
+        <div className="flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-900/20 p-1 mb-8 backdrop-blur-sm overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {(['users', 'team', 'moderation', 'reviews', 'platform_stats'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={cn(
-                'flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-colors capitalize !shadow-none cursor-pointer flex items-center justify-center gap-1.5',
+                'flex-shrink-0 sm:flex-1 whitespace-nowrap rounded-xl px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition-colors capitalize !shadow-none cursor-pointer flex items-center justify-center gap-1.5',
                 tab === t
                   ? 'text-slate-900 dark:text-slate-50 shadow-sm border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/30'
                   : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'

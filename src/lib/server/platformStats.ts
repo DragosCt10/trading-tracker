@@ -27,20 +27,25 @@ export async function getAdminPlatformStats(
 
   const data = raw as unknown as PlatformStatsRpcResponse;
 
-  const [liveRes, demoRes, backtestingRes] = await Promise.all([
+  const [liveRes, demoRes, backtestingRes, subsRes] = await Promise.all([
     supabase.from('live_trades').select('id', { count: 'exact', head: true }),
     supabase.from('demo_trades').select('id', { count: 'exact', head: true }),
     supabase.from('backtesting_trades').select('id', { count: 'exact', head: true }),
+    supabase
+      .from('subscriptions')
+      .select('id', { count: 'exact', head: true })
+      .neq('status', 'admin_granted'),
   ]);
 
-  if (liveRes.error || demoRes.error || backtestingRes.error) {
-    return { error: liveRes.error?.message ?? demoRes.error?.message ?? backtestingRes.error?.message ?? 'Failed to count trades by mode' };
+  if (liveRes.error || demoRes.error || backtestingRes.error || subsRes.error) {
+    return { error: liveRes.error?.message ?? demoRes.error?.message ?? backtestingRes.error?.message ?? subsRes.error?.message ?? 'Failed to count platform stats' };
   }
 
   const result: AdminPlatformStats = {
     tradersCount: data.traders_count,
     tradesCount: data.trades_count,
     statsBoardsCount: data.stats_boards_count,
+    subscriptionsCount: subsRes.count ?? 0,
     tradesByMode: {
       live: liveRes.count ?? 0,
       demo: demoRes.count ?? 0,

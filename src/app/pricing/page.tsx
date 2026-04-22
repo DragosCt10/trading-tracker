@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { PricingPageClient } from './PricingPageClient';
-import { getEarlyBirdSlotsUsed } from '@/lib/server/earlyBird';
 import { buildPageMetadata } from '@/constants/seo';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { buildBreadcrumbSchema, buildPricingProductSchema } from '@/constants/schemas';
@@ -12,8 +11,7 @@ export const metadata: Metadata = buildPageMetadata({
   path: '/pricing',
 });
 
-export default async function PricingPage() {
-  const earlyBirdSlotsUsed = await getEarlyBirdSlotsUsed();
+export default function PricingPage() {
   const productSchema = buildPricingProductSchema();
   const breadcrumbSchema = buildBreadcrumbSchema([
     { name: 'Home', path: '/' },
@@ -23,7 +21,7 @@ export default async function PricingPage() {
     <>
       {productSchema && <JsonLd payload={productSchema} />}
       <JsonLd payload={breadcrumbSchema} />
-      <PricingPageClient earlyBirdSlotsUsed={earlyBirdSlotsUsed} />
+      <PricingPageClient />
     </>
   );
 }

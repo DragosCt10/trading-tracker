@@ -70,11 +70,11 @@ export interface TierDefinition {
     monthly: TierPricingOption | null;
     annual: (TierPricingOption & { savingsPct: number }) | null;
     /**
-     * Launch-offer variants — served to the first N paying subscribers while
+     * Promo/campaign variants — served to the first N paying subscribers while
      * slots remain. Checkout routes here when the server-side slot check
      * confirms availability; otherwise falls back to the regular variants.
      */
-    earlyBird?: {
+    promo?: {
       monthly: TierPricingOption;
       annual: TierPricingOption & { savingsPct: number };
     };
