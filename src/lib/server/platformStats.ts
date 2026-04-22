@@ -27,37 +27,39 @@ export async function getAdminPlatformStats(
 
   const data = raw as unknown as PlatformStatsRpcResponse;
 
-  const [liveRes, demoRes, backtestingRes, subsRes] = await Promise.all([
-    supabase.from('live_trades').select('id', { count: 'exact', head: true }),
-    supabase.from('demo_trades').select('id', { count: 'exact', head: true }),
-    supabase.from('backtesting_trades').select('id', { count: 'exact', head: true }),
-    supabase
-      .from('subscriptions')
-      .select('id', { count: 'exact', head: true })
-      .neq('status', 'admin_granted'),
-  ]);
+  const { count: subsCount, error: subsError } = await supabase
+    .from('subscriptions')
+    .select('id', { count: 'exact', head: true })
+    .neq('status', 'admin_granted');
 
-  if (liveRes.error || demoRes.error || backtestingRes.error || subsRes.error) {
-    return { error: liveRes.error?.message ?? demoRes.error?.message ?? backtestingRes.error?.message ?? subsRes.error?.message ?? 'Failed to count platform stats' };
+  if (subsError) {
+    return { error: subsError.message };
   }
 
   const result: AdminPlatformStats = {
     tradersCount: data.traders_count,
+    activeTradersCount: data.active_traders_count,
     tradesCount: data.trades_count,
     statsBoardsCount: data.stats_boards_count,
-    subscriptionsCount: subsRes.count ?? 0,
+    subscriptionsCount: subsCount ?? 0,
     tradesByMode: {
-      live: liveRes.count ?? 0,
-      demo: demoRes.count ?? 0,
-      backtesting: backtestingRes.count ?? 0,
+      live: data.live_trades_count,
+      demo: data.demo_trades_count,
+      backtesting: data.backtesting_trades_count,
     },
   };
 
   if (period && data.prev_traders_count != null) {
     result.prev = {
       tradersCount: data.prev_traders_count ?? 0,
+      activeTradersCount: data.prev_active_traders_count ?? 0,
       tradesCount: data.prev_trades_count ?? 0,
       statsBoardsCount: data.prev_stats_boards_count ?? 0,
+      tradesByMode: {
+        live: data.prev_live_trades_count ?? 0,
+        demo: data.prev_demo_trades_count ?? 0,
+        backtesting: data.prev_backtesting_trades_count ?? 0,
+      },
     };
   }
 
