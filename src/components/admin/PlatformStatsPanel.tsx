@@ -25,10 +25,11 @@ function formatCompact(n: number): string {
 }
 
 const STAT_CONFIG: PlatformStatConfig[] = [
-  { key: 'tradersCount',       label: 'Traders',       format: formatNumber },
-  { key: 'tradesCount',        label: 'Trades',        format: formatCompact },
-  { key: 'statsBoardsCount',   label: 'Stats Boards',  format: formatNumber },
-  { key: 'subscriptionsCount', label: 'Subscriptions', format: formatNumber },
+  { key: 'tradersCount',       label: 'Registered Users', format: formatNumber },
+  { key: 'activeTradersCount', label: 'Active Traders',   format: formatNumber },
+  { key: 'tradesCount',        label: 'Trades',           format: formatCompact },
+  { key: 'statsBoardsCount',   label: 'Stats Boards',     format: formatNumber },
+  { key: 'subscriptionsCount', label: 'Subscriptions',    format: formatNumber },
 ];
 
 const PERIODS: { value: ComparisonPeriod; label: string }[] = [
@@ -167,21 +168,40 @@ export default function PlatformStatsPanel() {
               { key: 'demo',        label: 'Demo Trades' },
               { key: 'backtesting', label: 'Backtesting Trades' },
             ] as const
-          ).map(({ key, label }) => (
-            <Card
-              key={key}
-              className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm"
-            >
-              <CardContent className="pt-5 pb-4 px-5">
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
-                  {label}
-                </p>
-                <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">
-                  {formatNumber(stats.tradesByMode[key])}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
+          ).map(({ key, label }) => {
+            const current = stats.tradesByMode[key];
+            const previous = stats.prev?.tradesByMode[key];
+            const delta = previous != null ? getDelta(current, previous) : null;
+            return (
+              <Card
+                key={key}
+                className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm"
+              >
+                <CardContent className="pt-5 pb-4 px-5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
+                    {label}
+                  </p>
+                  <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">
+                    {formatNumber(current)}
+                  </p>
+                  {delta && (
+                    <div
+                      className={cn(
+                        'mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold',
+                        delta.positive
+                          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-200 dark:border-emerald-800'
+                          : 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-200 dark:border-rose-800'
+                      )}
+                      aria-label={`${delta.pct} change from previous period`}
+                    >
+                      {delta.positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      {delta.pct}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -193,7 +213,7 @@ export default function PlatformStatsPanel() {
             const previous =
               cfg.key === 'subscriptionsCount'
                 ? undefined
-                : stats.prev?.[cfg.key as keyof NonNullable<typeof stats.prev>];
+                : (stats.prev?.[cfg.key as 'tradersCount' | 'activeTradersCount' | 'tradesCount' | 'statsBoardsCount']);
             const delta = previous != null ? getDelta(current, previous) : null;
 
             return (
