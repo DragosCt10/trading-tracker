@@ -61,6 +61,8 @@ export interface CheckoutParams {
   productId: string;
   /** Omit for anonymous (landing page) checkouts — webhook resolves user by email. */
   userId?: string;
+  /** Prefill the checkout email field. Prevents ghost users caused by email mismatch. */
+  email?: string;
   billingPeriod: BillingPeriod;
   successUrl: string;
 }
