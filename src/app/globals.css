@@ -201,7 +201,7 @@
     bar-breathe 4s ease-in-out 3s infinite;
 }
 
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce), (max-width: 768px) {
   .trading-bar-svg {
     animation: none;
     transform: scaleY(1);
@@ -242,7 +242,7 @@
   animation: comet-travel 10s linear infinite;
 }
 
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce), (max-width: 768px) {
   .comet-1, .comet-2, .comet-3 {
     animation: none;
     opacity: 0;
