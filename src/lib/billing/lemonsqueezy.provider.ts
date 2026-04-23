@@ -64,6 +64,7 @@ export class LemonSqueezyProvider implements IPaymentProvider {
   async createCheckoutSession({
     productId,
     userId,
+    email,
     successUrl,
   }: CheckoutParams): Promise<{ checkoutUrl: string }> {
     const checkout = await createCheckout(this.storeId, productId, {
@@ -72,6 +73,7 @@ export class LemonSqueezyProvider implements IPaymentProvider {
         media: false,
       },
       checkoutData: {
+        ...(email ? { email } : {}),
         custom: userId ? { user_id: userId } : undefined,
       },
       productOptions: {
