@@ -265,6 +265,7 @@ export async function createCheckoutUrl(
   const { checkoutUrl } = await provider.createCheckoutSession({
     productId,
     userId: session.user.id,
+    email: session.user.email,
     billingPeriod,
     successUrl: `${appUrl}/settings?tab=billing&success=1`,
   });
