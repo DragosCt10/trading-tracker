@@ -226,12 +226,15 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
             <Button
               variant="ghost"
               size="sm"
-              className={cn(navButtonClass(false), 'cursor-pointer')}
+              className={cn(
+                'lg:hidden themed-btn-primary transition-all duration-300 relative overflow-hidden rounded-xl border-0 w-full h-auto min-h-[64px] !p-0 cursor-pointer text-white font-semibold group/newtrade [&_svg]:text-white [&_span]:text-white'
+              )}
               onClick={() => setNewTradeModalOpen(true)}
             >
               <div className="block w-full h-full relative min-h-[40px]">
                 <Plus className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
-                <span className="absolute left-14 top-1/2 -translate-y-1/2 whitespace-nowrap opacity-100 max-w-[140px] lg:opacity-0 lg:max-w-0 overflow-hidden lg:group-hover/card:max-w-[140px] lg:group-hover/card:opacity-100 transition-all duration-300">New Trade</span>
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 whitespace-nowrap">New Trade</span>
+                <div className="absolute inset-0 -translate-x-full group-hover/newtrade:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
               </div>
             </Button>
           </div>
