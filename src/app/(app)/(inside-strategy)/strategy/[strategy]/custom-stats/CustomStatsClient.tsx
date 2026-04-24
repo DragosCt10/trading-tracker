@@ -388,13 +388,14 @@ export default function CustomStatsClient({
           throw result.error;
         }
         queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userId) });
+        router.refresh();
       } catch (error) {
         console.error('Failed to persist custom stats:', error);
         setSavedStats(previousStats);
         setSaveError('Failed to save custom stat. Please try again.');
       }
     },
-    [savedStats, strategyId, userId, queryClient]
+    [savedStats, strategyId, userId, queryClient, router]
   );
 
   const handleSave = useCallback(
@@ -517,7 +518,7 @@ export default function CustomStatsClient({
           )}
 
           {/* Small card grid — 3 per row */}
-          {activeAccount && tradesLoading && !isInitialContext ? (
+          {activeAccount && tradesLoading ? (
             <CustomStatsCardsSkeleton />
           ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
