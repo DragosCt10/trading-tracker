@@ -78,7 +78,10 @@ export default function DailyJournalClient({
   // Infinite scroll for days (mirrors TradeCardsView behavior)
   const [displayedCount, setDisplayedCount] = useState(DAYS_PER_LOAD);
   const [mounted, setMounted] = useState(false);
-  const observerTarget = useRef<HTMLDivElement | null>(null);
+  const observerInstanceRef = useRef<IntersectionObserver | null>(null);
+  // State mirrored to refs so the observer callback always reads fresh values
+  // without re-creating the observer on every render.
+  const loadMoreStateRef = useRef({ hasMore: false, tradesLoading: false, totalDays: 0 });
 
   useEffect(() => {
     setMounted(true);
@@ -167,27 +170,39 @@ export default function DailyJournalClient({
 
   const hasMore = displayedCount < dayGroups.length;
 
-  // IntersectionObserver for infinite scroll (per day)
-  // Same pattern as TradeCardsView: bump displayedCount when sentinel enters viewport.
+  // Keep latest values readable from the observer callback without re-creating it.
   useEffect(() => {
-    if (!mounted) return;
-    if (typeof window === 'undefined') return;
+    loadMoreStateRef.current = { hasMore, tradesLoading, totalDays: dayGroups.length };
+  }, [hasMore, tradesLoading, dayGroups.length]);
 
+  // Callback ref: (re)attaches the IntersectionObserver whenever the sentinel DOM node
+  // mounts/unmounts. Safer than a stable ref + effect: survives DOM remounts even if
+  // the effect's deps didn't change.
+  const observerTarget = useCallback((node: HTMLDivElement | null) => {
+    if (observerInstanceRef.current) {
+      observerInstanceRef.current.disconnect();
+      observerInstanceRef.current = null;
+    }
+    if (!node || typeof window === 'undefined') return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries[0].isIntersecting) return;
-        if (!hasMore) return;
-        if (tradesLoading) return;
-        setDisplayedCount((prev) => Math.min(prev + DAYS_PER_LOAD, dayGroups.length));
+        const { hasMore: curHasMore, tradesLoading: curLoading, totalDays } = loadMoreStateRef.current;
+        if (!curHasMore || curLoading) return;
+        setDisplayedCount((prev) => Math.min(prev + DAYS_PER_LOAD, totalDays));
       },
       { threshold: 0.1 }
     );
+    observer.observe(node);
+    observerInstanceRef.current = observer;
+  }, []);
 
-    const currentTarget = observerTarget.current;
-    if (currentTarget) observer.observe(currentTarget);
-
-    return () => observer.disconnect();
-  }, [mounted, hasMore, tradesLoading, dayGroups.length]);
+  useEffect(() => () => {
+    if (observerInstanceRef.current) {
+      observerInstanceRef.current.disconnect();
+      observerInstanceRef.current = null;
+    }
+  }, []);
 
   const visibleDayGroups = useMemo(
     () => dayGroups.slice(0, displayedCount),

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Hash, Link2, Loader2, UserMinus, UserPlus, Users, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -45,8 +45,15 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
     fetchNextPage,
   } = useChannelMembers(channel.id, userId);
   const { add, remove } = useChannelMemberActions(channel.id, userId);
-  const [mounted, setMounted] = useState(false);
-  const observerTarget = useRef<HTMLDivElement | null>(null);
+  const observerInstanceRef = useRef<IntersectionObserver | null>(null);
+  // Latest values mirrored to refs so the observer callback stays fresh without
+  // re-creating the observer on every render.
+  const observerStateRef = useRef({
+    hasNextPage: false,
+    isFetchingNextPage: false,
+    isLoadingMembers: false,
+    fetchNextPage,
+  });
 
   const [name, setName] = useState(channel.name);
   const [isPublic, setIsPublic] = useState(channel.is_public);
@@ -80,10 +87,6 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
     [channel.owner_id, memberPages]
   );
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   // Warm the invites cache while user reads the modal — so ChannelInviteModal opens instantly
   useEffect(() => {
     if (!open || isPublic || !userId) return;
@@ -103,24 +106,40 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
     return () => window.clearTimeout(timeoutId);
   }, [formError, membersError]);
 
+  // Keep latest values readable from the observer callback without re-creating it.
   useEffect(() => {
-    if (!mounted) return;
-    if (typeof window === 'undefined') return;
-    if (!hasNextPage || !observerTarget.current) return;
+    observerStateRef.current = { hasNextPage, isFetchingNextPage, isLoadingMembers, fetchNextPage };
+  }, [hasNextPage, isFetchingNextPage, isLoadingMembers, fetchNextPage]);
 
+  // Callback ref: (re)attaches the IntersectionObserver whenever the sentinel DOM node
+  // mounts/unmounts. Survives dialog open/close cycles and conditional re-renders that
+  // a stable ref + useEffect would miss.
+  const observerTarget = useCallback((node: HTMLDivElement | null) => {
+    if (observerInstanceRef.current) {
+      observerInstanceRef.current.disconnect();
+      observerInstanceRef.current = null;
+    }
+    if (!node || typeof window === 'undefined') return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries[0].isIntersecting) return;
-        if (isLoadingMembers || isFetchingNextPage) return;
-        void fetchNextPage();
+        const { hasNextPage: curHasNext, isFetchingNextPage: curFetching, isLoadingMembers: curLoading, fetchNextPage: curFetch } =
+          observerStateRef.current;
+        if (!curHasNext || curFetching || curLoading) return;
+        void curFetch();
       },
       { threshold: 0.1 }
     );
+    observer.observe(node);
+    observerInstanceRef.current = observer;
+  }, []);
 
-    const currentTarget = observerTarget.current;
-    if (currentTarget) observer.observe(currentTarget);
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage, isLoadingMembers, mounted]);
+  useEffect(() => () => {
+    if (observerInstanceRef.current) {
+      observerInstanceRef.current.disconnect();
+      observerInstanceRef.current = null;
+    }
+  }, []);
 
   const hasChanges = name.trim() !== channel.name || isPublic !== channel.is_public || logoUrl !== (channel.logo_url ?? null);
 

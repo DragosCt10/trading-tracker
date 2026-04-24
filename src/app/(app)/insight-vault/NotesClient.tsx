@@ -47,7 +47,7 @@ export default function NotesClient({
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_LOAD);
   const [tradeForModal, setTradeForModal] = useState<Trade | null>(null);
-  const observerTarget = useRef<HTMLDivElement>(null);
+  const observerInstanceRef = useRef<IntersectionObserver | null>(null);
   const hasPrefetched = useRef(false);
 
   const { strategies } = useStrategies({ userId, accountId });
@@ -142,8 +142,16 @@ export default function NotesClient({
     filteredLengthRef.current = filteredNotes.length;
   });
 
-  // Intersection Observer for infinite scroll
-  useEffect(() => {
+  // Callback ref: (re)attaches the IntersectionObserver whenever the loader sentinel
+  // mounts or unmounts. The previous stable-ref + empty-deps pattern attached the observer
+  // once on mount, before the sentinel was rendered (notes still loading, hasMore === false),
+  // so pagination never engaged once data arrived.
+  const observerTarget = useCallback((node: HTMLDivElement | null) => {
+    if (observerInstanceRef.current) {
+      observerInstanceRef.current.disconnect();
+      observerInstanceRef.current = null;
+    }
+    if (!node || typeof window === 'undefined') return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMoreRef.current && !notesLoadingRef.current && !notesFetchingRef.current) {
@@ -152,10 +160,15 @@ export default function NotesClient({
       },
       { threshold: 0.1 }
     );
+    observer.observe(node);
+    observerInstanceRef.current = observer;
+  }, []);
 
-    const currentTarget = observerTarget.current;
-    if (currentTarget) observer.observe(currentTarget);
-    return () => observer.disconnect();
+  useEffect(() => () => {
+    if (observerInstanceRef.current) {
+      observerInstanceRef.current.disconnect();
+      observerInstanceRef.current = null;
+    }
   }, []);
 
   const openModal = (note: Note) => {

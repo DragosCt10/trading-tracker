@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect, useCallback } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { getTradesForNoteLinking } from '@/lib/server/trades';
 import { queryKeys } from '@/lib/queryKeys';
@@ -35,7 +35,7 @@ export default function TradeLinkingPicker({
   onTradePickerSelectionChange,
   idPrefix = 'trade',
 }: TradeLinkingPickerProps) {
-  const tradeListScrollSentinelRef = useRef<HTMLDivElement>(null);
+  const observerInstanceRef = useRef<IntersectionObserver | null>(null);
 
   const {
     data: tradesForLinkingData,
@@ -64,25 +64,47 @@ export default function TradeLinkingPicker({
   // Refs so the observer callback always reads fresh values without recreating the observer
   const isFetchingNextPageRef = useRef(isFetchingNextPage);
   const fetchNextPageRef = useRef(fetchNextPage);
+  const hasNextPageRef = useRef(hasNextPage);
+  const accountIdRef = useRef(tradePickerSelection.accountId);
   useEffect(() => {
     isFetchingNextPageRef.current = isFetchingNextPage;
     fetchNextPageRef.current = fetchNextPage;
-  }, [isFetchingNextPage, fetchNextPage]);
+    hasNextPageRef.current = hasNextPage;
+    accountIdRef.current = tradePickerSelection.accountId;
+  }, [isFetchingNextPage, fetchNextPage, hasNextPage, tradePickerSelection.accountId]);
 
-  // Infinite scroll: only recreate when accountId or hasNextPage changes
-  useEffect(() => {
-    if (!tradePickerSelection.accountId || !hasNextPage) return;
-    const el = tradeListScrollSentinelRef.current;
-    if (!el) return;
+  // Callback ref: (re)attaches the IntersectionObserver whenever the sentinel mounts/unmounts.
+  // Previously a stable ref + effect re-created the observer only on accountId/hasNextPage
+  // changes, missing DOM remounts that happen while those stayed constant.
+  const tradeListScrollSentinelRef = useCallback((node: HTMLDivElement | null) => {
+    if (observerInstanceRef.current) {
+      observerInstanceRef.current.disconnect();
+      observerInstanceRef.current = null;
+    }
+    if (!node || typeof window === 'undefined') return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !isFetchingNextPageRef.current) fetchNextPageRef.current();
+        if (
+          entries[0].isIntersecting &&
+          accountIdRef.current &&
+          hasNextPageRef.current &&
+          !isFetchingNextPageRef.current
+        ) {
+          fetchNextPageRef.current();
+        }
       },
-      { root: el.closest('.overflow-y-auto'), rootMargin: '100px', threshold: 0 }
+      { root: node.closest('.overflow-y-auto'), rootMargin: '100px', threshold: 0 }
     );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [tradePickerSelection.accountId, hasNextPage]);
+    observer.observe(node);
+    observerInstanceRef.current = observer;
+  }, []);
+
+  useEffect(() => () => {
+    if (observerInstanceRef.current) {
+      observerInstanceRef.current.disconnect();
+      observerInstanceRef.current = null;
+    }
+  }, []);
 
   const isTradeSelected = (id: string, mode: TradingMode) =>
     selectedRefs.some((r) => r.id === id && r.mode === mode);

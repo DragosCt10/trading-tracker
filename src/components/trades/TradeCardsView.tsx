@@ -171,7 +171,17 @@ export function TradeCardsView({
       setInternalCardViewMode(mode);
     }
   };
-  const observerTarget = useRef<HTMLDivElement>(null);
+  const observerInstanceRef = useRef<IntersectionObserver | null>(null);
+  // Latest state read inside the IntersectionObserver callback. Kept in a ref so the observer,
+  // which is created in a callback-ref (no deps), always sees fresh values.
+  const loadMoreStateRef = useRef({
+    hasMore: false,
+    isLoading: false,
+    isFetching: false,
+    itemsPerLoad,
+    totalCount: 0,
+    externalPagination,
+  });
 
   useEffect(() => setMounted(true), []);
 
@@ -330,24 +340,51 @@ export function TradeCardsView({
     }
   }, [currentViewMode, displayedTrades, selectedTrade]);
 
+  // Keep latest values readable from inside the observer callback without re-creating the observer.
   useEffect(() => {
-    if (externalPagination || !mounted) return;
+    loadMoreStateRef.current = {
+      hasMore,
+      isLoading,
+      isFetching,
+      itemsPerLoad,
+      totalCount: filteredByTags.length,
+      externalPagination,
+    };
+  }, [hasMore, isLoading, isFetching, itemsPerLoad, filteredByTags.length, externalPagination]);
+
+  // Callback ref: (re)attaches the IntersectionObserver whenever the loader sentinel mounts
+  // or unmounts. Previously a stable ref + useEffect captured the DOM node once and missed
+  // the non-virtualized -> virtualized grid transition, silently killing pagination past ~36 items.
+  const observerTarget = useCallback((node: HTMLDivElement | null) => {
+    if (observerInstanceRef.current) {
+      observerInstanceRef.current.disconnect();
+      observerInstanceRef.current = null;
+    }
+    if (!node) return;
     if (typeof window === 'undefined') return;
+    if (loadMoreStateRef.current.externalPagination) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries[0].isIntersecting) return;
-        if (!hasMore) return;
-        if (isLoading || isFetching) return;
-        setDisplayedCount((prev) => Math.min(prev + itemsPerLoad, filteredByTags.length));
+        const { hasMore: curHasMore, isLoading: curLoading, isFetching: curFetching, itemsPerLoad: step, totalCount } =
+          loadMoreStateRef.current;
+        if (!curHasMore || curLoading || curFetching) return;
+        setDisplayedCount((prev) => Math.min(prev + step, totalCount));
       },
       { threshold: 0.1 }
     );
+    observer.observe(node);
+    observerInstanceRef.current = observer;
+  }, []);
 
-    const currentTarget = observerTarget.current;
-    if (currentTarget) observer.observe(currentTarget);
-    return () => observer.disconnect();
-  }, [externalPagination, mounted, hasMore, isLoading, isFetching, itemsPerLoad, filteredByTags.length]);
+  // Tear down the observer on unmount.
+  useEffect(() => () => {
+    if (observerInstanceRef.current) {
+      observerInstanceRef.current.disconnect();
+      observerInstanceRef.current = null;
+    }
+  }, []);
 
   const openModal = (trade: Trade) => {
     setSelectedTrade(trade);
