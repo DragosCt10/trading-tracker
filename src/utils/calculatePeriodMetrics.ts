@@ -1,5 +1,6 @@
 // src/utils/calculatePeriodMetrics.ts
 import type { Trade } from '@/types/trade';
+import type { AccountType } from '@/types/account-settings';
 import { calculateWinRates } from '@/utils/calculateWinRates';
 import { calculateMacroStats } from '@/utils/calculateMacroStats';
 import {
@@ -56,11 +57,14 @@ export const EMPTY_PERIOD_METRICS: PeriodMetrics = {
  * @param trades - Trades in the period (already filtered by market/execution if needed)
  * @param accountBalance - Account balance in account currency (used for PnL% and profitFactor)
  * @param dayCount - Number of calendar days in the period (for tradeFrequency)
+ * @param accountType - Asset class of the parent account; threaded to calculateMacroStats so
+ *                     futures accounts read stored `calculated_profit` instead of re-deriving.
  */
 export function calculatePeriodMetrics(
   trades: Trade[],
   accountBalance: number,
   dayCount: number,
+  accountType: AccountType = 'standard',
 ): PeriodMetrics {
   if (trades.length === 0) {
     return { ...EMPTY_PERIOD_METRICS, dayCount };
@@ -72,7 +76,7 @@ export function calculatePeriodMetrics(
   const { winRate } = calculateWinRates(trades);
 
   // Profit factor + consistency score
-  const macro = calculateMacroStats(trades, balance);
+  const macro = calculateMacroStats(trades, balance, accountType);
   const { profitFactor, consistencyScore } = macro;
 
   // Expectancy

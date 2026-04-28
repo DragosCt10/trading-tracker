@@ -176,4 +176,102 @@ describe('validateTrade', () => {
       sl_size: undefined,
     }), hasNoCards)).toBeNull();
   });
+
+  // ── Futures branch (account.type === 'futures') ─────────────────────────
+
+  describe('futures account', () => {
+    const futuresContext = { type: 'futures' as const, customSpecs: [] };
+
+    it('accepts a valid futures trade', () => {
+      const r = validateTrade(
+        makeTrade({
+          market: 'ES',
+          num_contracts: 5,
+          sl_size: 10,
+          risk_reward_ratio: 2,
+        }),
+        hasNoCards,
+        futuresContext,
+      );
+      expect(r).toBeNull();
+    });
+
+    it('rejects missing num_contracts', () => {
+      const r = validateTrade(
+        makeTrade({ market: 'ES', sl_size: 10, num_contracts: null }),
+        hasNoCards,
+        futuresContext,
+      );
+      expect(r).toContain('contracts');
+    });
+
+    it('rejects zero num_contracts', () => {
+      const r = validateTrade(
+        makeTrade({ market: 'ES', sl_size: 10, num_contracts: 0 }),
+        hasNoCards,
+        futuresContext,
+      );
+      expect(r).toContain('contracts');
+    });
+
+    it('rejects negative num_contracts', () => {
+      const r = validateTrade(
+        makeTrade({ market: 'ES', sl_size: 10, num_contracts: -3 }),
+        hasNoCards,
+        futuresContext,
+      );
+      expect(r).toContain('contracts');
+    });
+
+    it('rejects missing sl_size on futures', () => {
+      const r = validateTrade(
+        makeTrade({ market: 'ES', num_contracts: 5, sl_size: undefined }),
+        hasNoCards,
+        futuresContext,
+      );
+      expect(r).toContain('SL size');
+    });
+
+    it('rejects unknown symbol with no override', () => {
+      const r = validateTrade(
+        makeTrade({ market: 'NEVERHEARDOF', num_contracts: 5, sl_size: 10 }),
+        hasNoCards,
+        futuresContext,
+      );
+      expect(r).toContain('No contract spec');
+    });
+
+    it('accepts unknown symbol when per-trade override is set', () => {
+      const r = validateTrade(
+        makeTrade({
+          market: 'NEVERHEARDOF',
+          num_contracts: 5,
+          sl_size: 10,
+          dollar_per_sl_unit_override: 25,
+        }),
+        hasNoCards,
+        futuresContext,
+      );
+      expect(r).toBeNull();
+    });
+
+    it('accepts unknown symbol when user has a custom spec for it', () => {
+      const r = validateTrade(
+        makeTrade({ market: 'NEVERHEARDOF', num_contracts: 5, sl_size: 10 }),
+        hasNoCards,
+        {
+          type: 'futures',
+          customSpecs: [
+            {
+              symbol: 'NEVERHEARDOF',
+              dollarPerSlUnit: 25,
+              slUnitLabel: 'point',
+              createdAt: '2026-01-01T00:00:00Z',
+            },
+          ],
+        },
+      );
+      expect(r).toBeNull();
+    });
+  });
 });

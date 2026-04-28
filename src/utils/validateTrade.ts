@@ -1,5 +1,12 @@
 import type { Trade } from '@/types/trade';
+import type { AccountType, CustomFuturesSpec } from '@/types/account-settings';
 import { getMarketValidationError } from '@/utils/validateMarket';
+import { getFuturesSpec, normalizeFuturesSymbol } from '@/constants/futuresSpecs';
+
+interface AccountValidationContext {
+  type?: AccountType | null;
+  customSpecs?: CustomFuturesSpec[] | null;
+}
 
 /**
  * Validates a trade form before submission.
@@ -7,11 +14,16 @@ import { getMarketValidationError } from '@/utils/validateMarket';
  *
  * @param trade - The trade state to validate
  * @param hasCard - Function that checks if a strategy extra card is enabled
+ * @param account - Optional account context. When `type === 'futures'`, the futures
+ *                  branch enforces num_contracts > 0, sl_size > 0, and a resolvable
+ *                  multiplier (hardcoded spec, custom spec, or per-trade override).
  */
 export function validateTrade(
   trade: Trade,
   hasCard: (key: string) => boolean,
+  account: AccountValidationContext = {},
 ): string | null {
+  const isFutures = account.type === 'futures';
   const marketError = getMarketValidationError(trade.market);
   if (marketError) return marketError;
 
@@ -60,6 +72,31 @@ export function validateTrade(
 
   if (hasCard('sl_size_stats') && (trade.sl_size == null || trade.sl_size === undefined)) {
     return 'Please fill in the SL Size field.';
+  }
+
+  // ── Futures-specific gates ──────────────────────────────────────────────
+  if (isFutures) {
+    if (trade.num_contracts == null || Number(trade.num_contracts) <= 0) {
+      return 'Please enter the number of contracts.';
+    }
+    if (!Number.isFinite(Number(trade.num_contracts))) {
+      return 'Number of contracts must be a valid positive number.';
+    }
+    if (!Number.isInteger(Number(trade.num_contracts))) {
+      return 'Number of contracts must be a whole number (e.g. 1, 2, 3).';
+    }
+    if (trade.sl_size == null || Number(trade.sl_size) <= 0) {
+      return 'Please enter the SL size in the contract\'s native units (points / ticks / cents).';
+    }
+
+    const symbol = normalizeFuturesSymbol(trade.market);
+    const resolved = getFuturesSpec(symbol, account.customSpecs ?? null);
+    if (!resolved) {
+      const override = Number(trade.dollar_per_sl_unit_override);
+      if (!Number.isFinite(override) || override <= 0) {
+        return `No contract spec for "${symbol}". Save it as a custom symbol or enter a $ per SL-unit override.`;
+      }
+    }
   }
 
   if (!trade.strategy_id) {

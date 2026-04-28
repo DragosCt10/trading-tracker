@@ -53,4 +53,14 @@ export interface Trade {
   trade_executed_at?: string | null;
   /** Free-form tags attached to this trade (lowercase, trimmed). */
   tags?: string[] | null;
+
+  // — Futures account fields (only populated when the parent account has account_type='futures'). —
+  /** Number of contracts traded. */
+  num_contracts?: number | null;
+  /** Per-trade `$ per SL-unit` override used when the symbol is not in FUTURES_SPECS or user.custom_futures_specs. */
+  dollar_per_sl_unit_override?: number | null;
+  /** Snapshot of the dollar risk computed at write time (num_contracts × sl_size × multiplier). Persisted so stats stay correct if catalog changes later. */
+  calculated_risk_dollars?: number | null;
+  /** Provenance of the multiplier used: 'hardcoded' | 'custom' | 'override'. Debug metadata only. */
+  spec_source?: 'hardcoded' | 'custom' | 'override' | null;
 }

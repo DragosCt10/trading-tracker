@@ -11,6 +11,7 @@ import { validateTradeFields } from '@/utils/validateTradeFields';
 import { getRemainingTrades } from '@/lib/server/subscription';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { isReadOnlyMode } from './readOnlyMode';
+import type { SpecSource } from '@/constants/futuresSpecs';
 
 /** Per-minute rate limits for individual trade mutations (bot abuse protection). */
 const TRADE_RATE_LIMITS = {
@@ -194,7 +195,20 @@ export async function createTrade(params: {
   account_id: string;
   calculated_profit: number;
   pnl_percentage: number;
-  trade: Omit<Trade, 'id' | 'user_id' | 'account_id' | 'calculated_profit' | 'pnl_percentage'>;
+  /** Dollar risk snapshot for futures trades; null/omitted for standard trades. */
+  calculated_risk_dollars?: number | null;
+  /** Provenance of the multiplier used for futures trades. */
+  spec_source?: SpecSource | null;
+  trade: Omit<
+    Trade,
+    | 'id'
+    | 'user_id'
+    | 'account_id'
+    | 'calculated_profit'
+    | 'pnl_percentage'
+    | 'calculated_risk_dollars'
+    | 'spec_source'
+  >;
 }): Promise<{ error: { message: string } | null }> {
   const { user } = await getCachedUserSession();
   if (!user) return { error: { message: 'Unauthorized' } };
@@ -225,6 +239,8 @@ export async function createTrade(params: {
     account_id: params.account_id,
     calculated_profit: params.calculated_profit,
     pnl_percentage: params.pnl_percentage,
+    calculated_risk_dollars: params.calculated_risk_dollars ?? null,
+    spec_source: params.spec_source ?? null,
   };
   // Omit columns not present in DB schema (add migration if you add trade_executed_at to DB)
   delete row.trade_executed_at;

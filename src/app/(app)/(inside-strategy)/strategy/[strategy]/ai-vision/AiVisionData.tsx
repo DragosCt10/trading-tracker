@@ -29,6 +29,7 @@ async function AiVisionDataFetcher({ user, strategySlug }: { user: User; strateg
       mode={mode}
       accountId={activeAccount?.id}
       accountBalance={activeAccount?.account_balance ?? 0}
+      accountType={(activeAccount as { account_type?: string } | null)?.account_type === 'futures' ? 'futures' : 'standard'}
       initialSubscription={subscription}
     />
   );

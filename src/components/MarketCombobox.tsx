@@ -30,6 +30,12 @@ export interface MarketComboboxProps {
   pinnedIds?: string[];
   /** Callback to toggle pin (persist to DB). When provided with pinnedIds, favourites are stored on the strategy. */
   onTogglePin?: (itemId: string) => void;
+  /** Optional restricted pool. When set, replaces the global ALLOWED_MARKETS catalog as the source of typeable suggestions. */
+  allowedSymbols?: string[];
+  /** When true, disallow free-form custom values: clears the input on blur if it doesn't match an entry in `allowedSymbols`. */
+  restrictToList?: boolean;
+  /** Custom message shown when the typed value doesn't match any suggestion. Useful for futures restriction copy. */
+  noMatchMessage?: string;
 }
 
 export function MarketCombobox({
@@ -45,6 +51,9 @@ export function MarketCombobox({
   onEditSavedMarket,
   pinnedIds = [],
   onTogglePin,
+  allowedSymbols,
+  restrictToList = false,
+  noMatchMessage: noMatchMessageProp,
 }: MarketComboboxProps) {
   const [open, setOpen] = useState(false);
   const showPin = Boolean(onTogglePin);
@@ -64,11 +73,29 @@ export function MarketCombobox({
 
   const usePortal = Boolean(dropdownClassName);
 
-  // Normalized saved markets (dedupe, keep order) — no cap so users can have as many as they want in the list
-  const normalizedSaved = useMemo(
-    () => Array.from(new Set((defaultSuggestions ?? []).filter(Boolean))),
-    [defaultSuggestions]
+  // Pre-computed pool used when `allowedSymbols` restricts the catalog (e.g. futures-only mode).
+  const allowedPoolUpper = useMemo(
+    () => (allowedSymbols ? new Set(allowedSymbols.map((s) => s.toUpperCase())) : null),
+    [allowedSymbols]
   );
+
+  // Normalized saved markets (dedupe, keep order) — no cap so users can have as many as they want in the list.
+  // When restricted, drop entries that aren't in the allowed pool so forex/crypto saved markets don't surface on futures accounts.
+  const normalizedSaved = useMemo(() => {
+    const base = Array.from(new Set((defaultSuggestions ?? []).filter(Boolean)));
+    if (!allowedPoolUpper) return base;
+    return base.filter((s) => allowedPoolUpper.has(s.toUpperCase()));
+  }, [defaultSuggestions, allowedPoolUpper]);
+
+  /** Source of typeable symbols: the restricted pool when provided, otherwise the global allowed-markets catalog. */
+  const filterFromCatalog = (search: string): string[] => {
+    if (allowedSymbols) {
+      const s = search.trim().toUpperCase();
+      if (!s) return allowedSymbols.slice(0, MAX_SUGGESTIONS);
+      return allowedSymbols.filter((m) => m.toUpperCase().includes(s)).slice(0, MAX_SUGGESTIONS);
+    }
+    return filterAllowedMarkets(search, MAX_SUGGESTIONS);
+  };
 
   // On focus (empty input): show only saved_markets (defaultSuggestions). When typing: filter allowed markets and put saved matches first.
   const suggestions = useMemo(() => {
@@ -77,7 +104,7 @@ export function MarketCombobox({
     if (!q) {
       list = normalizedSaved.slice(0, MAX_SUGGESTIONS);
     } else {
-      const fromAllowed = filterAllowedMarkets(inputValue, MAX_SUGGESTIONS);
+      const fromAllowed = filterFromCatalog(inputValue);
       const lower = inputValue.trim().toLowerCase();
       const startsWith: string[] = [];
       const contains: string[] = [];
@@ -92,7 +119,8 @@ export function MarketCombobox({
       list = [...savedNotInAllowed, ...fromAllowed].slice(0, MAX_SUGGESTIONS);
     }
     return showPin && pinnedIds.length > 0 ? sortByPins(list, pinnedIds, (s) => s) : list;
-  }, [inputValue, normalizedSaved, showPin, pinnedIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputValue, normalizedSaved, showPin, pinnedIds, allowedSymbols]);
 
   // When portaling: measure trigger and position dropdown; update on scroll/resize when open
   useLayoutEffect(() => {
@@ -152,7 +180,12 @@ export function MarketCombobox({
     normalizedSaved.length >= 0;
 
   const handleBlur = () => {
-    const normalized = normalizeMarket(inputValue).slice(0, MAX_CHARS);
+    let normalized = normalizeMarket(inputValue).slice(0, MAX_CHARS);
+    // Restricted mode: if the typed value isn't in the allowed pool, clear it so we never persist
+    // an unsupported instrument (e.g. a forex pair on a futures account).
+    if (restrictToList && allowedPoolUpper && normalized && !allowedPoolUpper.has(normalized.toUpperCase())) {
+      normalized = '';
+    }
     if (normalized !== inputValue) {
       setInputValue(normalized);
       onChange(normalized);
@@ -216,7 +249,10 @@ export function MarketCombobox({
   /** Stop wheel from bubbling to Radix Dialog so the list actually scrolls */
   const onListWheel = (e: React.WheelEvent) => e.stopPropagation();
   const noMatchMessage =
-    'No match in list. You can use your typed value if it matches the format (e.g. EURUSD, EUR/USD).';
+    noMatchMessageProp ??
+    (restrictToList
+      ? 'No match. Add this contract from Settings → Custom Futures Specs to use it.'
+      : 'No match in list. You can use your typed value if it matches the format (e.g. EURUSD, EUR/USD).');
 
   return (
     <div ref={containerRef} className="relative">

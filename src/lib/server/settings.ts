@@ -2,21 +2,56 @@
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from './supabaseAdmin';
 import { getCachedUserSession } from '@/lib/server/session';
-import type { SavedNewsItem } from '@/types/account-settings';
-import { FeatureFlagsSchema, type FeatureFlags } from '@/types/featureFlags';
+import type { CustomFuturesSpec, SavedNewsItem } from '@/types/account-settings';
+import { FeatureFlagsSchema, parseFeatureFlags, type FeatureFlags } from '@/types/featureFlags';
+import {
+  MAX_CUSTOM_FUTURES_SPECS,
+  normalizeFuturesSymbol,
+  validateCustomFuturesSpec,
+} from '@/constants/futuresSpecs';
 import { z } from 'zod';
 
 export interface SettingsRow {
   saved_news: SavedNewsItem[];
   saved_markets: string[];
   newsletter_subscribed: boolean;
+  custom_futures_specs: CustomFuturesSpec[];
+  feature_flags: FeatureFlags;
 }
 
 const DEFAULT_SETTINGS: SettingsRow = {
   saved_news: [],
   saved_markets: [],
   newsletter_subscribed: true,
+  custom_futures_specs: [],
+  feature_flags: {},
 };
+
+/**
+ * Defensive normalizer for `custom_futures_specs` JSONB. If the column is corrupt
+ * (manual SQL edit, partial write), treat it as empty rather than crashing the
+ * caller. Follows the same belt-and-suspenders pattern used for saved_news.
+ */
+function normalizeCustomFuturesSpecs(raw: unknown): CustomFuturesSpec[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const r = item as Record<string, unknown>;
+    const symbol = typeof r.symbol === 'string' ? r.symbol : '';
+    const dollarPerSlUnit = Number(r.dollarPerSlUnit);
+    const slUnitLabel = typeof r.slUnitLabel === 'string' ? r.slUnitLabel : '';
+    if (!symbol || !Number.isFinite(dollarPerSlUnit) || dollarPerSlUnit <= 0 || !slUnitLabel) {
+      return [];
+    }
+    return [{
+      symbol: normalizeFuturesSymbol(symbol),
+      label: typeof r.label === 'string' ? r.label : undefined,
+      dollarPerSlUnit,
+      slUnitLabel,
+      createdAt: typeof r.createdAt === 'string' ? r.createdAt : new Date().toISOString(),
+    }];
+  });
+}
 
 /**
  * Gets the current user's settings from user_settings (server-side only).
@@ -27,7 +62,7 @@ export async function getSettings(userId: string): Promise<SettingsRow> {
   const supabase = await createClient();
   const { data, error } = await (supabase as any)
     .from('user_settings')
-    .select('saved_news, saved_markets, newsletter_subscribed')
+    .select('saved_news, saved_markets, newsletter_subscribed, custom_futures_specs, feature_flags')
     .eq('user_id', userId)
     .single();
 
@@ -42,6 +77,8 @@ export async function getSettings(userId: string): Promise<SettingsRow> {
     saved_news?: unknown;
     saved_markets?: unknown;
     newsletter_subscribed?: unknown;
+    custom_futures_specs?: unknown;
+    feature_flags?: unknown;
   };
   const rawNews = raw?.saved_news;
   const rawMarkets = raw?.saved_markets;
@@ -49,6 +86,8 @@ export async function getSettings(userId: string): Promise<SettingsRow> {
     saved_news: Array.isArray(rawNews) ? (rawNews as SavedNewsItem[]) : [],
     saved_markets: Array.isArray(rawMarkets) ? (rawMarkets as string[]) : [],
     newsletter_subscribed: typeof raw?.newsletter_subscribed === 'boolean' ? raw.newsletter_subscribed : true,
+    custom_futures_specs: normalizeCustomFuturesSpecs(raw?.custom_futures_specs),
+    feature_flags: parseFeatureFlags(raw?.feature_flags),
   };
 }
 
@@ -178,6 +217,132 @@ export async function unsubscribeByToken(
     .eq('newsletter_unsubscribe_token', parsed.data);
 
   return { success: true };
+}
+
+// ─── Custom Futures Specs ───────────────────────────────────────────────────
+//
+// Per-user catalog of contract specs for futures symbols not in the canonical
+// FUTURES_SPECS map. Stored as JSONB on user_settings.custom_futures_specs.
+// Capped at MAX_CUSTOM_FUTURES_SPECS to bound row size.
+//
+// Validation lives in @/constants/futuresSpecs.validateCustomFuturesSpec; same
+// helper is used client-side for inline form errors.
+
+/**
+ * Insert or replace a user-saved spec for a futures symbol. Symbol is normalized
+ * upper-case at save time; subsequent saves with the same symbol replace the prior
+ * entry (upsert semantics within the JSONB array).
+ *
+ * Validation gates:
+ *  - symbol regex `/^[A-Z0-9._-]{1,16}$/`
+ *  - cannot collide with a hardcoded FUTURES_SPECS symbol
+ *  - dollarPerSlUnit must be a finite positive number
+ *  - cap of MAX_CUSTOM_FUTURES_SPECS per user
+ */
+export async function upsertCustomFuturesSpec(input: {
+  symbol: string;
+  label?: string;
+  dollarPerSlUnit: number;
+  slUnitLabel: string;
+}): Promise<{ data: CustomFuturesSpec | null; error: { message: string } | null }> {
+  const { user } = await getCachedUserSession();
+  if (!user) return { data: null, error: { message: 'Unauthorized' } };
+
+  const validationError = validateCustomFuturesSpec(input);
+  if (validationError) return { data: null, error: { message: validationError } };
+
+  const symbol = normalizeFuturesSymbol(input.symbol);
+
+  const supabase = await createClient();
+  const { data: existing } = await (supabase as any)
+    .from('user_settings')
+    .select('custom_futures_specs')
+    .eq('user_id', user.id)
+    .single();
+
+  const existingSpecs = normalizeCustomFuturesSpecs(
+    (existing as { custom_futures_specs?: unknown } | null)?.custom_futures_specs,
+  );
+
+  const filtered = existingSpecs.filter((s) => s.symbol !== symbol);
+
+  if (filtered.length >= MAX_CUSTOM_FUTURES_SPECS) {
+    return {
+      data: null,
+      error: {
+        message: `You've reached the limit of ${MAX_CUSTOM_FUTURES_SPECS} saved futures symbols. Delete one before adding another.`,
+      },
+    };
+  }
+
+  const newSpec: CustomFuturesSpec = {
+    symbol,
+    label: input.label?.trim() || undefined,
+    dollarPerSlUnit: input.dollarPerSlUnit,
+    slUnitLabel: input.slUnitLabel.trim(),
+    createdAt: new Date().toISOString(),
+  };
+
+  const next = [...filtered, newSpec];
+
+  const { error } = await (supabase as any)
+    .from('user_settings')
+    .upsert(
+      { user_id: user.id, custom_futures_specs: next as any },
+      { onConflict: 'user_id' },
+    );
+
+  if (error) {
+    console.error('Error upserting custom futures spec:', error);
+    return { data: null, error: { message: error.message ?? 'Failed to save symbol' } };
+  }
+
+  return { data: newSpec, error: null };
+}
+
+/**
+ * Remove a user-saved futures spec by symbol. No-op if symbol is not in the user's
+ * saved list. Historical trades referencing the symbol are unaffected because
+ * `calculated_risk_dollars` is a snapshot at write time.
+ */
+export async function deleteCustomFuturesSpec(
+  symbol: string,
+): Promise<{ error: { message: string } | null }> {
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: { message: 'Unauthorized' } };
+
+  const normalized = normalizeFuturesSymbol(symbol);
+  if (!normalized) return { error: { message: 'Symbol is required.' } };
+
+  const supabase = await createClient();
+  const { data: existing } = await (supabase as any)
+    .from('user_settings')
+    .select('custom_futures_specs')
+    .eq('user_id', user.id)
+    .single();
+
+  const existingSpecs = normalizeCustomFuturesSpecs(
+    (existing as { custom_futures_specs?: unknown } | null)?.custom_futures_specs,
+  );
+
+  const next = existingSpecs.filter((s) => s.symbol !== normalized);
+
+  // Idempotent: if symbol wasn't saved, return success (no-op).
+  if (next.length === existingSpecs.length) return { error: null };
+
+  const { error } = await (supabase as any)
+    .from('user_settings')
+    .upsert(
+      { user_id: user.id, custom_futures_specs: next as any },
+      { onConflict: 'user_id' },
+    );
+
+  if (error) {
+    console.error('Error deleting custom futures spec:', error);
+    return { error: { message: error.message ?? 'Failed to delete symbol' } };
+  }
+
+  return { error: null };
 }
 
 // ─── Feature Flags ──────────────────────────────────────────────────────────

@@ -1,4 +1,6 @@
 import type { Trade } from '@/types/trade';
+import type { AccountType, CustomFuturesSpec } from '@/types/account-settings';
+import type { SpecSource } from '@/constants/futuresSpecs';
 import { normalizeMarket } from '@/utils/validateMarket';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
@@ -7,16 +9,37 @@ import { getIntervalForTime } from '@/constants/analytics';
 /**
  * Builds the payload for creating a new trade.
  * Normalizes market, resolves Potential R:R defaults, computes P&L, and strips client-only fields.
+ *
+ * Accepts a bare `number` for `account` (treated as standard balance only) for backwards
+ * compatibility with the form's existing call shape. Pass `{ balance, type }` to compute
+ * futures P&L. `customSpecs` is required when `type='futures'` and the symbol may resolve
+ * via tier-2 (user-saved) specs.
+ *
+ * Throws `MissingFuturesSpecError` from the calculator if a futures trade has no
+ * resolvable spec — caller must catch and surface as inline form error.
  */
 export function constructCreateTradePayload(
   trade: Trade,
-  accountBalance: number,
+  account: number | { balance: number; type?: AccountType | null },
+  customSpecs?: CustomFuturesSpec[] | null,
 ): {
-  tradePayload: Omit<Trade, 'id' | 'user_id' | 'account_id' | 'calculated_profit' | 'pnl_percentage'>;
+  tradePayload: Omit<
+    Trade,
+    | 'id'
+    | 'user_id'
+    | 'account_id'
+    | 'calculated_profit'
+    | 'pnl_percentage'
+    | 'calculated_risk_dollars'
+    | 'spec_source'
+  >;
   pnl_percentage: number;
   calculated_profit: number;
+  calculated_risk_dollars: number | null;
+  spec_source: SpecSource | null;
 } {
   const normalizedMarket = normalizeMarket(trade.market);
+  const tradeWithNormalizedMarket = { ...trade, market: normalizedMarket };
 
   // When outcome is Win and user did not select Potential R:R, use the exact Risk:Reward Ratio
   const riskRewardRatioLong =
@@ -25,18 +48,41 @@ export function constructCreateTradePayload(
       : trade.risk_reward_ratio_long;
 
   const payload = {
-    ...trade,
-    market: normalizedMarket,
+    ...tradeWithNormalizedMarket,
     risk_reward_ratio_long: riskRewardRatioLong,
     trade_executed_at: tradeDateAndTimeToUtcISO(trade.trade_date, trade.trade_time) ?? undefined,
   };
 
-  const { id, user_id, account_id, calculated_profit, pnl_percentage, ...tradePayload } = payload;
+  // Strip server-managed and computed fields. The futures fields (calculated_risk_dollars,
+  // spec_source) are returned separately, mirroring how calculated_profit / pnl_percentage flow.
+  const {
+    id,
+    user_id,
+    account_id,
+    calculated_profit,
+    pnl_percentage,
+    calculated_risk_dollars,
+    spec_source,
+    ...tradePayload
+  } = payload;
+  void id;
+  void user_id;
+  void account_id;
+  void calculated_profit;
+  void pnl_percentage;
+  void calculated_risk_dollars;
+  void spec_source;
 
-  const { pnl_percentage: computedPnl, calculated_profit: computedProfit } =
-    calculateTradePnl(trade, accountBalance);
+  // Use the normalized market in the calculator so futures spec lookup matches what we persist.
+  const result = calculateTradePnl(tradeWithNormalizedMarket, account, customSpecs);
 
-  return { tradePayload, pnl_percentage: computedPnl, calculated_profit: computedProfit };
+  return {
+    tradePayload,
+    pnl_percentage: result.pnl_percentage,
+    calculated_profit: result.calculated_profit,
+    calculated_risk_dollars: result.calculated_risk_dollars,
+    spec_source: result.spec_source,
+  };
 }
 
 /**
@@ -91,5 +137,12 @@ export function constructUpdateTradePayload(
     confidence_at_entry: editedTrade.confidence_at_entry ?? null,
     mind_state_at_entry: editedTrade.mind_state_at_entry ?? null,
     tags: (editedTrade.tags ?? []).map((t: string) => t.toLowerCase().trim()).filter(Boolean),
+    // Futures fields. These are null on standard trades; the form is responsible for
+    // recomputing calculated_risk_dollars / spec_source when futures inputs change
+    // (and preserving the snapshot otherwise — see plan OV8 for edit-flow semantics).
+    num_contracts: editedTrade.num_contracts ?? null,
+    dollar_per_sl_unit_override: editedTrade.dollar_per_sl_unit_override ?? null,
+    calculated_risk_dollars: editedTrade.calculated_risk_dollars ?? null,
+    spec_source: editedTrade.spec_source ?? null,
   };
 }

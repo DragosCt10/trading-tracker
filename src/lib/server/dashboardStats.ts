@@ -3,6 +3,7 @@
 import { cache } from 'react';
 import { getFilteredTrades } from './trades';
 import { type Trade, type TradingMode } from '@/types/trade';
+import type { AccountType } from '@/types/account-settings';
 import { TIME_INTERVALS } from '@/constants/analytics';
 
 import { calculateMonthlyStats } from '@/utils/calculateMonthlyState';
@@ -163,6 +164,7 @@ export async function getDashboardStats({
   accountBalance,
   selectedMarket,
   selectedExecution,
+  accountType,
 }: {
   userId: string;
   accountId: string;
@@ -174,7 +176,11 @@ export async function getDashboardStats({
   accountBalance: number;
   selectedMarket: string;
   selectedExecution: 'all' | 'executed' | 'nonExecuted';
+  /** Asset class of the active account; threaded to monthly + macro stats so futures
+   *  reads stored calculated_profit instead of re-deriving from risk %. */
+  accountType?: AccountType;
 }): Promise<DashboardStatsResult> {
+  const effectiveAccountType: AccountType = accountType ?? 'standard';
   // Auth enforced in getFilteredTrades (no duplicate getUser per audit 1.3)
   const yearStart = `${selectedYear}-01-01`;
   const yearEnd = `${selectedYear}-12-31`;
@@ -225,14 +231,14 @@ export async function getDashboardStats({
 
   // ── Stats from allTrades (full year) ──────────────────────────────
   const { monthlyData, bestMonth, worstMonth } = calculateMonthlyStats(
-    allTrades, selectedYear, accountBalance
+    allTrades, selectedYear, accountBalance, effectiveAccountType,
   );
   const marketAllTradesStats = calculateMarketStats(allTrades, accountBalance);
   const {
     totalPartialTradesCount: yearlyPartialTradesCount,
     totalPartialsBECount: yearlyPartialsBECount,
   } = calculatePartialTradesStats(allTrades);
-  const macroStats = calculateMacroStats(allTrades, accountBalance);
+  const macroStats = calculateMacroStats(allTrades, accountBalance, effectiveAccountType);
   const allTradesRiskStats = calculateRiskPerTradeStats(allTrades);
 
   // 'YYYY-MM' strings for calendar navigation (from execution-filtered view)

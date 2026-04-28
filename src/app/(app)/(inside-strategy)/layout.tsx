@@ -53,12 +53,16 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
     return () => window.removeEventListener('new-trade-modal:open', handler);
   }, []);
 
-  // Auto-close nav on mobile when the route changes (safety net; link onClick closes synchronously)
-  useEffect(() => {
+  // Auto-close nav on mobile when the route changes (safety net; link onClick closes synchronously).
+  // Uses the React-recommended "adjust state when a prop changes" pattern instead of useEffect.
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
       setIsNavHidden(true);
     }
-  }, [pathname]);
+  }
 
   // Auto-close nav when viewport shrinks below the desktop breakpoint
   useEffect(() => {

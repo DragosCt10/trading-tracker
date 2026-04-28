@@ -32,6 +32,10 @@ const SharedTradesPanel = dynamic(() => import('@/components/settings/SharedTrad
   loading: () => <PanelSkeleton />,
   ssr: true,
 });
+const CustomFuturesSpecsPanel = dynamic(
+  () => import('@/components/settings/CustomFuturesSpecsPanel'),
+  { loading: () => <PanelSkeleton />, ssr: false },
+);
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -422,6 +426,10 @@ export default function SettingsClient({
                 {newsletterMessage ? (
                   <p className="mt-3 text-sm text-green-500">{newsletterMessage}</p>
                 ) : null}
+              </div>
+
+              <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-6">
+                <CustomFuturesSpecsPanel />
               </div>
             </div>
           )}

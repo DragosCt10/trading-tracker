@@ -18,6 +18,8 @@ const TradeBadgeSchema = z.object({
 export const FeatureFlagsSchema = z
   .object({
     trade_badge: TradeBadgeSchema.optional(),
+    /** Gates the "Futures" option in CreateAccountModal during rollout (per plan D3). */
+    futures_accounts: z.boolean().optional(),
   })
   .passthrough();
 

@@ -2,16 +2,22 @@
 
 import { Trade } from '@/types/trade';
 import { MonthlyStatsResult, BestWorstMonth, MonthlyStats } from '@/types/dashboard';
+import type { AccountType } from '@/types/account-settings';
 import { DEFAULT_RISK_PCT, DEFAULT_RR } from '@/constants/tradingDefaults';
 
 /**
  * Calculate per-month P&L and win rates for a given year and account balance.
+ *
+ * Branches on `accountType`: futures trades read the snapshotted `calculated_profit`
+ * directly (signed at write time); standard trades re-derive from risk × R:R × balance.
  */
 export function calculateMonthlyStats(
   trades: Trade[],
   selectedYear: number,
-  accountBalance: number
+  accountBalance: number,
+  accountType: AccountType = 'standard'
 ): MonthlyStatsResult {
+  const isFutures = accountType === 'futures';
   const monthFormatter = new Intl.DateTimeFormat('default', { month: 'long' });
 
   type Raw = {
@@ -58,11 +64,18 @@ export function calculateMonthlyStats(
       if (trade.trade_outcome === 'Win') {
         bucket.nonBEWins++;
       }
-      // Calculate profit based on risk_per_trade and risk_reward_ratio
-      const pct = trade.risk_per_trade ?? DEFAULT_RISK_PCT;
-      const rr = trade.risk_reward_ratio ?? DEFAULT_RR;
-      const riskAmount = accountBalance * (pct / 100);
-      bucket.profit += trade.trade_outcome === 'Win' ? riskAmount * rr : -riskAmount;
+
+      if (isFutures) {
+        // Futures: read snapshot. NaN guard per plan E5.
+        const stored = Number(trade.calculated_profit);
+        bucket.profit += Number.isFinite(stored) ? stored : 0;
+      } else {
+        // Standard: re-derive from risk_per_trade × risk_reward_ratio × balance.
+        const pct = trade.risk_per_trade ?? DEFAULT_RISK_PCT;
+        const rr = trade.risk_reward_ratio ?? DEFAULT_RR;
+        const riskAmount = accountBalance * (pct / 100);
+        bucket.profit += trade.trade_outcome === 'Win' ? riskAmount * rr : -riskAmount;
+      }
     }
 
     return acc;

@@ -43,6 +43,7 @@ import {
   AlertDialogDescription,
 } from '@/components/ui/alert-dialog';
 import { normalizeMarket } from '@/utils/validateMarket';
+import { FUTURES_SPECS, normalizeFuturesSymbol } from '@/constants/futuresSpecs';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { getDayOfWeekFromTradeDate } from '@/utils/dateRangeHelpers';
 import { MarketCombobox } from '@/components/MarketCombobox';
@@ -71,6 +72,7 @@ import { snapToHalfStep } from '@/utils/tradeFormHelpers';
 import { validateTrade } from '@/utils/validateTrade';
 import { constructCreateTradePayload } from '@/utils/constructTradePayload';
 import { useTradeSaveFlow } from '@/hooks/useTradeSaveFlow';
+import { RiskSection } from '@/components/trades/RiskSection';
 
 // FVG Size: preset list 0.5, 1, 1.5, 2, 2.5, 3 (0.5 steps). Custom (3+) for 3.5, 4, 4.5, ...
 const FVG_SIZE_OPTIONS: { value: number; label: string }[] = [
@@ -284,6 +286,25 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   // -------- Derived calculations --------
   const accountBalance = selection.activeAccount?.account_balance ?? 0;
   const currency = selection.activeAccount?.currency === 'EUR' ? '€' : '$';
+  const rawAccountType = (selection.activeAccount as { account_type?: string } | null)?.account_type;
+  const accountType: 'standard' | 'futures' = useMemo(
+    () => (rawAccountType === 'futures' ? 'futures' : 'standard'),
+    [rawAccountType],
+  );
+  const customFuturesSpecs = useMemo(
+    () => settings.custom_futures_specs ?? [],
+    [settings.custom_futures_specs],
+  );
+
+  /** Futures-only catalog: hardcoded specs ∪ user-saved custom specs. New symbols are added in Settings. */
+  const allowedFuturesSymbols = useMemo(() => {
+    const set = new Set<string>(Object.keys(FUTURES_SPECS));
+    customFuturesSpecs.forEach((s) => {
+      const sym = normalizeFuturesSymbol(s.symbol);
+      if (sym) set.add(sym);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [customFuturesSpecs]);
 
   const setupOptions = currentStrategy?.saved_setup_types ?? [];
   /** Liquidity: HOD/LOD always first, then strategy's saved_liquidity_types (deduplicated). */
@@ -300,10 +321,25 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   const riskPerTradeOptions = currentStrategy?.saved_risk_per_trades ?? [];
   const rrRatioOptions = currentStrategy?.saved_rr_ratios ?? [];
 
-  const { pnl_percentage: pnlPercentage, calculated_profit: signedProfit } = useMemo(
-    () => calculateTradePnl(trade, accountBalance),
-    [accountBalance, trade]
-  );
+  const pnlResult = useMemo(() => {
+    try {
+      return calculateTradePnl(
+        trade,
+        { balance: accountBalance, type: accountType },
+        customFuturesSpecs,
+      );
+    } catch {
+      // MissingFuturesSpecError — preview falls back to zero; submit-time validation surfaces the error.
+      return {
+        pnl_percentage: 0,
+        calculated_profit: 0,
+        calculated_risk_dollars: null,
+        spec_source: null,
+      };
+    }
+  }, [accountBalance, accountType, customFuturesSpecs, trade]);
+  const pnlPercentage = pnlResult.pnl_percentage;
+  const signedProfit = pnlResult.calculated_profit;
 
   const handleEditSavedMarket = useCallback(async (oldName: string, newName: string) => {
     if (!userId) return;
@@ -628,7 +664,10 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
     const currentTrade = tradeRef.current;
 
-    const validationError = validateTrade(currentTrade, hasCard);
+    const validationError = validateTrade(currentTrade, hasCard, {
+      type: accountType,
+      customSpecs: customFuturesSpecs,
+    });
     if (validationError) {
       setError(validationError);
       return;
@@ -646,15 +685,35 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       const pendingTagColorsSnapshot = pendingTagColors;
 
       const accountBalanceForSubmit = selection.activeAccount?.account_balance ?? 0;
-      const { tradePayload, pnl_percentage: submitPnlPercentage, calculated_profit: submitCalculatedProfit } =
-        constructCreateTradePayload(currentTrade, accountBalanceForSubmit);
+      const accountTypeForSubmit: 'standard' | 'futures' =
+        (selection.activeAccount as { account_type?: string } | null)?.account_type === 'futures'
+          ? 'futures'
+          : 'standard';
+      let payload: ReturnType<typeof constructCreateTradePayload>;
+      try {
+        payload = constructCreateTradePayload(
+          currentTrade,
+          { balance: accountBalanceForSubmit, type: accountTypeForSubmit },
+          customFuturesSpecs,
+        );
+      } catch (computeErr) {
+        const msg =
+          computeErr instanceof Error
+            ? computeErr.message
+            : 'Cannot save trade: futures spec missing for this market.';
+        setError(msg);
+        setIsSubmitting(false);
+        return;
+      }
 
       const { error } = await createTrade({
         mode: selection.mode,
         account_id: selection.activeAccount.id,
-        calculated_profit: submitCalculatedProfit,
-        pnl_percentage: submitPnlPercentage,
-        trade: tradePayload,
+        calculated_profit: payload.calculated_profit,
+        pnl_percentage: payload.pnl_percentage,
+        calculated_risk_dollars: payload.calculated_risk_dollars,
+        spec_source: payload.spec_source,
+        trade: payload.tradePayload,
       });
 
       if (error) throw new Error(error.message);
@@ -682,7 +741,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       setError(msg);
       setIsSubmitting(false);
     }
-  }, [hasCard, selection, pendingTagColors, runPostSaveSync, initialTradeState, onTradeCreated, onClose, setError]);
+  }, [hasCard, selection, pendingTagColors, runPostSaveSync, initialTradeState, onTradeCreated, onClose, setError, customFuturesSpecs, accountType]);
 
   if (!mounted || !isOpen) return null;
 
@@ -896,6 +955,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               evaluation={trade.evaluation}
               trend={trade.trend}
               slSize={trade.sl_size}
+              accountType={accountType}
               hasCard={hasCard}
               hasAnyExtraCard={hasAnyExtraCard}
               setupOptions={setupOptions}
@@ -903,6 +963,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               displacementSizeOptions={displacementSizeOptions}
               slSizeOptions={slSizeOptions}
               savedMarkets={settings.saved_markets}
+              allowedMarketSymbols={accountType === 'futures' ? allowedFuturesSymbols : undefined}
               updateTrade={updateTrade}
               onTradeOutcomeChange={handleTradeOutcomeChange}
               onEditSavedMarket={handleEditSavedMarket}
@@ -940,6 +1001,17 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               pinnedIdsRrRatio={currentStrategy?.saved_favourites?.rr_ratio}
               onTogglePinRrRatio={currentStrategy ? handleToggleFavourite('rr_ratio') : undefined}
               updateTrade={updateTrade}
+              accountType={accountType}
+              accountBalance={accountBalance}
+              market={trade.market}
+              slSize={trade.sl_size}
+              numContracts={trade.num_contracts}
+              dollarPerSlUnitOverride={trade.dollar_per_sl_unit_override}
+              customSpecs={customFuturesSpecs}
+              slSizeOptions={slSizeOptions}
+              onEditSavedSlSize={handleEditSavedSlSize}
+              pinnedIdsSlSize={currentStrategy?.saved_favourites?.sl_size}
+              onTogglePinSlSize={currentStrategy ? handleToggleFavourite('sl_size') : undefined}
             />
 
             {/* Additional Options - Checkboxes */}
@@ -1252,6 +1324,7 @@ interface MarketAndSetupSectionProps {
   evaluation: Trade['evaluation'];
   trend: Trade['trend'];
   slSize: Trade['sl_size'];
+  accountType: 'standard' | 'futures';
   hasCard: (key: string) => boolean;
   hasAnyExtraCard: boolean;
   setupOptions: string[];
@@ -1259,6 +1332,8 @@ interface MarketAndSetupSectionProps {
   displacementSizeOptions: string[];
   slSizeOptions: string[];
   savedMarkets: string[] | undefined;
+  /** When `accountType === 'futures'`, the catalog of pickable symbols (hardcoded specs + user-saved). */
+  allowedMarketSymbols?: string[];
   updateTrade: <K extends keyof Trade>(key: K, value: Trade[K]) => void;
   onTradeOutcomeChange: (value: Trade['trade_outcome']) => void;
   onEditSavedMarket: (oldName: string, newName: string) => void | Promise<void>;
@@ -1294,6 +1369,7 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
   evaluation,
   trend,
   slSize,
+  accountType,
   hasCard,
   hasAnyExtraCard,
   setupOptions,
@@ -1301,6 +1377,7 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
   displacementSizeOptions,
   slSizeOptions,
   savedMarkets,
+  allowedMarketSymbols,
   updateTrade,
   onTradeOutcomeChange,
   onEditSavedMarket,
@@ -1380,13 +1457,19 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
               const normalized = normalizeMarket(market);
               if (normalized !== market) updateTrade('market', normalized);
             }}
-            placeholder="Type market (e.g. EURUSD, EUR/USD)"
+            placeholder={
+              accountType === 'futures'
+                ? 'Pick a futures contract (e.g. ES, NQ, MES)'
+                : 'Type market (e.g. EURUSD, EUR/USD)'
+            }
             className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
             dropdownClassName="z-[100]"
             defaultSuggestions={savedMarkets}
             onEditSavedMarket={onEditSavedMarket}
             pinnedIds={pinnedIdsMarket}
             onTogglePin={onTogglePinMarket}
+            allowedSymbols={allowedMarketSymbols}
+            restrictToList={accountType === 'futures'}
           />
         </div>
 
@@ -1575,7 +1658,12 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
           </div>
         )}
 
-        {hasCard('sl_size_stats') && (
+        {/*
+         * Standard accounts: SL Size is conditioned on the strategy's analytics card.
+         * Futures accounts: SL Size lives in RiskSection (alongside contracts + Point/Tick toggle),
+         * so we skip rendering it here to avoid duplication.
+         */}
+        {hasCard('sl_size_stats') && accountType !== 'futures' && (
           <div className="space-y-2">
             <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
               SL Size *
@@ -1746,127 +1834,6 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
   );
 });
 
-interface RiskSectionProps {
-  riskPerTrade: Trade['risk_per_trade'];
-  riskRewardRatio: Trade['risk_reward_ratio'];
-  pnlPercentage: number;
-  signedProfit: number;
-  currency: string;
-  riskPerTradeOptions: string[];
-  rrRatioOptions: string[];
-  onEditSavedRiskPerTrade: (oldName: string, newName: string) => void | Promise<void>;
-  onEditSavedRrRatio: (oldName: string, newName: string) => void | Promise<void>;
-  pinnedIdsRiskPerTrade?: string[];
-  onTogglePinRiskPerTrade?: (itemId: string) => void;
-  pinnedIdsRrRatio?: string[];
-  onTogglePinRrRatio?: (itemId: string) => void;
-  updateTrade: <K extends keyof Trade>(key: K, value: Trade[K]) => void;
-}
-
-const RiskSection = React.memo(function RiskSection({
-  riskPerTrade,
-  riskRewardRatio,
-  pnlPercentage,
-  signedProfit,
-  currency,
-  riskPerTradeOptions,
-  rrRatioOptions,
-  onEditSavedRiskPerTrade,
-  onEditSavedRrRatio,
-  pinnedIdsRiskPerTrade,
-  onTogglePinRiskPerTrade,
-  pinnedIdsRrRatio,
-  onTogglePinRrRatio,
-  updateTrade,
-}: RiskSectionProps) {
-  return (
-    <>
-      <div className="space-y-5">
-        {/* Row 1: core risk inputs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div className="space-y-2">
-            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-              Risk per Trade (%) *
-            </Label>
-            <CommonCombobox
-              value={riskPerTrade != null ? String(riskPerTrade) : ''}
-              onChange={(v) => {
-                const trimmed = v.trim();
-                if (trimmed === '') {
-                  updateTrade('risk_per_trade', undefined);
-                  return;
-                }
-                const n = parseFloat(trimmed);
-                updateTrade('risk_per_trade', Number.isFinite(n) ? n : undefined);
-              }}
-              options={riskPerTradeOptions}
-              defaultSuggestions={riskPerTradeOptions}
-              customValueLabel="risk per trade"
-              placeholder="e.g. 1.5"
-              dropdownClassName="z-[100]"
-              inputMode="decimal"
-              onEditSavedOption={onEditSavedRiskPerTrade}
-              pinnedIds={pinnedIdsRiskPerTrade}
-              onTogglePin={onTogglePinRiskPerTrade}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-              R:R Ratio *
-            </Label>
-            <CommonCombobox
-              value={riskRewardRatio != null ? String(riskRewardRatio) : ''}
-              onChange={(v) => {
-                const trimmed = v.trim();
-                if (trimmed === '') {
-                  updateTrade('risk_reward_ratio', undefined);
-                  return;
-                }
-                const n = parseFloat(trimmed);
-                updateTrade('risk_reward_ratio', Number.isFinite(n) ? n : undefined);
-              }}
-              options={rrRatioOptions}
-              defaultSuggestions={rrRatioOptions}
-              customValueLabel="R:R"
-              placeholder="e.g. 2"
-              dropdownClassName="z-[100]"
-              inputMode="decimal"
-              onEditSavedOption={onEditSavedRrRatio}
-              pinnedIds={pinnedIdsRrRatio}
-              onTogglePin={onTogglePinRrRatio}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* P&L Display */}
-      <div className="p-5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/60 dark:border-slate-800 shadow-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">Calculated P&L:</span>
-          <div className="flex items-center gap-3">
-            <Badge
-              variant={pnlPercentage >= 0 ? 'default' : 'destructive'}
-              className={`text-sm font-bold px-2.5 py-1 focus:ring-0 focus-visible:ring-0 hover:ring-0 ${
-                pnlPercentage >= 0
-                  ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-500/10 hover:dark:bg-emerald-500/20'
-                  : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800 hover:bg-rose-500/10 hover:dark:bg-rose-500/20'
-              }`}
-            >
-              {pnlPercentage >= 0 ? '+' : ''}
-              {pnlPercentage.toFixed(2)}%
-            </Badge>
-            <span
-              className={`text-xl font-bold ${
-                pnlPercentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-              }`}
-            >
-              {currency}
-              {signedProfit.toFixed(2)}
-            </span>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-});
+// RiskSection extracted to @/components/trades/RiskSection so the futures
+// branch can be reused by TradeDetailsPanel and the standard branch stays
+// uncluttered. See plan D4.

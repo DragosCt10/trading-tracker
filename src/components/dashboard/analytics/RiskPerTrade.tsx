@@ -15,6 +15,7 @@ import { Info, ChevronRight, Crown } from 'lucide-react';
 import { formatPercent } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
+import type { AccountType } from '@/types/account-settings';
 
 export type RiskStats = {
   total: number;
@@ -50,13 +51,21 @@ interface RiskPerTradeProps {
   allTradesRiskStats: RiskAnalysis | null;
   className?: string;
   isPro?: boolean;
+  /**
+   * Asset class of the active account. For 'futures' this card renders a
+   * type-specific empty state: risk-percentage distribution doesn't apply when
+   * P&L is computed from contracts × $/SL-unit rather than risk %.
+   */
+  accountType?: AccountType;
 }
 
 const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
   allTradesRiskStats,
   className = '',
   isPro,
+  accountType,
 }) => {
+  const isFutures = accountType === 'futures';
   const { isDark } = useDarkMode();
   const { beCalcEnabled } = useBECalc();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -141,7 +150,17 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
           )}
         </div>
 
-        {effectiveRiskLevels.length === 0 ? (
+        {isFutures ? (
+          <div className="flex flex-col justify-center items-center w-full min-h-[200px] py-8">
+            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
+              Risk distribution doesn&apos;t apply to futures accounts
+            </div>
+            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-md">
+              Futures P&amp;L is computed from <span className="font-mono">contracts × SL × $/SL-unit</span>,
+              not as a percentage of account balance. This card buckets standard trades by risk %.
+            </div>
+          </div>
+        ) : effectiveRiskLevels.length === 0 ? (
           <div className="flex flex-col justify-center items-center w-full min-h-[200px] py-8">
             <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
               No trades found

@@ -1,5 +1,6 @@
 // src/utils/detectTradingPatterns.ts
 import type { Trade } from '@/types/trade';
+import type { AccountType } from '@/types/account-settings';
 import type { PeriodMetrics } from '@/utils/calculatePeriodMetrics';
 import {
   calculateMarketStats,
@@ -865,6 +866,7 @@ export function detectMultiPeriodTrends(
   tradesB?: Trade[],
   tradesC?: Trade[],
   accountBalance?: number,
+  accountType: AccountType = 'standard',
 ): DetectedPattern[] {
   const patterns: DetectedPattern[] = [];
   const minTrades = MIN_TRADES_DEFAULT;
@@ -886,9 +888,9 @@ export function detectMultiPeriodTrends(
 
   // Sharpe ratio trend (requires trades + accountBalance)
   if (tradesA && tradesB && tradesC && accountBalance && accountBalance > 0) {
-    const sharpeA = calculateMacroStats(tradesA, accountBalance).sharpeWithBE;
-    const sharpeB = calculateMacroStats(tradesB, accountBalance).sharpeWithBE;
-    const sharpeC = calculateMacroStats(tradesC, accountBalance).sharpeWithBE;
+    const sharpeA = calculateMacroStats(tradesA, accountBalance, accountType).sharpeWithBE;
+    const sharpeB = calculateMacroStats(tradesB, accountBalance, accountType).sharpeWithBE;
+    const sharpeC = calculateMacroStats(tradesC, accountBalance, accountType).sharpeWithBE;
 
     checks.push({
       key: 'sharpe',

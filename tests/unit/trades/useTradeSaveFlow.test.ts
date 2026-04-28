@@ -23,10 +23,12 @@ vi.mock('@/lib/server/settings', () => ({
 
 const mockUpdateStrategySetupTypes = vi.fn().mockResolvedValue(undefined);
 const mockUpdateStrategyLiquidityTypes = vi.fn().mockResolvedValue(undefined);
+const mockUpdateStrategyNumericPool = vi.fn().mockResolvedValue(undefined);
 const mockSyncStrategyTags = vi.fn().mockResolvedValue(undefined);
 vi.mock('@/lib/server/strategies', () => ({
   updateStrategySetupTypes: (...args: unknown[]) => mockUpdateStrategySetupTypes(...args),
   updateStrategyLiquidityTypes: (...args: unknown[]) => mockUpdateStrategyLiquidityTypes(...args),
+  updateStrategyNumericPool: (...args: unknown[]) => mockUpdateStrategyNumericPool(...args),
   syncStrategyTags: (...args: unknown[]) => mockSyncStrategyTags(...args),
 }));
 
@@ -36,6 +38,11 @@ vi.mock('@/utils/savedFeatures', () => ({
   mergeSetupTypeIntoSaved: vi.fn((_name: string, saved: string[]) => [...saved, _name]),
   mergeLiquidityTypeIntoSaved: vi.fn((_name: string, saved: string[]) => [...saved, _name]),
   mergeMarketIntoSaved: vi.fn((_market: string, saved: string[]) => [...saved, _market]),
+  // Real impl returns the same reference when value is null/undefined; mirror that
+  // so the hook's reference-equality "no change" check skips the numeric pool update.
+  mergeNumericIntoSaved: vi.fn((value: number | null | undefined, saved: string[]) =>
+    value == null || !Number.isFinite(value) || value <= 0 ? saved : [...saved, String(value)],
+  ),
   normalizeNewsName: vi.fn((n: string) => n.toLowerCase().trim()),
 }));
 

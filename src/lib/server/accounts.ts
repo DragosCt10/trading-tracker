@@ -7,7 +7,8 @@ import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getCachedUserSession } from '@/lib/server/session';
 import { canAddAccount } from '@/lib/server/subscription';
 import type { Database } from '@/types/supabase';
-import type { SavedNewsItem } from '@/types/account-settings';
+import type { AccountType, SavedNewsItem } from '@/types/account-settings';
+import { ACCOUNT_TYPES } from '@/constants/accountSettings';
 import {
   lastAccountModeCookieName,
   lastAccountIndexCookieName,
@@ -85,9 +86,15 @@ export async function createAccount(params: {
   currency: string;
   mode: AccountMode;
   description: string | null;
+  account_type?: AccountType;
 }): Promise<{ data: AccountRow | null; error: { message: string } | null }> {
   const { user } = await getCachedUserSession();
   if (!user) return { data: null, error: { message: 'Unauthorized' } };
+
+  const accountType: AccountType = params.account_type ?? 'standard';
+  if (!ACCOUNT_TYPES.includes(accountType)) {
+    return { data: null, error: { message: `Invalid account_type: ${accountType}` } };
+  }
 
   const supabase = await createClient();
 
@@ -109,6 +116,7 @@ export async function createAccount(params: {
       account_balance: params.account_balance,
       currency: params.currency,
       mode: params.mode,
+      account_type: accountType,
       description: params.description,
       is_active: false,
     })
@@ -133,21 +141,33 @@ export async function updateAccount(
     currency: string;
     mode: AccountMode;
     description: string | null;
+    account_type?: AccountType;
   }
 ): Promise<{ data: AccountRow | null; error: { message: string } | null }> {
   const { user } = await getCachedUserSession();
   if (!user) return { data: null, error: { message: 'Unauthorized' } };
+
+  if (params.account_type != null && !ACCOUNT_TYPES.includes(params.account_type)) {
+    return { data: null, error: { message: `Invalid account_type: ${params.account_type}` } };
+  }
+
   const supabase = await createClient();
 
-  // If mode or balance is changing, check if account has trades (immutable after first trade)
+  // If mode, balance, or account_type is changing, check if account has trades (immutable after first trade)
   const { data: existing } = await supabase
     .from('account_settings')
-    .select('mode, account_balance')
+    .select('mode, account_balance, account_type')
     .eq('id', accountId)
     .eq('user_id', user.id)
     .single();
 
-  if (existing && (params.mode !== existing.mode || params.account_balance !== existing.account_balance)) {
+  const accountTypeChanging =
+    existing && params.account_type != null && params.account_type !== (existing as { account_type?: string }).account_type;
+
+  if (
+    existing &&
+    (params.mode !== existing.mode || params.account_balance !== existing.account_balance || accountTypeChanging)
+  ) {
     const { count: tradeCount } = await supabase
       .from(`${existing.mode}_trades`)
       .select('*', { count: 'exact', head: true })
@@ -155,19 +175,27 @@ export async function updateAccount(
       .eq('account_id', accountId);
 
     if ((tradeCount ?? 0) > 0) {
-      return { data: null, error: { message: 'Cannot change mode or balance when trades exist.' } };
+      return {
+        data: null,
+        error: { message: 'Cannot change mode, balance, or account type when trades exist.' },
+      };
     }
+  }
+
+  const updatePayload: Record<string, unknown> = {
+    name: params.name,
+    account_balance: params.account_balance,
+    currency: params.currency,
+    mode: params.mode,
+    description: params.description,
+  };
+  if (params.account_type != null) {
+    updatePayload.account_type = params.account_type;
   }
 
   const { data, error } = await supabase
     .from('account_settings')
-    .update({
-      name: params.name,
-      account_balance: params.account_balance,
-      currency: params.currency,
-      mode: params.mode,
-      description: params.description,
-    })
+    .update(updatePayload)
     .eq('id', accountId)
     .eq('user_id', user.id)
     .select('*')
@@ -277,7 +305,7 @@ export async function ensureDefaultAccountForUserId(userId: string): Promise<voi
  * separately by the dashboard-sharing flow.
  */
 const ACCOUNT_SELECTOR_COLUMNS =
-  'id, user_id, name, mode, currency, account_balance, is_active, description, created_at, updated_at';
+  'id, user_id, name, mode, currency, account_balance, is_active, description, created_at, updated_at, account_type';
 
 export async function getAllAccountsForUser(userId: string): Promise<AccountRow[]> {
   const supabase = await createClient();
@@ -293,7 +321,9 @@ export async function getAllAccountsForUser(userId: string): Promise<AccountRow[
     console.error('Error fetching all accounts:', error);
     return [];
   }
-  return (data ?? []) as AccountRow[];
+  // Cast via unknown: the Supabase Row type includes columns this selector intentionally
+  // omits (is_dashboard_public, dashboard_hash). Downstream consumers don't read those.
+  return (data ?? []) as unknown as AccountRow[];
 }
 
 /** Request-scoped cache for getAllAccountsForUser (audit 2.3). */

@@ -144,13 +144,28 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const [isShareOpen, setIsShareOpen] = useState(false);
   const queryClient = useQueryClient();
 
+  const accountType: 'standard' | 'futures' =
+    (selection.activeAccount as { account_type?: string } | null)?.account_type === 'futures'
+      ? 'futures'
+      : 'standard';
   const accountBalanceRef = useRef(selection.activeAccount?.account_balance || 0);
+  const accountTypeRef = useRef<'standard' | 'futures'>(accountType);
   const customTfInputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const panelContentRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     accountBalanceRef.current = selection.activeAccount?.account_balance || 0;
-  }, [selection.activeAccount?.account_balance]);
+    accountTypeRef.current = accountType;
+  }, [selection.activeAccount, accountType]);
+
+  const customFuturesSpecs = useMemo(
+    () => settings.custom_futures_specs ?? [],
+    [settings.custom_futures_specs],
+  );
+  const customFuturesSpecsRef = useRef(customFuturesSpecs);
+  useEffect(() => {
+    customFuturesSpecsRef.current = customFuturesSpecs;
+  }, [customFuturesSpecs]);
 
   const { runPostSaveSync, invalidateTradeCache } = useTradeSaveFlow({
     userId,
@@ -199,27 +214,66 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     setEditedTrade((prev) => {
       if (!prev) return prev;
 
-      if (field === 'risk_per_trade' || field === 'risk_reward_ratio' || field === 'trade_outcome') {
+      // Per plan OV8: snapshot semantics — only recompute when a futures-relevant input changes.
+      // For standard accounts the trigger set is the same it has always been.
+      const FUTURES_RECOMPUTE_FIELDS: ReadonlyArray<keyof Trade> = [
+        'risk_per_trade',
+        'risk_reward_ratio',
+        'trade_outcome',
+        'num_contracts',
+        'sl_size',
+        'dollar_per_sl_unit_override',
+        'partials_taken',
+        'break_even',
+        'market',
+      ];
+
+      if (FUTURES_RECOMPUTE_FIELDS.includes(field)) {
         const newRisk = field === 'risk_per_trade' ? value : prev.risk_per_trade;
         const newRR = field === 'risk_reward_ratio' ? value : prev.risk_reward_ratio;
         const newOutcome = field === 'trade_outcome' ? String(value) : prev.trade_outcome;
         const nextBreakEven = field === 'trade_outcome' ? value === 'BE' : prev.break_even;
+        const newContracts = field === 'num_contracts' ? value : prev.num_contracts;
+        const newSlSize = field === 'sl_size' ? value : prev.sl_size;
+        const newOverride = field === 'dollar_per_sl_unit_override' ? value : prev.dollar_per_sl_unit_override;
+        const newPartials = field === 'partials_taken' ? Boolean(value) : prev.partials_taken;
+        const newMarket = field === 'market' ? String(value ?? '') : prev.market;
 
-        const { pnl_percentage, calculated_profit } = calculateTradePnl(
-          {
-            trade_outcome: newOutcome,
-            risk_per_trade: Number(newRisk),
-            risk_reward_ratio: Number(newRR),
-            break_even: nextBreakEven,
-          },
-          accountBalanceRef.current
-        );
+        let computed: ReturnType<typeof calculateTradePnl>;
+        try {
+          computed = calculateTradePnl(
+            {
+              trade_outcome: newOutcome,
+              risk_per_trade: Number(newRisk),
+              risk_reward_ratio: Number(newRR),
+              break_even: nextBreakEven,
+              partials_taken: newPartials,
+              market: newMarket,
+              sl_size: typeof newSlSize === 'number' ? newSlSize : Number(newSlSize) || undefined,
+              num_contracts: typeof newContracts === 'number' ? newContracts : (newContracts == null ? null : Number(newContracts)),
+              dollar_per_sl_unit_override:
+                typeof newOverride === 'number' ? newOverride : (newOverride == null ? null : Number(newOverride)),
+            },
+            { balance: accountBalanceRef.current, type: accountTypeRef.current },
+            customFuturesSpecsRef.current,
+          );
+        } catch {
+          // MissingFuturesSpecError — preserve prior snapshot until user provides a multiplier.
+          computed = {
+            pnl_percentage: prev.pnl_percentage ?? 0,
+            calculated_profit: prev.calculated_profit ?? 0,
+            calculated_risk_dollars: prev.calculated_risk_dollars ?? null,
+            spec_source: prev.spec_source ?? null,
+          };
+        }
 
         const nextState: Trade = {
           ...prev,
           [field]: value,
-          calculated_profit,
-          pnl_percentage,
+          calculated_profit: computed.calculated_profit,
+          pnl_percentage: computed.pnl_percentage,
+          calculated_risk_dollars: computed.calculated_risk_dollars,
+          spec_source: computed.spec_source,
         };
         if (field === 'trade_outcome' && (value === 'Lose' || value === 'BE')) {
           nextState.risk_reward_ratio_long = 0;
@@ -1107,8 +1161,13 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-3">
-                  {renderField('Risk %', 'risk_per_trade', 'number')}
-          {renderField('RR', 'risk_reward_ratio', 'number')}
+                  {accountType === 'futures'
+                    ? renderField('Contracts', 'num_contracts', 'number')
+                    : renderField('Risk %', 'risk_per_trade', 'number')}
+                  {renderField('RR', 'risk_reward_ratio', 'number')}
+                  {accountType === 'futures' &&
+                    editedTrade?.spec_source === 'override' &&
+                    renderField('$ / SL-unit', 'dollar_per_sl_unit_override', 'number')}
                 </div>
                 <div className="space-y-3">
                   {hasCard('potential_rr') &&
@@ -1116,10 +1175,14 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                       (editedTrade?.risk_reward_ratio_long != null &&
                         editedTrade.risk_reward_ratio_long !== undefined)) &&
                     renderField('Potential RR', 'risk_reward_ratio_long', 'number')}
-                  {hasCard('sl_size_stats') &&
+                  {(hasCard('sl_size_stats') || accountType === 'futures') &&
                     (effectiveIsEditing ||
                       (editedTrade?.sl_size != null && editedTrade.sl_size !== undefined)) &&
-                    renderField('SL Size', 'sl_size', 'number')}
+                    renderField(
+                      accountType === 'futures' ? 'SL (size)' : 'SL Size',
+                      'sl_size',
+                      'number',
+                    )}
                 </div>
                 {(hasCard('displacement_size') || hasCard('avg_displacement') || hasCard('fvg_size') || hasCard('liquidity_stats')) && (
                   <div className="space-y-3">

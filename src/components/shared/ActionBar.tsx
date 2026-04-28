@@ -332,6 +332,8 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
                       currency: activeAccount.currency,
                       mode: activeAccount.mode,
                       description: activeAccount.description,
+                      account_type:
+                        (activeAccount as { account_type?: 'standard' | 'futures' }).account_type ?? 'standard',
                     }
                   : null
               }

@@ -37,6 +37,8 @@ interface AiVisionClientProps {
   mode: 'live' | 'backtesting' | 'demo';
   accountId: string | undefined;
   accountBalance: number;
+  /** Asset class of the active account; threaded so futures dashboards read stored P&L. */
+  accountType?: 'standard' | 'futures';
   initialSubscription?: ResolvedSubscription;
 }
 
@@ -212,6 +214,7 @@ export default function AiVisionClient({
   mode,
   accountId,
   accountBalance,
+  accountType = 'standard',
   initialSubscription,
 }: AiVisionClientProps) {
   // ── Subscription / PRO gate ───────────────────────────────────────────────
@@ -251,16 +254,16 @@ export default function AiVisionClient({
   // When locked, return demo values directly — saves the full calculation
   // pipeline for every non-PRO render. (Audit finding F5.)
   const metricsA = useMemo(
-    () => (isLocked ? DEMO_METRICS_A : calculatePeriodMetrics(tradesA, accountBalance, daysForKey(keyA))),
-    [isLocked, tradesA, accountBalance, keyA],
+    () => (isLocked ? DEMO_METRICS_A : calculatePeriodMetrics(tradesA, accountBalance, daysForKey(keyA), accountType)),
+    [isLocked, tradesA, accountBalance, keyA, accountType],
   );
   const metricsB = useMemo(
-    () => (isLocked ? DEMO_METRICS_B : calculatePeriodMetrics(tradesB, accountBalance, daysForKey(keyB))),
-    [isLocked, tradesB, accountBalance, keyB],
+    () => (isLocked ? DEMO_METRICS_B : calculatePeriodMetrics(tradesB, accountBalance, daysForKey(keyB), accountType)),
+    [isLocked, tradesB, accountBalance, keyB, accountType],
   );
   const metricsC = useMemo(
-    () => (isLocked ? DEMO_METRICS_C : calculatePeriodMetrics(tradesC, accountBalance, daysForKey(keyC))),
-    [isLocked, tradesC, accountBalance, keyC],
+    () => (isLocked ? DEMO_METRICS_C : calculatePeriodMetrics(tradesC, accountBalance, daysForKey(keyC), accountType)),
+    [isLocked, tradesC, accountBalance, keyC, accountType],
   );
 
   const scoreA = useMemo(() => (isLocked ? DEMO_SCORE_A : calculateAiVisionScore(metricsA)), [isLocked, metricsA]);
@@ -320,7 +323,7 @@ export default function AiVisionClient({
     const metricsByMonth = filledMonths.map(([month, trades]) => {
       if (!trades) return { month, metrics: null as PeriodMetrics | null };
       const daysInMonth = getDaysInMonth(parseMonthLabel(month));
-      return { month, metrics: calculatePeriodMetrics(trades, accountBalance, daysInMonth) };
+      return { month, metrics: calculatePeriodMetrics(trades, accountBalance, daysInMonth, accountType) };
     });
 
     const result: Record<string, TrendPoint[]> = {};
@@ -331,7 +334,7 @@ export default function AiVisionClient({
       }));
     }
     return result;
-  }, [isLocked, allTrades, accountBalance]);
+  }, [isLocked, allTrades, accountBalance, accountType]);
 
   const markets = useMemo(
     () => Array.from(new Set(allTrades.map((t) => t.market).filter(Boolean))),
@@ -349,7 +352,7 @@ export default function AiVisionClient({
     const patternsA = detectTradingPatterns(tradesA, metricsA, accountBalance, metricsB);
     const patternsB = detectTradingPatterns(tradesB, metricsB, accountBalance, metricsC);
     const patternsC = detectTradingPatterns(tradesC, metricsC, accountBalance, null);
-    const trendPatterns = detectMultiPeriodTrends(metricsA, metricsB, metricsC, [labelA, labelB, labelC], tradesA, tradesB, tradesC, accountBalance);
+    const trendPatterns = detectMultiPeriodTrends(metricsA, metricsB, metricsC, [labelA, labelB, labelC], tradesA, tradesB, tradesC, accountBalance, accountType);
 
     const merged = mergePatternsByPeriod([
       { patterns: patternsA, periodLabel: labelA },
@@ -359,7 +362,7 @@ export default function AiVisionClient({
 
     // Add trend patterns (these are already unique, no merging needed)
     return [...merged, ...trendPatterns].sort((a, b) => a.priority - b.priority);
-  }, [isLocked, tradesA, tradesB, tradesC, metricsA, metricsB, metricsC, accountBalance, keyA, keyB, keyC]);
+  }, [isLocked, tradesA, tradesB, tradesC, metricsA, metricsB, metricsC, accountBalance, accountType, keyA, keyB, keyC]);
 
   // Guard against hydration mismatch: during SSR, TanStack Query has no cache
   // so `isInitialLoading` is true, but on the client cached data from prior

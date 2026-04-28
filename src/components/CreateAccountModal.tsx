@@ -37,6 +37,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import type { TradingMode } from '@/types/trade';
+import type { AccountType } from '@/types/account-settings';
+import { useSettings } from '@/hooks/useSettings';
 
 type Currency = 'EUR' | 'USD' | 'GBP';
 
@@ -63,6 +65,12 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName, variant 
   const queryClient = useQueryClient();
   const { data: userId } = useUserDetails();
   const { isPro, subscription } = useSubscription({ userId: userId?.user?.id });
+  const { settings } = useSettings({ userId: userId?.user?.id });
+  // Feature-flag gate removed: futures accounts are GA. Re-enable the flag check by
+  // restoring `settings.feature_flags?.futures_accounts === true` if you ever need
+  // staged rollout again.
+  void settings;
+  const futuresEnabled = true;
 
   // Shares the same cache entry as ActionBar / AccountModePopover — reads the
   // canonical `['accounts:all', userId]` key instead of the old accounts:list
@@ -82,6 +90,7 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName, variant 
   const [balance, setBalance] = useState('');
   const [currency, setCurrency] = useState<Currency>('EUR');
   const [mode, setMode] = useState<TradingMode>('live');
+  const [accountType, setAccountType] = useState<AccountType>('standard');
   const [description, setDescription] = useState('');
 
   // Prevent hydration mismatch
@@ -102,6 +111,7 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName, variant 
     setBalance('');
     setCurrency('EUR');
     setMode('live');
+    setAccountType('standard');
     setDescription('');
     setError(null);
   };
@@ -134,6 +144,7 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName, variant 
         account_balance: parsedBalance,
         currency,
         mode,
+        account_type: accountType,
         description: description.trim() || null,
       });
 
@@ -201,6 +212,13 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName, variant 
         mode: activatedRow.mode,
         activeAccount: activatedRow,
       });
+
+      // The last-account preference cookies (`tt_last_mode_<uid>`,
+      // `tt_last_index_<uid>`) are written authoritatively by the
+      // /api/accounts/set-active response above. Server-side cookie write is
+      // more robust than `setLastAccountPreference` here: it computes the
+      // per-mode index from fresh DB data, so it doesn't depend on the
+      // client `accounts:all` cache being hydrated/ordered correctly.
 
       onCreated?.(createdAccount);
 
@@ -365,6 +383,30 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName, variant 
                   </SelectContent>
                 </Select>
               </div>
+
+              {futuresEnabled && (
+                <div className="space-y-1.5">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Account type
+                  </Label>
+                  <Select
+                    value={accountType}
+                    onValueChange={(val: AccountType) => setAccountType(val)}
+                  >
+                    <SelectTrigger className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                      <SelectValue placeholder="Select account type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">Standard</SelectItem>
+                      <SelectItem value="futures">Futures (contracts)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-500 mt-1">
+                    Futures accounts track P&amp;L in dollars per contract.
+                    Type cannot be changed after the first trade is logged.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <Label

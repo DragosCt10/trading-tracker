@@ -12,6 +12,8 @@ const DEFAULT_SETTINGS: SettingsRow = {
   saved_news: [],
   saved_markets: [],
   newsletter_subscribed: true,
+  custom_futures_specs: [],
+  feature_flags: {},
 };
 
 export function useSettings({ userId }: UseSettingsOptions) {

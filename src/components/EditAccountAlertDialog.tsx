@@ -43,6 +43,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import type { TradingMode } from '@/types/trade';
+import type { AccountType } from '@/types/account-settings';
+import { useSettings } from '@/hooks/useSettings';
 
 type Currency = 'EUR' | 'USD' | 'GBP';
 
@@ -53,6 +55,7 @@ export type AccountSettings = {
   currency: string;
   mode: TradingMode;
   description: string | null;
+  account_type?: AccountType;
 };
 
 interface EditAccountAlertDialogProps {
@@ -71,6 +74,10 @@ export function EditAccountAlertDialog({
 }: EditAccountAlertDialogProps) {
   const queryClient = useQueryClient();
   const { data: userId } = useUserDetails();
+  const { settings } = useSettings({ userId: userId?.user?.id });
+  // Feature-flag gate removed: futures accounts are GA. See CreateAccountModal note.
+  void settings;
+  const futuresEnabled = true;
 
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -82,6 +89,7 @@ export function EditAccountAlertDialog({
   const [balance, setBalance] = useState('');
   const [currency, setCurrency] = useState<Currency>('EUR');
   const [mode, setMode] = useState<TradingMode>('live');
+  const [accountType, setAccountType] = useState<AccountType>('standard');
   const [description, setDescription] = useState('');
 
   // Helper: reset form from the current account
@@ -106,6 +114,9 @@ export function EditAccountAlertDialog({
         ? modeLower
         : 'live'
     );
+
+    const typeNorm = account.account_type === 'futures' ? 'futures' : 'standard';
+    setAccountType(typeNorm);
 
     setDescription(account.description ?? '');
     setError(null);
@@ -161,6 +172,7 @@ export function EditAccountAlertDialog({
         account_balance: balanceToSave,
         currency,
         mode,
+        account_type: accountType,
         description: description.trim() || null,
       });
 
@@ -402,6 +414,36 @@ export function EditAccountAlertDialog({
                       <SelectItem value="demo">Demo</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {/* Account type — visible when the flag is enabled OR the existing account is already
+                  futures (so users can see/manage existing futures accounts even if rollout is paused).
+                  Editable only when the account has no trades; locked otherwise (mirrors balance/mode/currency). */}
+              {(futuresEnabled || accountType === 'futures') && (
+                <div className="space-y-1.5">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Account type
+                  </Label>
+                  {hasTrades ? (
+                    <div className="h-12 px-3 flex items-center rounded-md bg-slate-100/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-400">
+                      {accountType === 'futures' ? 'Futures (contracts)' : 'Standard'}
+                      <span className="ml-2 text-xs text-slate-500">— locked after first trade</span>
+                    </div>
+                  ) : (
+                    <Select
+                      value={accountType}
+                      onValueChange={(val: AccountType) => setAccountType(val)}
+                    >
+                      <SelectTrigger className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                        <SelectValue placeholder="Select account type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="futures">Futures (contracts)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               )}
 

@@ -16,3 +16,6 @@ export const TRADING_MODES = [
   'demo',
   'backtesting',
 ] as const;
+
+export const ACCOUNT_TYPES = ['standard', 'futures'] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];

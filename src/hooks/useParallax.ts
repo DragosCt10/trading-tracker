@@ -20,9 +20,12 @@ export function useParallax(entranceDelay = 0, topAnchored = false, disableOnMob
 
   // Keep params in a ref so the effect can read latest values without
   // re-subscribing (and without a variable-shape dep array that trips up
-  // the React Compiler).
+  // the React Compiler). Sync via an effect (not during render) to satisfy
+  // react-hooks/refs.
   const paramsRef = useRef({ entranceDelay, topAnchored, disableOnMobile });
-  paramsRef.current = { entranceDelay, topAnchored, disableOnMobile };
+  useEffect(() => {
+    paramsRef.current = { entranceDelay, topAnchored, disableOnMobile };
+  });
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;

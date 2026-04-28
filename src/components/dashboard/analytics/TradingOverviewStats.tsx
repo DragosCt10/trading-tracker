@@ -25,6 +25,7 @@ import { SessionStatisticsCard } from './SessionStatisticsCard';
 import type { TradeTypeStats, SessionStats } from '@/types/dashboard';
 import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
 import RiskPerTrade, { type RiskAnalysis } from './RiskPerTrade';
+import type { AccountType } from '@/types/account-settings';
 import { AvgWinLossCard } from './AvgWinLossCard';
 import { ExpectancyCard } from './ExpectancyCard';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
@@ -99,9 +100,11 @@ interface TradingOverviewStatsProps {
   hideEmptyChartCards?: boolean;
   showProCards?: boolean;
   isPro?: boolean;
+  /** Asset class of the active account; threaded to RiskPerTrade for futures-specific empty state. */
+  accountType?: AccountType;
 }
 
-export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, totalProfitFromOverview, pnlPercentFromOverview, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps, allTradesRiskStats, aboveRiskPerTradeRow, beforeRiskPerTradeRow, hideEmptyChartCards = false, showProCards = true, isPro }: TradingOverviewStatsProps) {
+export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, totalProfitFromOverview, pnlPercentFromOverview, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps, allTradesRiskStats, aboveRiskPerTradeRow, beforeRiskPerTradeRow, hideEmptyChartCards = false, showProCards = true, isPro, accountType }: TradingOverviewStatsProps) {
   const stats = useMemo(
     () => calculateTradingOverviewStats(trades, totalProfitFromOverview),
     [trades, totalProfitFromOverview]
@@ -380,7 +383,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
       {showProCards && allTradesRiskStats !== undefined && (
         <>
           <div className="col-span-full">
-            <RiskPerTrade className="mt-2" allTradesRiskStats={allTradesRiskStats} isPro={isPro} />
+            <RiskPerTrade className="mt-2" allTradesRiskStats={allTradesRiskStats} isPro={isPro} accountType={accountType} />
           </div>
         </>
       )}
