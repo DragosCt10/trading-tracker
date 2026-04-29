@@ -50,15 +50,13 @@ describe('buildCanonicalPayload', () => {
 
   it('is stable across key-order permutations in the config', () => {
     const cfg = makeConfig();
-    // Rebuild the same config object with keys inserted in a different order.
-    // Canonical serialization must still yield the same bytes.
-    const reordered = {
-      sections: cfg.sections,
-      strategyId: cfg.strategyId,
-      mode: cfg.mode,
-      accountIds: cfg.accountIds,
-      period: cfg.period,
-    } as typeof cfg;
+    // Rebuild the same config object with keys inserted in reverse order.
+    // Canonical serialization must still yield the same bytes. Building
+    // dynamically from the source keeps this test future-proof when new
+    // fields are added to ReportConfig.
+    const reordered = Object.fromEntries(
+      Object.entries(cfg).reverse(),
+    ) as typeof cfg;
     expect(buildCanonicalPayload(cfg, ['t-1'], FIXED_DATE)).toBe(
       buildCanonicalPayload(reordered, ['t-1'], FIXED_DATE),
     );
