@@ -187,19 +187,31 @@ export default function CustomFuturesSpecsPanel() {
       />
 
       {/* Delete confirmation */}
-      <AlertDialog open={deleteTarget != null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent className="max-w-sm">
+      <AlertDialog
+        open={deleteTarget != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+            setDeleteError(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient !rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete saved symbol?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleteTarget && (
-                <>
-                  <span className="font-mono font-semibold">{deleteTarget.symbol}</span> will be
-                  removed from your saved symbols. Existing trades using this symbol will keep
-                  their original P&amp;L (snapshot is preserved); you can re-save the symbol later
-                  if you trade it again.
-                </>
-              )}
+            <AlertDialogTitle>
+              <span className="text-red-500 dark:text-red-400 font-semibold text-lg">Delete saved symbol?</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <span className="text-slate-600 dark:text-slate-400 block">
+                {deleteTarget && (
+                  <>
+                    <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{deleteTarget.symbol}</span> will be
+                    removed from your saved symbols. Existing trades using this symbol will keep
+                    their original P&amp;L (snapshot is preserved); you can re-save the symbol later
+                    if you trade it again.
+                  </>
+                )}
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           {deleteError && (
@@ -207,17 +219,29 @@ export default function CustomFuturesSpecsPanel() {
               <p className="text-xs text-red-500 dark:text-red-300 font-medium">{deleteError}</p>
             </div>
           )}
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleDelete();
-              }}
-              disabled={deleting}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete'}
+          <AlertDialogFooter className="flex gap-3">
+            <AlertDialogCancel asChild>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
+              >
+                Cancel
+              </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                variant="destructive"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleDelete();
+                }}
+                disabled={deleting}
+                className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 flex items-center gap-2"
+              >
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Yes, Delete'}
+              </Button>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

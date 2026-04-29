@@ -89,6 +89,11 @@ function mapSupabaseTradeToTrade(trade: any, mode: ShareMode): Trade {
     trade_executed_at: trade.trade_executed_at ?? null,
     news_name: trade.news_name ?? null,
     news_intensity: trade.news_intensity ?? null,
+    // Futures fields — null on standard trades, populated on futures trades.
+    num_contracts: trade.num_contracts ?? null,
+    dollar_per_sl_unit_override: trade.dollar_per_sl_unit_override ?? null,
+    calculated_risk_dollars: trade.calculated_risk_dollars ?? null,
+    spec_source: trade.spec_source ?? null,
   };
 }
 
@@ -179,11 +184,13 @@ async function createStrategyShare(params: {
   try {
     const { data: accountRow } = await supabase
       .from('account_settings')
-      .select('account_balance')
+      .select('account_balance, account_type')
       .eq('id', params.accountId)
       .single();
     const accountBalance = (accountRow as { account_balance?: number | null } | null)
       ?.account_balance ?? 0;
+    const accountType = (accountRow as { account_type?: string | null } | null)
+      ?.account_type === 'futures' ? 'futures' : 'standard';
 
     const stats = await getDashboardAggregates({
       userId: params.userId,
@@ -197,6 +204,7 @@ async function createStrategyShare(params: {
       includeCompactTrades: true,
       market: 'all',
       includeSeries: false,
+      accountType,
     });
 
     await supabase
@@ -326,6 +334,8 @@ export async function getPublicTradesForShare(params: {
     'confidence_at_entry', 'mind_state_at_entry',
     'be_final_result',
     'news_name', 'news_intensity',
+    'num_contracts', 'dollar_per_sl_unit_override',
+    'calculated_risk_dollars', 'spec_source',
   ].join(', ');
 
   // Stop-on-short-page pagination: no COUNT query needed.

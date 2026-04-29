@@ -70,6 +70,7 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
           market: 'all',
           includeSeries: false,
           includeCompactTrades: false,
+          accountType: activeAccount.account_type ?? 'standard',
         }),
       1000,
       null,

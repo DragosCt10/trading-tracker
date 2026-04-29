@@ -65,3 +65,18 @@ export function setStatsCache(key: string, data: DashboardApiResponse): void {
   }
   cache.set(key, { data, expiresAt: Date.now() + TTL_MS });
 }
+
+/**
+ * Drop every cached stats entry that belongs to a given user. Called from trade
+ * mutations (create/update/delete/move/bulk-tag) so the next /api/dashboard-stats
+ * request recomputes instead of returning the pre-mutation snapshot. Cache keys
+ * start with `${userId}:` (see `buildStatsCacheKey`), so a prefix match is exact
+ * and safe for cross-user isolation.
+ */
+export function invalidateUserStatsCache(userId: string): void {
+  if (!userId) return;
+  const prefix = `${userId}:`;
+  for (const key of cache.keys()) {
+    if (key.startsWith(prefix)) cache.delete(key);
+  }
+}

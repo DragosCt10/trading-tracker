@@ -71,6 +71,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarket';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
+import { getFuturesSpec } from '@/constants/futuresSpecs';
+import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
 import { MarketCombobox } from '@/components/MarketCombobox';
 import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
 import { NewsCombobox } from '@/components/NewsCombobox';
@@ -144,10 +146,23 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const [isShareOpen, setIsShareOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const accountType: 'standard' | 'futures' =
+  // Account type comes from the active account when the user is authenticated.
+  // On public share pages there is no signed-in active account, so we fall back
+  // to deriving it from the trade itself: any trade with a non-null contract
+  // count or spec_source must be futures (set at write time by tradePnlCalculator).
+  // This keeps the share-trade page rendering Contracts / SL units correctly.
+  const accountTypeFromAccount: 'standard' | 'futures' | null =
     (selection.activeAccount as { account_type?: string } | null)?.account_type === 'futures'
       ? 'futures'
+      : selection.activeAccount
+        ? 'standard'
+        : null;
+  const accountTypeFromTrade: 'standard' | 'futures' =
+    (typeof trade?.num_contracts === 'number' && trade.num_contracts > 0) ||
+    trade?.spec_source != null
+      ? 'futures'
       : 'standard';
+  const accountType: 'standard' | 'futures' = accountTypeFromAccount ?? accountTypeFromTrade;
   const accountBalanceRef = useRef(selection.activeAccount?.account_balance || 0);
   const accountTypeRef = useRef<'standard' | 'futures'>(accountType);
   const customTfInputRefs = useRef<Array<HTMLInputElement | null>>([]);
@@ -166,6 +181,20 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   useEffect(() => {
     customFuturesSpecsRef.current = customFuturesSpecs;
   }, [customFuturesSpecs]);
+
+  // Resolve the futures contract spec for the current market so we can label
+  // sl_size with the correct unit (e.g. "22 points" vs "22 ticks"). Falls back
+  // to null for non-futures accounts, unknown markets, or per-trade overrides.
+  const resolvedFuturesSpec = useMemo(() => {
+    if (accountType !== 'futures' || !editedTrade?.market) return null;
+    return getFuturesSpec(editedTrade.market, customFuturesSpecs);
+  }, [accountType, editedTrade?.market, customFuturesSpecs]);
+  const slUnitLabel = resolvedFuturesSpec?.spec.slUnitLabel ?? null;
+
+  const currencySymbol = useMemo(
+    () => getCurrencySymbolFromAccount(selection.activeAccount ?? undefined),
+    [selection.activeAccount],
+  );
 
   const { runPostSaveSync, invalidateTradeCache } = useTradeSaveFlow({
     userId,
@@ -455,7 +484,28 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         );
       }
       if (type === 'number') {
-        const displayValue = typeof value === 'number' ? value.toFixed(2) : value;
+        const displayValue =
+          typeof value === 'number'
+            ? field === 'num_contracts'
+              ? String(Math.trunc(value)) // contracts are whole units
+              : value.toFixed(2)
+            : value;
+
+        // Futures: append the unit (e.g. "22 points" / "22 ticks") so the trader
+        // can see at a glance whether sl_size is in ticks or points.
+        if (field === 'sl_size' && slUnitLabel && typeof value === 'number') {
+          return (
+            <div>
+              <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
+              <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {displayValue}
+                <span className="ml-1 text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                  {slUnitLabel}
+                </span>
+              </dd>
+            </div>
+          );
+        }
         if (field === 'risk_reward_ratio_long') {
           return (
             <div>
@@ -770,7 +820,14 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       const num = value != null && !isNaN(Number(value)) ? Number(value) : null;
       return (
         <div>
-          <label className={`${labelClass} mb-2`}>{label}</label>
+          <label className={`${labelClass} mb-2`}>
+            {label}
+            {slUnitLabel && (
+              <span className="ml-1 text-[11px] font-normal text-slate-400 dark:text-slate-500 normal-case tracking-normal">
+                ({slUnitLabel})
+              </span>
+            )}
+          </label>
           <CommonCombobox
             value={num !== null ? String(num) : ''}
             onChange={(v) => {
@@ -785,7 +842,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             options={slSizeOptions}
             defaultSuggestions={slSizeOptions}
             customValueLabel="SL size"
-            placeholder="e.g. 10"
+            placeholder={slUnitLabel ? `e.g. 10 ${slUnitLabel}` : 'e.g. 10'}
             dropdownClassName="z-[100]"
             inputMode="decimal"
             disabled={!effectiveIsEditing}
@@ -849,23 +906,33 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             />
           </div>
         );
-      case 'number':
+      case 'number': {
+        const isIntegerField = field === 'num_contracts';
         const numVal = value != null && !isNaN(Number(value)) ? Number(value) : null;
+        const displayedNum = numVal !== null && isIntegerField ? Math.trunc(numVal) : numVal;
         return (
           <div>
             <label className={`${labelClass} mb-2`}>{label}</label>
             <Input
               type="number"
-              step="any"
-              value={numVal !== null ? String(numVal) : ''}
+              step={isIntegerField ? '1' : 'any'}
+              min={isIntegerField ? 1 : undefined}
+              inputMode={isIntegerField ? 'numeric' : 'decimal'}
+              value={displayedNum !== null ? String(displayedNum) : ''}
               onChange={e => {
                 const val = e.target.value;
-                handleInputChange(field, val === '' ? '' : parseFloat(val));
+                if (val === '') {
+                  handleInputChange(field, '');
+                  return;
+                }
+                const parsed = isIntegerField ? parseInt(val, 10) : parseFloat(val);
+                handleInputChange(field, Number.isFinite(parsed) ? parsed : '');
               }}
               className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
             />
           </div>
         );
+      }
       case 'select':
         if (field === 'setup_type') {
           return (
@@ -1084,7 +1151,11 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               <div>
                 <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Profit/Loss</label>
                 <div className={`mt-2 text-2xl font-bold ${editedTrade?.trade_outcome === 'Lose' ? 'text-red-500 dark:text-red-400' : editedTrade?.trade_outcome === 'BE' ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
-                  {typeof editedTrade?.calculated_profit === 'number' ? editedTrade.calculated_profit.toFixed(2) : '0.00'}
+                  {(() => {
+                    const profit = typeof editedTrade?.calculated_profit === 'number' ? editedTrade.calculated_profit : 0;
+                    const sign = profit < 0 ? '-' : '';
+                    return `${sign}${currencySymbol}${Math.abs(profit).toFixed(2)}`;
+                  })()}
                 </div>
               </div>
               {hasCard('evaluation_stats') &&

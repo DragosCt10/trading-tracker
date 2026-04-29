@@ -12,6 +12,7 @@ import { getRemainingTrades } from '@/lib/server/subscription';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { isReadOnlyMode } from './readOnlyMode';
 import type { SpecSource } from '@/constants/futuresSpecs';
+import { invalidateUserStatsCache } from '@/lib/statsCache';
 
 /** Per-minute rate limits for individual trade mutations (bot abuse protection). */
 const TRADE_RATE_LIMITS = {
@@ -87,6 +88,11 @@ function mapSupabaseTradeToTrade(trade: any, mode: 'live' | 'backtesting' | 'dem
     news_name: trade.news_name ?? null,
     news_intensity: trade.news_intensity ?? null,
     tags: trade.tags ?? [],
+    // Futures fields — null on standard trades, populated on futures trades.
+    num_contracts: trade.num_contracts ?? null,
+    dollar_per_sl_unit_override: trade.dollar_per_sl_unit_override ?? null,
+    calculated_risk_dollars: trade.calculated_risk_dollars ?? null,
+    spec_source: trade.spec_source ?? null,
   };
 }
 
@@ -264,6 +270,7 @@ export async function createTrade(params: {
     void triggerOfferNotifications(user.id, params.account_id, params.mode);
   }
 
+  invalidateUserStatsCache(user.id);
   return { error: null };
 }
 
@@ -307,6 +314,7 @@ export async function updateTrade(
     console.error('Error updating trade:', error);
     return { error: { message: error.message ?? 'Failed to update trade' } };
   }
+  invalidateUserStatsCache(user.id);
   return { error: null };
 }
 
@@ -338,6 +346,7 @@ export async function deleteTrade(
     console.error('Error deleting trade:', error);
     return { error: { message: error.message ?? 'Failed to delete trade' } };
   }
+  invalidateUserStatsCache(user.id);
   return { error: null };
 }
 
@@ -367,6 +376,7 @@ export async function moveTradestoStrategy(
     console.error('Error moving trades to strategy:', error);
     return { error: { message: error.message ?? 'Failed to move trades' } };
   }
+  invalidateUserStatsCache(user.id);
   return { error: null };
 }
 
@@ -393,6 +403,7 @@ export async function deleteTrades(
     console.error('Error bulk deleting trades:', error);
     return { error: { message: error.message ?? 'Failed to delete trades' } };
   }
+  invalidateUserStatsCache(user.id);
   return { error: null };
 }
 
@@ -770,5 +781,6 @@ export async function bulkUpdateTradeTags(params: {
     }
   }
 
+  invalidateUserStatsCache(user.id);
   return { error: null };
 }

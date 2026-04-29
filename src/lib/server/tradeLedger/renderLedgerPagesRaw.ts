@@ -68,7 +68,10 @@ const COLS: Array<{ x: number; w: number; align?: 'right' }> = [
   { x: 458, w: 101, align: 'right' },
 ];
 
-const LABELS = ['Date / Time', 'Market', 'Side', 'Risk %', 'R', 'P&L', 'Running Balance'];
+// "Risk" is dual-purpose: for standard trades it shows risk_per_trade as a
+// percent (e.g. "0.50%"); for futures trades it shows the contract count with
+// a "×" suffix (e.g. "5×"). Detection is per-row via `num_contracts > 0`.
+const LABELS = ['Date / Time', 'Market', 'Side', 'Risk', 'R', 'P&L', 'Running Balance'];
 
 const INK = '#111827';
 const MUTED = '#6B7280';
@@ -184,7 +187,13 @@ export async function renderLedgerPagesRaw(
       const date = t.trade_date ?? '';
       const time = t.trade_time ? t.trade_time.slice(0, 5) : '';
       const dateStr = time ? `${date} ${time}` : date;
-      const risk = typeof t.risk_per_trade === 'number' ? t.risk_per_trade : 0;
+      // Risk column: futures trades render contract count (e.g. "5×"); standard
+      // trades render risk_per_trade percent. Detection via num_contracts since
+      // standard trades store it as null and futures always set it at write time.
+      const isFuturesRow = typeof t.num_contracts === 'number' && t.num_contracts > 0;
+      const riskCell = isFuturesRow
+        ? `${Math.trunc(t.num_contracts as number)}×`
+        : `${(typeof t.risk_per_trade === 'number' ? t.risk_per_trade : 0).toFixed(2)}%`;
       const rMult =
         typeof t.risk_reward_ratio === 'number'
           ? (t.trade_outcome === 'Lose' ? -1 : t.risk_reward_ratio)
@@ -195,7 +204,7 @@ export async function renderLedgerPagesRaw(
       doc.text(dateStr, COLS[0].x, y, { width: COLS[0].w, lineBreak: false });
       doc.text(t.market ?? '—', COLS[1].x, y, { width: COLS[1].w, lineBreak: false });
       doc.text(t.direction ?? '—', COLS[2].x, y, { width: COLS[2].w, lineBreak: false });
-      doc.text(`${risk.toFixed(2)}%`, COLS[3].x, y, {
+      doc.text(riskCell, COLS[3].x, y, {
         width: COLS[3].w, align: 'right', lineBreak: false,
       });
       doc.text(`${rMult.toFixed(1)}R`, COLS[4].x, y, {

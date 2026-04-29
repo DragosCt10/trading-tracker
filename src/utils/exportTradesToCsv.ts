@@ -35,6 +35,12 @@ const EXPORT_HEADERS = [
   'be_final_result',
   'news_name',
   'news_intensity',
+  // Futures account fields — auto-omitted from the CSV when every exported
+  // trade is from a standard account (the all-empty-column filter strips them).
+  'num_contracts',
+  'dollar_per_sl_unit_override',
+  'calculated_risk_dollars',
+  'spec_source',
   'notes',
 ] as const;
 
@@ -82,6 +88,10 @@ function getExportValues(trade: Trade): string[] {
     trade.be_final_result ?? '',
     trade.news_name ?? '',
     String(trade.news_intensity ?? ''),
+    String(trade.num_contracts ?? ''),
+    String(trade.dollar_per_sl_unit_override ?? ''),
+    String(trade.calculated_risk_dollars ?? ''),
+    trade.spec_source ?? '',
     trade.notes ?? '',
   ];
 }

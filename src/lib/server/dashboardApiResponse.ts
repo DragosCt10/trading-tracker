@@ -10,6 +10,7 @@
 import { getDashboardAggregates } from '@/lib/server/dashboardAggregates';
 import type { DashboardApiResponse } from '@/types/dashboard-rpc';
 import type { TradingMode } from '@/types/trade';
+import type { AccountType } from '@/types/account-settings';
 
 export interface GetDashboardApiResponseParams {
   userId: string;
@@ -26,6 +27,8 @@ export interface GetDashboardApiResponseParams {
   includeCompactTrades?: boolean;
   /** When false, RPC skips series[] (saves 3-4 MB on all-time queries). Client fetches trades via getFilteredTrades(). */
   includeSeries?: boolean;
+  /** 'standard' | 'futures' — selects the SQL P&L formula (defaults to 'standard'). */
+  accountType?: AccountType | null;
 }
 
 export async function getDashboardApiResponse(
@@ -41,6 +44,7 @@ export async function getDashboardApiResponse(
     accountBalance,
     execution = 'executed',
     market = 'all',
+    accountType = 'standard',
   } = params;
 
   // Single RPC call — non_executed_stats is now computed inline in the RPC
@@ -57,6 +61,7 @@ export async function getDashboardApiResponse(
     includeCompactTrades: params.includeCompactTrades ?? false,
     market,
     includeSeries: params.includeSeries ?? false,
+    accountType,
   });
   const nonExecuted = main.non_executed_stats ?? { core: { totalTrades: 0 }, setup_stats: [], liquidity_stats: [], market_stats: [] };
 

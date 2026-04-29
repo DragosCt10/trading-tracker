@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import type { DashboardRpcResult } from '@/types/dashboard-rpc';
 import type { TradingMode } from '@/types/trade';
+import type { AccountType } from '@/types/account-settings';
 
 export interface GetDashboardAggregatesParams {
   userId: string;
@@ -21,6 +22,10 @@ export interface GetDashboardAggregatesParams {
    *  the RPC now computes all 6 time-series values (maxDrawdown, streaks, Sharpe, TQI)
    *  directly in SQL, so series[] is no longer needed for stat computation. */
   includeSeries?: boolean;
+  /** Selects the SQL P&L formula. 'futures' makes the RPC read calculated_profit
+   *  directly (the snapshot from tradePnlCalculator.ts); 'standard' keeps the
+   *  legacy risk × R:R × balance formula. Defaults to 'standard'. */
+  accountType?: AccountType | null;
 }
 
 /**
@@ -45,6 +50,7 @@ export async function getDashboardAggregates(
     p_include_compact_trades: params.includeCompactTrades ?? false,
     p_market:               params.market ?? 'all',
     p_include_series:       params.includeSeries ?? false,
+    p_account_type:         params.accountType ?? 'standard',
   });
 
   if (error) throw error;
@@ -73,6 +79,7 @@ export async function getDashboardAggregatesServiceRole(
     p_include_compact_trades: params.includeCompactTrades ?? false,
     p_market:                 params.market ?? 'all',
     p_include_series:         params.includeSeries ?? false,
+    p_account_type:           params.accountType ?? 'standard',
   });
 
   if (error) throw error;

@@ -25,6 +25,7 @@ export interface Database {
           is_dashboard_public: boolean | null;
           dashboard_hash: string | null;
           description: string | null;
+          account_type: 'standard' | 'futures' | null;
         };
         Insert: Partial<Database['public']['Tables']['account_settings']['Row']> & {
           user_id: string;

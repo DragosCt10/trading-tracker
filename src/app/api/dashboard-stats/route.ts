@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
 
   const { data: ownedAccount, error: accountOwnershipError } = await supabase
     .from('account_settings')
-    .select('id')
+    .select('id, account_type')
     .eq('id', accountId)
     .eq('user_id', user.id)
     .eq('mode', mode)
@@ -64,6 +64,10 @@ export async function GET(req: NextRequest) {
   if (!ownedAccount) {
     return NextResponse.json({ error: 'Forbidden account access' }, { status: 403 });
   }
+
+  const accountType = (ownedAccount as { account_type?: string | null }).account_type === 'futures'
+    ? 'futures'
+    : 'standard';
 
   const cacheKey = buildStatsCacheKey({
     userId: user.id,
@@ -100,6 +104,7 @@ export async function GET(req: NextRequest) {
     market,
     includeCompactTrades,
     includeSeries,
+    accountType,
   });
 
   setStatsCache(cacheKey, response);

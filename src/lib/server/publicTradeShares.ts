@@ -79,6 +79,11 @@ function mapSupabaseTradeToTrade(trade: any, mode: ShareMode): Trade {
     trade_executed_at: trade.trade_executed_at ?? null,
     news_name: trade.news_name ?? null,
     news_intensity: trade.news_intensity ?? null,
+    // Futures fields — null on standard trades, populated on futures trades.
+    num_contracts: trade.num_contracts ?? null,
+    dollar_per_sl_unit_override: trade.dollar_per_sl_unit_override ?? null,
+    calculated_risk_dollars: trade.calculated_risk_dollars ?? null,
+    spec_source: trade.spec_source ?? null,
   };
 }
 
@@ -96,6 +101,8 @@ const TRADE_COLUMNS = [
   'confidence_at_entry', 'mind_state_at_entry',
   'be_final_result',
   'news_name', 'news_intensity',
+  'num_contracts', 'dollar_per_sl_unit_override',
+  'calculated_risk_dollars', 'spec_source',
 ].join(', ');
 
 /**
