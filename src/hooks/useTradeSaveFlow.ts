@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Trade, TradingMode } from '@/types/trade';
 import type { SavedNewsItem } from '@/types/account-settings';
@@ -57,7 +56,6 @@ export function useTradeSaveFlow({
   currentStrategy,
 }: UseTradeSaveFlowParams) {
   const queryClient = useQueryClient();
-  const router = useRouter();
 
   const invalidateTradeCache = useCallback(
     async (strategyIds: Array<string | null | undefined>) => {
@@ -68,12 +66,8 @@ export function useTradeSaveFlow({
         accountId,
         userId,
       });
-      // Bust Next.js Router Cache so sibling routes (my-trades, daily-journal,
-      // ai-vision) re-run their server fetch on next navigation instead of
-      // serving the dehydrated HydrationBoundary state from before the mutation.
-      router.refresh();
     },
-    [queryClient, mode, accountId, userId, router],
+    [queryClient, mode, accountId, userId],
   );
 
   const runPostSaveSync = useCallback(
