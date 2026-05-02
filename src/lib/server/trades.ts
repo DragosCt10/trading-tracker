@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from './supabaseAdmin';
 import { Trade } from '@/types/trade';
@@ -13,6 +14,17 @@ import { checkRateLimit } from '@/lib/rateLimit';
 import { isReadOnlyMode } from './readOnlyMode';
 import type { SpecSource } from '@/constants/futuresSpecs';
 import { invalidateUserStatsCache } from '@/lib/statsCache';
+
+/**
+ * Bust the Next.js Full Route Cache + client-side Router Cache for every page
+ * under (inside-strategy)/strategy/[strategy] (StrategyClient, my-trades,
+ * daily-journal, ai-vision, custom-stats, backtest). Without this, navigating
+ * client-side between siblings serves the cached RSC payload (with the stale
+ * HydrationBoundary trade snapshot) for up to staleTimes.dynamic seconds.
+ */
+function revalidateStrategyTree(): void {
+  revalidatePath('/strategy/[strategy]', 'layout');
+}
 
 /** Per-minute rate limits for individual trade mutations (bot abuse protection). */
 const TRADE_RATE_LIMITS = {
@@ -271,6 +283,7 @@ export async function createTrade(params: {
   }
 
   invalidateUserStatsCache(user.id);
+  revalidateStrategyTree();
   return { error: null };
 }
 
@@ -315,6 +328,7 @@ export async function updateTrade(
     return { error: { message: error.message ?? 'Failed to update trade' } };
   }
   invalidateUserStatsCache(user.id);
+  revalidateStrategyTree();
   return { error: null };
 }
 
@@ -347,6 +361,7 @@ export async function deleteTrade(
     return { error: { message: error.message ?? 'Failed to delete trade' } };
   }
   invalidateUserStatsCache(user.id);
+  revalidateStrategyTree();
   return { error: null };
 }
 
@@ -377,6 +392,7 @@ export async function moveTradestoStrategy(
     return { error: { message: error.message ?? 'Failed to move trades' } };
   }
   invalidateUserStatsCache(user.id);
+  revalidateStrategyTree();
   return { error: null };
 }
 
@@ -404,6 +420,7 @@ export async function deleteTrades(
     return { error: { message: error.message ?? 'Failed to delete trades' } };
   }
   invalidateUserStatsCache(user.id);
+  revalidateStrategyTree();
   return { error: null };
 }
 
@@ -782,5 +799,6 @@ export async function bulkUpdateTradeTags(params: {
   }
 
   invalidateUserStatsCache(user.id);
+  revalidateStrategyTree();
   return { error: null };
 }
