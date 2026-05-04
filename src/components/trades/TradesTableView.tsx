@@ -4,7 +4,7 @@ import type { Trade } from '@/types/trade';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatTradeTimeForDisplay } from '@/utils/formatTradeTime';
+import { formatTradeTimeWithMode } from '@/utils/formatTradeTime';
 import { ScreensCarouselCell } from '@/components/trades/ScreensCarouselCell';
 import { OutcomeChips } from '@/components/trades/OutcomeChips';
 
@@ -221,7 +221,7 @@ export function TradesTableView({
                 {trade.trade_date}
               </td>
               <td className={cn(TABLE_CELL_CLASS, 'text-slate-700 dark:text-slate-300')} suppressHydrationWarning>
-                {formatTradeTimeForDisplay(trade.trade_time)}
+                {formatTradeTimeWithMode(trade.trade_time, trade.trade_time_format)}
               </td>
               <td className={cn(TABLE_CELL_CLASS, 'font-medium text-slate-900 dark:text-slate-100')}>
                 {trade.market}

@@ -11,11 +11,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
-import { Loader2, Info, Check, Share2 } from 'lucide-react';
+import { Loader2, Info, Check, Share2, Clock } from 'lucide-react';
 import { AfterBreakEvenSelect } from '@/components/trade/AfterBreakEvenSelect';
 import { TradeDirectionChips } from '@/components/trade/TradeDirectionChips';
 import { TradeOutcomeChips } from '@/components/trade/TradeOutcomeChips';
 import { TradeScreenSlotEditor } from '@/components/trade/TradeScreenSlotEditor';
+import { TIME_INTERVALS } from '@/constants/analytics';
 import {
   EVALUATION_OPTIONS,
   MSS_OPTIONS,
@@ -74,7 +75,7 @@ import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { getFuturesSpec } from '@/constants/futuresSpecs';
 import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
 import { MarketCombobox } from '@/components/MarketCombobox';
-import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
+import { formatTradeTimeForDisplay } from '@/utils/formatTradeTime';
 import { NewsCombobox } from '@/components/NewsCombobox';
 import { CommonCombobox } from '@/components/CommonCombobox';
 import { constructUpdateTradePayload } from '@/utils/constructTradePayload';
@@ -558,8 +559,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         );
       }
       if (field === 'trade_time') {
-        const interval = getIntervalForTime((value as string) || '');
-        const displayTime = interval ? interval.label : (value as string) || '—';
+        const formatted = formatTradeTimeForDisplay(value);
+        const displayTime = formatted || '—';
         return (
           <div>
             <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
@@ -599,27 +600,44 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     }
 
     if (field === 'trade_time') {
-      const timeStr = (editedTrade.trade_time as string) || '';
-      const intervalForDisplay = getIntervalForTime(timeStr);
-      const selectValue = intervalForDisplay ? intervalForDisplay.start : timeStr || '';
+      const timeStr = ((editedTrade.trade_time as string) || '').slice(0, 5);
+      const useInterval = settings.feature_flags.trade_time_format === 'interval';
       return (
         <div>
           <label className={`${labelClass} mb-2`}>{label}</label>
-          <Select
-            value={TIME_INTERVALS.some((i) => i.start === selectValue) ? selectValue : ''}
-            onValueChange={(v) => handleInputChange('trade_time', v)}
-          >
-            <SelectTrigger className={selectTriggerClass}>
-              <SelectValue placeholder="Select time interval" />
-            </SelectTrigger>
-            <SelectContent className={selectContentClass}>
-              {TIME_INTERVALS.map((interval) => (
-                <SelectItem key={interval.start} value={interval.start}>
-                  {interval.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {useInterval ? (
+            <Select
+              value={timeStr}
+              onValueChange={(v) => {
+                handleInputChange('trade_time', v);
+                handleInputChange('trade_time_format', 'interval');
+              }}
+            >
+              <SelectTrigger className={inputClass}>
+                <SelectValue placeholder="Select time interval" />
+              </SelectTrigger>
+              <SelectContent>
+                {TIME_INTERVALS.map((interval) => (
+                  <SelectItem key={interval.start} value={interval.start}>
+                    {interval.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="relative min-w-0 w-full">
+              <Input
+                type="time"
+                value={timeStr}
+                onChange={(e) => {
+                  handleInputChange('trade_time', e.target.value);
+                  handleInputChange('trade_time_format', 'exact');
+                }}
+                className={`${inputClass} w-full min-w-0 max-w-full block pr-12 appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-12 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-date-and-time-value]:text-left [&::-webkit-date-and-time-value]:min-h-0`}
+              />
+              <Clock className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-slate-500 shrink-0" strokeWidth={1.75} />
+            </div>
+          )}
         </div>
       );
     }
@@ -1096,7 +1114,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             </div>
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400">
-            {editedTrade?.market} {editedTrade?.direction} • {editedTrade?.trade_date} {editedTrade?.trade_time ? (getIntervalForTime(editedTrade.trade_time)?.label ?? editedTrade.trade_time) : ''}
+            {editedTrade?.market} {editedTrade?.direction} • {editedTrade?.trade_date} {editedTrade?.trade_time ? formatTradeTimeForDisplay(editedTrade.trade_time) : ''}
           </p>
         </div>
       </div>

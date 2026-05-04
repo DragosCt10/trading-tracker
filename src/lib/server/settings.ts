@@ -3,7 +3,13 @@ import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from './supabaseAdmin';
 import { getCachedUserSession } from '@/lib/server/session';
 import type { CustomFuturesSpec, SavedNewsItem } from '@/types/account-settings';
-import { FeatureFlagsSchema, parseFeatureFlags, type FeatureFlags } from '@/types/featureFlags';
+import {
+  FeatureFlagsSchema,
+  parseFeatureFlags,
+  TradeTimeFormatSchema,
+  type FeatureFlags,
+  type TradeTimeFormat,
+} from '@/types/featureFlags';
 import {
   MAX_CUSTOM_FUTURES_SPECS,
   normalizeFuturesSymbol,
@@ -381,4 +387,48 @@ export async function updateFeatureFlags(
     console.error(`[updateFeatureFlags] upsert failed userId=${userId}:`, error);
     throw new Error(`[updateFeatureFlags] upsert failed: ${error.message}`);
   }
+}
+
+/**
+ * Persist the user's preferred Trade Time input format.
+ *
+ * Read-modify-write so we don't clobber other feature_flags fields (trade_badge,
+ * futures_accounts) that updateFeatureFlags would overwrite blindly.
+ */
+export async function updateTradeTimeFormat(
+  format: TradeTimeFormat,
+): Promise<{ error: { message: string } | null }> {
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: { message: 'Unauthorized' } };
+
+  const parsed = TradeTimeFormatSchema.safeParse(format);
+  if (!parsed.success) return { error: { message: 'Invalid trade time format.' } };
+
+  const supabase = createAdminClient();
+  const { data: existing, error: readErr } = await supabase
+    .from('user_settings')
+    .select('feature_flags')
+    .eq('user_id', user.id)
+    .single();
+
+  // PGRST116 = no row yet; treat as empty flags.
+  if (readErr && (readErr as { code?: string }).code !== 'PGRST116') {
+    console.error('[updateTradeTimeFormat] read failed:', readErr);
+    return { error: { message: 'Failed to load settings.' } };
+  }
+
+  const current = parseFeatureFlags(
+    (existing as { feature_flags?: unknown } | null)?.feature_flags,
+  );
+  const next: FeatureFlags = { ...current, trade_time_format: parsed.data };
+
+  const { error } = await supabase
+    .from('user_settings')
+    .upsert({ user_id: user.id, feature_flags: next }, { onConflict: 'user_id' });
+
+  if (error) {
+    console.error('[updateTradeTimeFormat] upsert failed:', error);
+    return { error: { message: error.message ?? 'Failed to update preference.' } };
+  }
+  return { error: null };
 }

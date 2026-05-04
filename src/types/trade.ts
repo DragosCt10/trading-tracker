@@ -9,6 +9,13 @@ export interface Trade {
   /** Optional timeframe label per screen slot (same index as trade_screens). */
   trade_screen_timeframes?: string[];
   trade_time: string;
+  /**
+   * How the trade_time was captured at write time:
+   *  - 'exact'    → free-form HH:MM via <input type="time">
+   *  - 'interval' → 2-hour TIME_INTERVALS bucket Select
+   *  - null/undefined → legacy pre-feature row; formatter falls back to bucket display.
+   */
+  trade_time_format?: 'exact' | 'interval' | null;
   trade_date: string;
   day_of_week: string;
   market: string;

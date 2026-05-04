@@ -36,7 +36,10 @@ export function validateTrade(
   }
 
   if (!trade.trade_time || trade.trade_time.trim() === '') {
-    return 'Please select Trade Time (interval).';
+    return 'Please enter Trade Time.';
+  }
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(trade.trade_time.trim())) {
+    return 'Trade Time must be in HH:MM format (00:00–23:59).';
   }
 
   if (hasCard('setup_stats') && !trade.setup_type) {

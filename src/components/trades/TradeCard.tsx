@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import type { Trade } from '@/types/trade';
 import type { SavedTag } from '@/types/saved-tag';
 import { cn } from '@/lib/utils';
-import { getIntervalForTime } from '@/constants/analytics';
+import { formatTradeTimeWithMode } from '@/utils/formatTradeTime';
 import { Card, CardContent } from '@/components/ui/card';
 import { Eye } from 'lucide-react';
 import { OutcomeChips } from '@/components/trades/OutcomeChips';
@@ -46,13 +46,10 @@ export function TradeCard({
   const activeItem = screenItems[activeIdx] ?? null;
   const activeScreen = activeItem?.url ?? null;
   const activeTimeframe = activeItem?.timeframe?.trim() ?? '';
-  const timeDisplay = useMemo(() => {
-    const raw = trade.trade_time ?? '';
-    if (!raw) return '';
-    const interval = getIntervalForTime(raw);
-    if (interval?.label) return interval.label;
-    return typeof raw === 'string' && raw.length >= 5 ? raw.substring(0, 5) : String(raw);
-  }, [trade.trade_time]);
+  const timeDisplay = useMemo(
+    () => formatTradeTimeWithMode(trade.trade_time, trade.trade_time_format),
+    [trade.trade_time, trade.trade_time_format],
+  );
 
   return (
     <Card

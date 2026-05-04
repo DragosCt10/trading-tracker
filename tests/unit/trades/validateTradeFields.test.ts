@@ -52,4 +52,23 @@ describe('validateTradeFields', () => {
   it('allows valid https URLs in trade_screens', () => {
     expect(validateTradeFields({ trade_screens: ['https://example.com/chart.png', ''] })).toBeNull();
   });
+
+  it.each(['25:00', '10:60', 'abc', '10', '24:00', '9:00'])(
+    'rejects malformed trade_time: %s',
+    (bad) => {
+      expect(validateTradeFields({ trade_time: bad })).toContain('HH:MM');
+    },
+  );
+
+  it('accepts valid trade_time HH:MM and HH:MM:SS forms', () => {
+    expect(validateTradeFields({ trade_time: '10:24' })).toBeNull();
+    expect(validateTradeFields({ trade_time: '10:24:00' })).toBeNull();
+    expect(validateTradeFields({ trade_time: '00:00' })).toBeNull();
+    expect(validateTradeFields({ trade_time: '23:59:59' })).toBeNull();
+  });
+
+  it('skips trade_time check when field is empty/missing', () => {
+    expect(validateTradeFields({ trade_time: '' })).toBeNull();
+    expect(validateTradeFields({})).toBeNull();
+  });
 });

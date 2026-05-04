@@ -506,6 +506,7 @@ model backtesting_trades {
   id                     String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id                String            @db.Uuid
   trade_time             DateTime          @db.Time(6)
+  trade_time_format      String?           @db.VarChar(10)
   trade_date             DateTime?         @db.Date
   day_of_week            String
   market                 String
@@ -570,6 +571,7 @@ model demo_trades {
   id                     String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id                String            @db.Uuid
   trade_time             DateTime          @db.Time(6)
+  trade_time_format      String?           @db.VarChar(10)
   trade_date             DateTime?         @db.Date
   day_of_week            String
   market                 String
@@ -634,6 +636,7 @@ model live_trades {
   id                     String            @id(map: "trades_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id                String            @db.Uuid
   trade_time             DateTime          @db.Time(6)
+  trade_time_format      String?           @db.VarChar(10)
   trade_date             DateTime?         @db.Date
   day_of_week            String
   market                 String

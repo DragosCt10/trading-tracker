@@ -15,11 +15,21 @@ const TradeBadgeSchema = z.object({
 
 // ── Main feature flags schema ───────────────────────────────────────────────
 
+/**
+ * How the user wants to log Trade Time:
+ *  - 'exact'    → free-form HH:MM via <input type="time"> (default; new flow)
+ *  - 'interval' → legacy 2-hour bucket Select over TIME_INTERVALS
+ * Stored on user_settings.feature_flags so the preference follows the user across devices.
+ */
+export const TradeTimeFormatSchema = z.enum(['interval', 'exact']);
+export type TradeTimeFormat = z.infer<typeof TradeTimeFormatSchema>;
+
 export const FeatureFlagsSchema = z
   .object({
     trade_badge: TradeBadgeSchema.optional(),
     /** Gates the "Futures" option in CreateAccountModal during rollout (per plan D3). */
     futures_accounts: z.boolean().optional(),
+    trade_time_format: TradeTimeFormatSchema.optional(),
   })
   .passthrough();
 

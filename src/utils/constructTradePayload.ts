@@ -92,11 +92,19 @@ export function constructCreateTradePayload(
 export function constructUpdateTradePayload(
   editedTrade: Trade,
 ): Record<string, unknown> {
-  const normalizedTradeTime = getIntervalForTime(editedTrade.trade_time || '')?.start ?? editedTrade.trade_time ?? '';
+  // Only snap to the bucket start when the trade was/is captured in interval mode.
+  // For exact-mode trades (and legacy NULL rows that the user is now editing as exact)
+  // the picker value is the source of truth — rounding it would silently drop minutes.
+  const rawTime = editedTrade.trade_time ?? '';
+  const normalizedTradeTime =
+    editedTrade.trade_time_format === 'interval'
+      ? (getIntervalForTime(rawTime)?.start ?? rawTime)
+      : rawTime;
 
   return {
     trade_date: editedTrade.trade_date,
     trade_time: normalizedTradeTime,
+    trade_time_format: editedTrade.trade_time_format ?? null,
     trade_executed_at: tradeDateAndTimeToUtcISO(editedTrade.trade_date, normalizedTradeTime) ?? null,
     day_of_week: editedTrade.day_of_week || '',
     quarter: editedTrade.quarter || '',

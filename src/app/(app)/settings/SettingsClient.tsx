@@ -42,7 +42,10 @@ import { cn } from '@/lib/utils';
 import type { ResolvedSubscription } from '@/types/subscription';
 import type { SocialProfile } from '@/types/social';
 import { updateEmailAction, updatePasswordAction } from '@/lib/server/auth';
-import { persistNewsletterPreference } from '@/lib/server/settings';
+import { persistNewsletterPreference, updateTradeTimeFormat } from '@/lib/server/settings';
+import type { TradeTimeFormat } from '@/types/featureFlags';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { PASSWORD_RULES, getPasswordStrength } from '@/utils/passwordValidation';
 import type { SettingsTab } from './page';
 
@@ -55,6 +58,7 @@ interface SettingsClientProps {
   userId: string;
   socialProfile: SocialProfile | null;
   initialNewsletterSubscribed: boolean;
+  initialTradeTimeFormat: TradeTimeFormat;
 }
 
 export default function SettingsClient({
@@ -66,7 +70,9 @@ export default function SettingsClient({
   userId,
   socialProfile,
   initialNewsletterSubscribed,
+  initialTradeTimeFormat,
 }: SettingsClientProps) {
+  const queryClient = useQueryClient();
   const [newEmail, setNewEmail] = useState(userEmail);
   const [emailError, setEmailError] = useState('');
   const [emailMessage, setEmailMessage] = useState('');
@@ -82,6 +88,10 @@ export default function SettingsClient({
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(initialNewsletterSubscribed);
   const [newsletterMessage, setNewsletterMessage] = useState('');
   const [isNewsletterPending, startNewsletterTransition] = useTransition();
+
+  const [tradeTimeFormat, setTradeTimeFormat] = useState<TradeTimeFormat>(initialTradeTimeFormat);
+  const [tradeTimeMessage, setTradeTimeMessage] = useState('');
+  const [isTradeTimePending, startTradeTimeTransition] = useTransition();
 
   const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
   const allRulesPassed = passwordStrength === PASSWORD_RULES.length;
@@ -426,6 +436,81 @@ export default function SettingsClient({
                 {newsletterMessage ? (
                   <p className="mt-3 text-sm text-green-500">{newsletterMessage}</p>
                 ) : null}
+              </div>
+
+              <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-6">
+                <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50 mb-1">
+                  Trade Time Format
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
+                  Choose how you log the time of each trade. Existing trades are unaffected.
+                </p>
+
+                <div role="radiogroup" aria-label="Trade time format" className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {([
+                    { value: 'exact' as const, label: 'Exact time', hint: 'Free-form HH:MM picker (current default).' },
+                    { value: 'interval' as const, label: 'Time interval', hint: '2-hour buckets (legacy).' },
+                  ]).map((opt) => {
+                    const selected = tradeTimeFormat === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        disabled={isTradeTimePending}
+                        onClick={() => {
+                          if (selected || isTradeTimePending) return;
+                          const previous = tradeTimeFormat;
+                          setTradeTimeFormat(opt.value);
+                          setTradeTimeMessage('');
+                          startTradeTimeTransition(async () => {
+                            const result = await updateTradeTimeFormat(opt.value);
+                            if (result.error) {
+                              setTradeTimeFormat(previous);
+                              setTradeTimeMessage('Failed to update preference.');
+                              return;
+                            }
+                            void queryClient.invalidateQueries({ queryKey: queryKeys.settings(userId) });
+                            setTradeTimeMessage(
+                              opt.value === 'exact'
+                                ? 'Switched to exact time picker.'
+                                : 'Switched to time interval buckets.',
+                            );
+                          });
+                        }}
+                        className={cn(
+                          'text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer',
+                          'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30',
+                          'hover:bg-slate-100/70 dark:hover:bg-slate-800/60',
+                          'disabled:opacity-60 disabled:cursor-not-allowed',
+                          selected && 'themed-nav-active border-transparent',
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                            {opt.label}
+                          </span>
+                          {selected ? (
+                            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-500">
+                              Selected
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{opt.hint}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-3 flex items-center gap-2 min-h-5">
+                  {isTradeTimePending ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                  ) : null}
+                  {tradeTimeMessage ? (
+                    <p className="text-sm text-green-500">{tradeTimeMessage}</p>
+                  ) : null}
+                </div>
               </div>
 
               <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-6">

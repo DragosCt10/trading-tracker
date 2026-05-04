@@ -74,6 +74,20 @@ describe('validateTrade', () => {
     expect(result).toContain('Trade Time');
   });
 
+  it.each(['25:00', '10:60', 'abc', '10', '24:00', '9:00'])(
+    'rejects malformed trade_time: %s',
+    (bad) => {
+      const result = validateTrade(makeTrade({ trade_time: bad }), hasNoCards);
+      expect(result).toContain('HH:MM');
+    },
+  );
+
+  it('accepts valid HH:MM values', () => {
+    expect(validateTrade(makeTrade({ trade_time: '00:00' }), hasNoCards)).toBeNull();
+    expect(validateTrade(makeTrade({ trade_time: '10:24' }), hasNoCards)).toBeNull();
+    expect(validateTrade(makeTrade({ trade_time: '23:59' }), hasNoCards)).toBeNull();
+  });
+
   it('rejects missing strategy_id', () => {
     const result = validateTrade(makeTrade({ strategy_id: null }), hasNoCards);
     expect(result).toContain('Strategy');

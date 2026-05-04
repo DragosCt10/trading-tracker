@@ -83,6 +83,7 @@ export default async function SettingsPage({
       userId={user.id}
       socialProfile={socialProfile}
       initialNewsletterSubscribed={settings.newsletter_subscribed}
+      initialTradeTimeFormat={settings.feature_flags.trade_time_format ?? 'exact'}
     />
   );
 }
