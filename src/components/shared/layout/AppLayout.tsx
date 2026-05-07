@@ -44,7 +44,8 @@ export default function AppLayout({
   const userId = initialUserDetails?.user?.id;
   const { subscription } = useSubscription({ userId });
   useNewsletterOAuthSync();
-  const showActionBar = pathname === '/stats' || (pathname?.startsWith('/strategy/') ?? false);
+  const isBacktestPage = pathname?.includes('/backtest') ?? false;
+  const showActionBar = !isBacktestPage && (pathname === '/stats' || (pathname?.startsWith('/strategy/') ?? false));
   const isStrategyPage = pathname?.startsWith('/strategy/') ?? false;
 
   const [actionBarVisible, setActionBarVisible] = useState(true);
@@ -102,6 +103,11 @@ export default function AppLayout({
   }
 
   const isPastDue = (subscription ?? initialSubscription)?.status === 'past_due';
+
+  // TradingView-style full-bleed: backtest renders without navbar / footer / action bar / banner.
+  if (isBacktestPage) {
+    return <>{children}</>;
+  }
 
   return (
     <>

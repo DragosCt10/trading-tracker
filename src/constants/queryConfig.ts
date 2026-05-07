@@ -47,3 +47,14 @@ export const SOCIAL_PROFILE_DATA = {
   staleTime: 5 * MINUTE,
   gcTime: 15 * MINUTE,
 } as const;
+
+/**
+ * Historical OHLC bars (backtest chart). Closed-day bars are immutable, so
+ * we keep them fresh forever in the client cache and let the server route's
+ * `unstable_cache` handle the today/yesterday cutoff. gc after 30 min so
+ * symbol-hopping users don't bloat memory indefinitely.
+ */
+export const MARKET_DATA = {
+  staleTime: Infinity,
+  gcTime: 30 * MINUTE,
+} as const;

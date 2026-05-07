@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { User } from '@supabase/supabase-js'
 import { getCookieDomain } from './cookieDomain'
+import { isPublicPath } from './publicPaths'
 
 export async function updateSession(request: NextRequest): Promise<{ response: NextResponse; user: User | null }> {
   let supabaseResponse = NextResponse.next({
@@ -49,15 +50,9 @@ export async function updateSession(request: NextRequest): Promise<{ response: N
     pathname.startsWith('/update-password') ||
     pathname.startsWith('/auth')
 
-  // Public routes should be accessible without auth.
-  const isPublicPath =
-    pathname === '/' ||
-    pathname.startsWith('/share') ||
-    pathname.startsWith('/feed')
-
   // Allow auth pages and public routes without a user;
   // redirect for auth pages is handled in proxy so we don't duplicate logic.
-  if (!user && !isAuthPath && !isPublicPath) {
+  if (!user && !isAuthPath && !isPublicPath(pathname)) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return { response: NextResponse.redirect(url), user: null }

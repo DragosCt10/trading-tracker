@@ -28,15 +28,16 @@ describe('sitemap', () => {
     expect(result).toEqual([]);
   });
 
-  it('emits all 8 public routes in production with absolute URLs', async () => {
+  it('emits all 9 public routes in production with absolute URLs', async () => {
     process.env.VERCEL_ENV = 'production';
     const { default: sitemap } = await import(`@/app/sitemap?prod=${Date.now()}`);
     const result = sitemap();
 
-    expect(result).toHaveLength(8);
+    expect(result).toHaveLength(9);
     const urls = result.map((entry: { url: string }) => entry.url);
     expect(urls).toContain(`${SITE_URL}/`);
     expect(urls).toContain(`${SITE_URL}/pricing`);
+    expect(urls).toContain(`${SITE_URL}/backtesting/landing`);
     expect(urls).toContain(`${SITE_URL}/help`);
     expect(urls).toContain(`${SITE_URL}/affiliates`);
     expect(urls).toContain(`${SITE_URL}/contact`);

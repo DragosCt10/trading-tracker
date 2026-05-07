@@ -34,11 +34,45 @@ interface HeroStat {
   value: string;
 }
 
-interface LandingHeroProps {
-  heroStats: HeroStat[];
+interface CTA {
+  href: string;
+  label: string;
 }
 
-export function LandingHero({ heroStats }: LandingHeroProps) {
+interface SecondaryCTA {
+  anchorId: string;
+  label: string;
+}
+
+interface LandingHeroProps {
+  heroStats: HeroStat[];
+  badge?: string;
+  headlineLine1?: string;
+  headlineLine2?: string;
+  subtitle?: string;
+  primaryCTA?: CTA;
+  secondaryCTA?: SecondaryCTA;
+  showTrustpilot?: boolean;
+}
+
+const DEFAULT_BADGE = 'Your trading, fully measured';
+const DEFAULT_HEADLINE_LINE_1 = 'Track your trades.';
+const DEFAULT_HEADLINE_LINE_2 = 'Stop losing money';
+const DEFAULT_SUBTITLE =
+  'Go beyond basic stats. Get deep, actionable insights into your performance — and trade with confidence.';
+const DEFAULT_PRIMARY_CTA: CTA = { href: '/login', label: 'Track your trades free' };
+const DEFAULT_SECONDARY_CTA: SecondaryCTA = { anchorId: '#stats-board', label: 'See features' };
+
+export function LandingHero({
+  heroStats,
+  badge = DEFAULT_BADGE,
+  headlineLine1 = DEFAULT_HEADLINE_LINE_1,
+  headlineLine2 = DEFAULT_HEADLINE_LINE_2,
+  subtitle = DEFAULT_SUBTITLE,
+  primaryCTA = DEFAULT_PRIMARY_CTA,
+  secondaryCTA = DEFAULT_SECONDARY_CTA,
+  showTrustpilot = true,
+}: LandingHeroProps) {
   const sectionRef = useParallax(0, true, true);
 
   return (
@@ -275,7 +309,7 @@ export function LandingHero({ heroStats }: LandingHeroProps) {
                 style={{ backgroundColor: 'var(--tc-primary)' }}
               />
               <span className="text-sm text-muted-foreground">
-                Your trading, fully measured
+                {badge}
               </span>
             </div>
           </div>
@@ -287,9 +321,9 @@ export function LandingHero({ heroStats }: LandingHeroProps) {
               backgroundImage: 'linear-gradient(to bottom, var(--foreground) 54%, var(--tc-accent))',
             }}
           >
-            Track your trades.
+            {headlineLine1}
             <br />
-            Stop losing money
+            {headlineLine2}
           </h1>
 
           {/* Divider with stats */}
@@ -312,13 +346,13 @@ export function LandingHero({ heroStats }: LandingHeroProps) {
 
           {/* Subtitle */}
           <p className="mt-6 max-w-[480px] text-base sm:text-lg leading-[1.6] text-muted-foreground">
-            Go beyond basic stats. Get deep, actionable insights into your performance — and trade with confidence.
+            {subtitle}
           </p>
 
           {/* CTA */}
           <div className="mt-10 flex items-center gap-4">
             <Link
-              href="/login"
+              href={primaryCTA.href}
               className="relative overflow-hidden inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition-all duration-300 group border-0"
               style={{
                 background: `linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))`,
@@ -326,7 +360,7 @@ export function LandingHero({ heroStats }: LandingHeroProps) {
               }}
             >
               <span className="relative z-10 flex items-center gap-2">
-                Track your trades free
+                {primaryCTA.label}
                 <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
               </span>
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
@@ -335,15 +369,15 @@ export function LandingHero({ heroStats }: LandingHeroProps) {
             <button
               type="button"
               onClick={() => {
-                document.querySelector('#stats-board')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                document.querySelector(secondaryCTA.anchorId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
               className="text-sm text-muted-foreground hover:text-white transition-colors duration-200 cursor-pointer"
             >
-              See features
+              {secondaryCTA.label}
             </button>
           </div>
 
-          <TrustpilotWidget className="mt-15" />
+          {showTrustpilot && <TrustpilotWidget className="mt-15" />}
         </div>
       </div>
 

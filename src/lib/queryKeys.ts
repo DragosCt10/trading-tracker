@@ -196,6 +196,16 @@ export const queryKeys = {
     endDate: string
   ) => ['calendarTrades', mode, accountId, userId, strategyId, startDate, endDate] as const,
 
+  /** Backtesting market data — historical OHLC bars from `/api/market-data/ohlc`. */
+  marketData: {
+    ohlc: (
+      symbol: string,
+      timeframe: string,
+      fromIso: string,
+      toIso: string,
+    ) => ['marketData:ohlc', symbol, timeframe, fromIso, toIso] as const,
+  },
+
 } as const;
 
 /**

@@ -3,6 +3,13 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   reactCompiler: true,
+  // `dukascopy-node` is a server-only Node package used by the backtest API
+  // route. Its dependency `fastest-validator` has an optional `require('cli-
+  // highlight')` for pretty-printing validation errors, which the bundler
+  // tries to resolve and fails on. Listing it here keeps it as a runtime
+  // require on the server (not bundled), avoiding the cli-highlight resolve
+  // and shrinking the route's bundle.
+  serverExternalPackages: ['dukascopy-node', 'fastest-validator', '@aws-sdk/client-s3'],
   experimental: {
     staleTimes: {
       dynamic: 300, // 5 minutes (default: 30s) — reduces cold-nav after idle

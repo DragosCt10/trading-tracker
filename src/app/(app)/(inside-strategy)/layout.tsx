@@ -1,9 +1,9 @@
 'use client';
 
-import { ReactNode, useState, useMemo, useEffect } from 'react';
+import { ReactNode, useState, useMemo, useEffect, useSyncExternalStore, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, TrendingUp, BarChart3, NotebookPen, LayoutGrid, ChevronRight, ChevronLeft, Bot, PanelLeft } from 'lucide-react';
+import { Plus, TrendingUp, BarChart3, NotebookPen, LayoutGrid, ChevronRight, ChevronLeft, Bot, PanelLeft, ChartCandlestick } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { NewTradeModal } from '@/components/dynamicComponents';
@@ -15,6 +15,7 @@ interface InsideStrategyLayoutProps {
 
 export default function InsideStrategyLayout({ children }: InsideStrategyLayoutProps) {
   const pathname = usePathname();
+  const isBacktestPage = pathname?.includes('/backtest') ?? false;
   const [newTradeModalOpen, setNewTradeModalOpen] = useState(false);
   const [isNavHidden, setIsNavHidden] = useState(() => {
     if (typeof window === 'undefined') return true;
@@ -81,6 +82,30 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
     return match ? decodeURIComponent(match[1]) : null;
   }, [pathname]);
 
+  // Show the Backtest tab when the user is on a backtesting account. We
+  // mirror the cookie that ActionBar writes (`tt_last_mode_<userId>`); if the
+  // cookie says otherwise, the page itself still shows a friendly "switch
+  // your account" banner — so the tab gating is just to avoid noise.
+  //
+  // useSyncExternalStore is the React-blessed pattern for reading from
+  // browser-only state without an SSR/CSR hydration mismatch:
+  // server uses getServerSnapshot (always false), client uses getSnapshot
+  // (real cookie). React knows the two can differ on the first paint and
+  // doesn't warn. Re-reads on pathname change via the version counter.
+  const subscribeBacktestCookie = useCallback(() => () => {}, []);
+  const getBacktestCookieClient = useCallback(() => {
+    const m = document.cookie.match(/(?:^|;\s*)tt_last_mode_[^=]+=([^;]+)/);
+    // Bake pathname into the snapshot so it re-reads when the route changes.
+    return m?.[1] === 'backtesting' ? `1:${pathname}` : `0:${pathname}`;
+  }, [pathname]);
+  const getBacktestCookieServer = useCallback(() => '0:ssr', []);
+  const backtestCookieSnapshot = useSyncExternalStore(
+    subscribeBacktestCookie,
+    getBacktestCookieClient,
+    getBacktestCookieServer,
+  );
+  const showBacktestTab = backtestCookieSnapshot.startsWith('1:');
+
   const analyticsUrl = useMemo(() => {
     return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}` : '/stats';
   }, [currentStrategySlug]);
@@ -101,6 +126,10 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
     return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}/ai-vision` : '/stats';
   }, [currentStrategySlug]);
 
+  const backtestUrl = useMemo(() => {
+    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}/backtest` : '/stats';
+  }, [currentStrategySlug]);
+
   const isActive = (path: string) => {
     if (path === '/my-trades') {
       return pathname.includes('/my-trades') && (pathname.startsWith('/strategy') || pathname.startsWith('/analytics'));
@@ -117,6 +146,9 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
     if (path === '/ai-vision') {
       return pathname.includes('/ai-vision') && (pathname.startsWith('/strategy') || pathname.startsWith('/analytics'));
     }
+    if (path === '/backtest') {
+      return pathname.includes('/backtest') && (pathname.startsWith('/strategy') || pathname.startsWith('/analytics'));
+    }
     return pathname === path;
   };
 
@@ -127,6 +159,11 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
         ? 'group/navactive cursor-pointer themed-btn-primary text-white font-semibold border-0 hover:text-white [&_svg]:text-white [&_span]:text-white'
         : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 hover:border-slate-300/70 dark:text-slate-200 dark:hover:text-slate-50 dark:hover:bg-slate-800/70 dark:hover:border-slate-700/70'
     );
+
+  // TradingView-style full-bleed: backtest hides the floating side-nav entirely.
+  if (isBacktestPage) {
+    return <BECalcProvider>{children}</BECalcProvider>;
+  }
 
   return (
     <BECalcProvider>
@@ -220,6 +257,15 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
                 {isActive('/ai-vision') && <div className="absolute inset-0 -translate-x-full group-hover/navactive:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />}
               </Link>
             </Button>
+            {showBacktestTab && (
+              <Button variant="ghost" asChild size="sm" className={navButtonClass(isActive('/backtest'))}>
+                <Link href={backtestUrl} className="block w-full h-full relative min-h-[40px]">
+                  <ChartCandlestick className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
+                  <span className="absolute left-14 top-1/2 -translate-y-1/2 whitespace-nowrap opacity-100 max-w-[140px] lg:opacity-0 lg:max-w-0 overflow-hidden lg:group-hover/card:max-w-[140px] lg:group-hover/card:opacity-100 transition-all duration-300">Backtest</span>
+                  {isActive('/backtest') && <div className="absolute inset-0 -translate-x-full group-hover/navactive:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />}
+                </Link>
+              </Button>
+            )}
             <Button variant="ghost" asChild size="sm" className={navButtonClass(isActive('/my-trades'))}>
               <Link href={myTradesUrl} className="block w-full h-full relative min-h-[40px]">
                 <TrendingUp className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
